@@ -1,6 +1,6 @@
 #include "mjpeg.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <qcommon/threads.h>
 #include "avi.h"
 #include "yuv.h"

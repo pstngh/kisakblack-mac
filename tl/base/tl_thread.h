@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 struct __declspec(align(8)) tlAtomicReadWriteMutex // sizeof=0x18
 {                                       // XREF: .data:tlAtomicReadWriteMutex g_auto_rigid_body_map_mutex/r

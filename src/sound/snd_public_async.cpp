@@ -10,7 +10,7 @@
 #include <win32/win_common.h>
 #include <universal/com_workercmds.h>
 
-#include <Windows.h>
+#include <windows.h>
 #include "snd_local.h"
 #include "snd_driver_xaudio2.h"
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <clientscript/cscr_main.h>
 #include "dobj.h"
 
@@ -16,9 +17,9 @@ struct XAnimParam // sizeof=0x14
 union XAnimIndices // sizeof=0x4
 {                                                                             // XREF: XAnimLoadFile(char const *,void * (*)(int),bool)+1808/w
                                                                                 // XAnimLoadFile(char const *,void * (*)(int),bool)+1840/w ...
-        unsigned __int8 *_1;
-        unsigned __int16 *_2;
-        void *data;
+        Ptr32<unsigned __int8> _1;
+        Ptr32<unsigned __int16> _2;
+        Ptr32<void> data;
 };
 
 struct XAnimNotifyInfo // sizeof=0x8
@@ -32,8 +33,8 @@ struct XAnimNotifyInfo // sizeof=0x8
 union XAnimDynamicFrames // sizeof=0x4
 {                                                                             // XREF: XAnimCalcNonLoopEnd+9ED/w
                                                                                 // XAnimCalcNonLoopEnd+9F3/r ...
-        unsigned __int8 (*_1)[3];
-        unsigned __int16 (*_2)[3];
+        Ptr32<unsigned __int8[3]> _1;
+        Ptr32<unsigned __int16[3]> _2;
 };
 
 union XAnimDynamicIndices // sizeof=0x2
@@ -69,7 +70,7 @@ struct XAnimPartTrans // sizeof=0x24
 
 struct __declspec(align(4)) XAnimDeltaPartQuatDataFrames // sizeof=0x8
 {                                                                             // XREF: XAnimDeltaPartQuatData/r
-        __int16 (*frames)[2];
+        Ptr32<__int16[2]> frames;
         XAnimDynamicIndices indices;
         // padding byte
         // padding byte
@@ -91,13 +92,13 @@ struct XAnimDeltaPartQuat // sizeof=0xC
 
 struct XAnimDeltaPart // sizeof=0x8
 {
-        XAnimPartTrans *trans;
-        XAnimDeltaPartQuat *quat;
+        Ptr32<XAnimPartTrans> trans;
+        Ptr32<XAnimDeltaPartQuat> quat;
 };
 
 struct XAnimParts // sizeof=0x68
 {                                                                             // XREF: XAssetPoolEntry<XAnimParts>/r
-        const char *name;
+        Ptr32<const char> name;
         unsigned __int16 dataByteCount;
         unsigned __int16 dataShortCount;
         unsigned __int16 dataIntCount;
@@ -122,16 +123,16 @@ struct XAnimParts // sizeof=0x68
         float frequency;
         float primedLength;
         float loopEntryTime;
-        unsigned __int16 *names;
-        unsigned __int8 *dataByte;
-        __int16 *dataShort;
-        int *dataInt;
-        __int16 *randomDataShort;
-        unsigned __int8 *randomDataByte;
-        int *randomDataInt;
+        Ptr32<unsigned __int16> names;
+        Ptr32<unsigned __int8> dataByte;
+        Ptr32<__int16> dataShort;
+        Ptr32<int> dataInt;
+        Ptr32<__int16> randomDataShort;
+        Ptr32<unsigned __int8> randomDataByte;
+        Ptr32<int> randomDataInt;
         XAnimIndices indices;
-        XAnimNotifyInfo *notify;
-        XAnimDeltaPart *deltaPart;
+        Ptr32<XAnimNotifyInfo> notify;
+        Ptr32<XAnimDeltaPart> deltaPart;
 };
 
 struct XAnimParent // sizeof=0x4
@@ -179,8 +180,8 @@ struct XAnimTree_s // sizeof=0x8
 struct XSurfaceVertexInfo // sizeof=0x10
 {                                                                             // XREF: XSurface/r
         __int16 vertCount[4];
-        unsigned __int16 *vertsBlend;
-        float *tensionData;
+        Ptr32<unsigned __int16> vertsBlend;
+        Ptr32<float> tensionData;
 };
 
 struct XSurfaceCollisionAabb // sizeof=0xC
@@ -206,9 +207,9 @@ struct XSurfaceCollisionTree // sizeof=0x28
         float trans[3];
         float scale[3];
         unsigned int nodeCount;
-        XSurfaceCollisionNode *nodes;
+        Ptr32<XSurfaceCollisionNode> nodes;
         unsigned int leafCount;
-        XSurfaceCollisionLeaf *leafs;
+        Ptr32<XSurfaceCollisionLeaf> leafs;
 };
 
 struct XRigidVertList // sizeof=0xC
@@ -220,7 +221,7 @@ struct XRigidVertList // sizeof=0xC
                                                                                 // XModelReadSurface(XModel *,uchar const * *,void * (*)(int),XSurface *,int,char const *)+F9C/r
         unsigned __int16 triCount;                    // XREF: XModelReadSurface(XModel *,uchar const * *,void * (*)(int),XSurface *,int,char const *)+1027/w
                                                                                 // XModelReadSurface(XModel *,uchar const * *,void * (*)(int),XSurface *,int,char const *)+1038/r
-        XSurfaceCollisionTree *collisionTree;
+        Ptr32<XSurfaceCollisionTree> collisionTree;
 };
 
 struct GfxPackedVertex // sizeof=0x20
@@ -254,18 +255,18 @@ struct XSurface // sizeof=0x44
         unsigned __int16 triCount;
         unsigned __int16 baseTriIndex;
         unsigned __int16 baseVertIndex;
-        unsigned __int16 *triIndices;
+        Ptr32<unsigned __int16> triIndices;
         XSurfaceVertexInfo vertInfo;
-        GfxPackedVertex *verts0;
-        IDirect3DVertexBuffer9 *vb0;
-        XRigidVertList *vertList;
-        IDirect3DIndexBuffer9 *indexBuffer;
+        Ptr32<GfxPackedVertex> verts0;
+        Ptr32<IDirect3DVertexBuffer9> vb0;
+        Ptr32<XRigidVertList> vertList;
+        Ptr32<IDirect3DIndexBuffer9> indexBuffer;
         int partBits[5];
 };
 
 struct Collmap // sizeof=0x4
 {
-        PhysGeomList *geomList;
+        Ptr32<PhysGeomList> geomList;
 };
 
 struct XAnimSimpleRotPos // sizeof=0x18

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <win32/win_local.h>
-#include <Windows.h>
+#include <windows.h>
 #include <qcommon/common.h>
 
 bool __cdecl PC_StartWithNoSounds();

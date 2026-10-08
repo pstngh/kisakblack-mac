@@ -10,12 +10,8 @@
 #define CSIDL_LOCAL_APPDATA 0x001c
 #define CSIDL_FLAG_CREATE   0x8000
 
-// avoid pulling <cstdlib>'s random(); musl declares getenv without an exception-spec.
-#ifdef __EMSCRIPTEN__
-extern "C" char *getenv(const char *);
-#else
-extern "C" char *getenv(const char *) noexcept;
-#endif
+// avoid pulling <cstdlib>'s random()
+extern "C" char *getenv(const char *) KISAK_LIBC_NOEXCEPT;
 
 static inline HRESULT SHGetFolderPathA(HWND, int /*csidl*/, HANDLE, DWORD, char *pszPath) {
     if (!pszPath) return (HRESULT)-1;

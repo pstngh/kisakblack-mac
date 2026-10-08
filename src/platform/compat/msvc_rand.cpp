@@ -20,14 +20,14 @@
 // not perturb another's).
 
 namespace {
-    __thread unsigned long g_holdrand = 1;  // MSVC's initial _Holdrand
+    __thread unsigned int g_holdrand = 1;  // MSVC's initial _Holdrand
 }
 
-extern "C" int rand() noexcept {
-    g_holdrand = g_holdrand * 214013ul + 2531011ul;
+extern "C" int rand() KISAK_LIBC_NOEXCEPT {
+    g_holdrand = g_holdrand * 214013u + 2531011u;
     return (int)((g_holdrand >> 16) & 0x7FFF);
 }
 
-extern "C" void srand(unsigned int seed) noexcept {
+extern "C" void srand(unsigned int seed) KISAK_LIBC_NOEXCEPT {
     g_holdrand = seed;
 }

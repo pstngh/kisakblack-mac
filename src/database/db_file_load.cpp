@@ -3,7 +3,7 @@
 #include "db_auth.h"
 #include "db_registry.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <win32/win_shared.h>
 #include <qcommon/common.h>
 #include <qcommon/threads.h>

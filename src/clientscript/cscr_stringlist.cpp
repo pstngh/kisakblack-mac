@@ -7,7 +7,7 @@
 #include "cscr_instance.h"
 #include <qcommon/common.h>
 
-#include <Windows.h>
+#include <windows.h>
 #include "cscr_variable.h"
 
 // server: 0x8000

@@ -1,7 +1,7 @@
 #include "com_memory.h"
 #include "assertive.h"
 
-#include <Windows.h> // VirtualAlloc
+#include <windows.h> // VirtualAlloc
 #include <win32/win_main.h>
 #include <qcommon/threads.h>
 #include <win32/win_shared.h>

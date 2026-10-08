@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <gfx_d3d/r_primarylights.h>
 
 struct ComWaterHeader // sizeof=0x10
@@ -47,30 +48,30 @@ struct ComBurnableCell // sizeof=0xC
 {
     int x;
     int y;
-    ComBurnableSample *data;
+    Ptr32<ComBurnableSample> data;
 };
 
 struct ComWorld // sizeof=0x40
 {                                       // XREF: .data:ComWorld comWorld/r
-    const char *name;                   // XREF: Com_LoadWorld_LoadObj+50/w
+    Ptr32<const char> name;                   // XREF: Com_LoadWorld_LoadObj+50/w
                                         // UIViewer::LoadMap(void)+44/r ...
     int isInUse;                        // XREF: Com_GetPrimaryLightCount(void)+3/r
                                         // Com_GetPrimaryLight(uint)+3/r ...
     unsigned int primaryLightCount;     // XREF: Com_GetPrimaryLightCount(void):loc_4AB85F/r
                                         // Com_GetPrimaryLight(uint)+32/r ...
-    ComPrimaryLight *primaryLights;     // XREF: Com_GetPrimaryLight(uint)+6B/r
+    Ptr32<ComPrimaryLight> primaryLights;     // XREF: Com_GetPrimaryLight(uint)+6B/r
                                         // Com_LoadPrimaryLights+80/w ...
     ComWaterHeader waterHeader;         // XREF: Com_LoadWaterData(void)+6F/w
                                         // Com_LoadWaterData(void)+79/w ...
     unsigned int numWaterCells;         // XREF: Com_LoadWaterData(void)+5B/w
                                         // Com_LoadWaterData(void)+E0/w ...
-    ComWaterCell *waterCells;           // XREF: Com_LoadWaterData(void)+65/w
+    Ptr32<ComWaterCell> waterCells;           // XREF: Com_LoadWaterData(void)+65/w
                                         // Com_LoadWaterData(void)+FC/w ...
     ComBurnableHeader burnableHeader;   // XREF: Com_LoadBurnableData(void)+6F/w
                                         // Com_LoadBurnableData(void)+79/w ...
     unsigned int numBurnableCells;      // XREF: Com_LoadBurnableData(void)+5B/w
                                         // Com_LoadBurnableData(void)+E0/w ...
-    ComBurnableCell *burnableCells;     // XREF: Com_LoadBurnableData(void)+65/w
+    Ptr32<ComBurnableCell> burnableCells;     // XREF: Com_LoadBurnableData(void)+65/w
                                         // Com_LoadBurnableData(void)+FC/w ...
 };
 

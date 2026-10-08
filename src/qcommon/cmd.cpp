@@ -9,7 +9,7 @@
 #include <game_mp/g_cmds_mp.h>
 #include <server_mp/sv_main_mp.h>
 
-#include <Windows.h>
+#include <windows.h>
 #include "threads.h"
 #include <stringed/stringed_hooks.h>
 #include <client/cl_keys.h>

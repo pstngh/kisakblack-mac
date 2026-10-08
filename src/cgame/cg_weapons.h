@@ -34,7 +34,7 @@ struct weaponInfo_s // sizeof=0x24
     const char *translatedModename;
     const char *translatedAIOverlayDescription;
 };
-static_assert(sizeof(weaponInfo_s) == 0x24);
+static_assert(sizeof(void *) != 4 || sizeof(weaponInfo_s) == 0x24);
 
 struct weaponState_t // sizeof=0x90
 {                                       // XREF: ?ClientThink_real@@YAXPAUgentity_s@@PAUusercmd_s@@@Z/r

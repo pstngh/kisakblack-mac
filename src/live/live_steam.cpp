@@ -2,7 +2,7 @@
 #include <win32/win_splash.h>
 #include <qcommon/common.h>
 #include <win32/win_localize.h>
-#include <Windows.h>
+#include <windows.h>
 #ifdef _WIN32
 #include <shellapi.h>
 #endif

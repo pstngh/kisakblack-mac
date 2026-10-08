@@ -1,4 +1,4 @@
-#include <Windows.h>
+#include <windows.h>
 
 #include "win_gamerprofile.h"
 #include <universal/dvar.h>

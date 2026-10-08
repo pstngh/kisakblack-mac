@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <universal/q_shared.h>
 #include <game/teams.h>
 #include "snd_dsp.h"
@@ -109,34 +110,34 @@ struct snd_asset // sizeof=0x38
         snd_asset_channel channel_flags;
         snd_asset_flags flags;
         unsigned int seek_table_count;
-        unsigned int *seek_table;
+        Ptr32<unsigned int> seek_table;
         unsigned int data_size;
-        char *data;
+        Ptr32<char> data;
 };
 
 struct LoadedSound // sizeof=0x3C
 {
-        const char *name;
+        Ptr32<const char> name;
         snd_asset sound;
 };
 
 struct PrimedSound // sizeof=0xC
 {
-        const char *name;
-        char *buffer;
+        Ptr32<const char> name;
+        Ptr32<char> buffer;
         unsigned int size;
 };
 
 struct StreamedSound // sizeof=0x8
 {
-        char *filename;
-        PrimedSound *primeSnd;
+        Ptr32<char> filename;
+        Ptr32<PrimedSound> primeSnd;
 };
 
 union SoundFileRef // sizeof=0x4
 {                                                                             // XREF: SoundFile/r
-        LoadedSound *loadSnd;
-        StreamedSound *streamSnd;
+        Ptr32<LoadedSound> loadSnd;
+        Ptr32<StreamedSound> streamSnd;
 };
 
 
@@ -152,11 +153,11 @@ struct __declspec(align(4)) SoundFile // sizeof=0x8
 
 struct __declspec(align(2)) snd_alias_t // sizeof=0x54
 {
-        const char *name;
+        Ptr32<const char> name;
         unsigned int id;
-        const char *subtitle;
-        const char *secondaryname;
-        SoundFile *soundFile;
+        Ptr32<const char> subtitle;
+        Ptr32<const char> secondaryname;
+        Ptr32<SoundFile> soundFile;
         unsigned int flags;
         unsigned int duck;
         unsigned int contextType;
@@ -198,9 +199,9 @@ struct __declspec(align(2)) snd_alias_t // sizeof=0x54
 
 struct snd_alias_list_t // sizeof=0x14
 {                                                                             // XREF: XAssetPoolEntry<snd_alias_list_t>/r
-        const char *name;
+        Ptr32<const char> name;
         unsigned int id;
-        snd_alias_t *head;
+        Ptr32<snd_alias_t> head;
         int count;
         int sequence;
 };
@@ -481,19 +482,19 @@ static_assert(sizeof(snd_master) == 176);
 
 struct SndDriverGlobals // sizeof=0x34
 {                                                                             // XREF: XAssetPoolEntry<SndDriverGlobals>/r
-    const char *name;
+    Ptr32<const char> name;
     unsigned int groupCount;
-    snd_group *groups; // hehe
+    Ptr32<snd_group> groups; // hehe
     unsigned int curveCount;
-    snd_curve * curves;
+    Ptr32<snd_curve> curves;
     unsigned int panCount;
-    snd_pan *pans;
+    Ptr32<snd_pan> pans;
     unsigned int snapshotGroupCount;
-    snd_snapshot_group * snapshotGroups;
+    Ptr32<snd_snapshot_group> snapshotGroups;
     unsigned int contextCount;
-    snd_context *contexts;
+    Ptr32<snd_context> contexts;
     unsigned int masterCount;
-    snd_master * masters;
+    Ptr32<snd_master> masters;
 };
 static_assert(sizeof(SndDriverGlobals) == 52);
 

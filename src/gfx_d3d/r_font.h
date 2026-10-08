@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 struct Glyph // sizeof=0x18
 {
@@ -18,12 +19,12 @@ static_assert(sizeof(Glyph) == 24);
 
 struct Font_s // sizeof=0x18
 {                                       // XREF: XAssetPoolEntry<Font_s>/r
-    const char *fontName;
+    Ptr32<const char> fontName;
     int pixelHeight;
     int glyphCount;
-    struct Material *material;
-    struct Material *glowMaterial;
-    Glyph *glyphs;
+    Ptr32<struct Material> material;
+    Ptr32<struct Material> glowMaterial;
+    Ptr32<Glyph> glyphs;
 };
 static_assert(sizeof(Font_s) == 24);
 

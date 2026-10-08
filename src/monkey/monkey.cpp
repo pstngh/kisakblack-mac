@@ -3,7 +3,7 @@
 
 #include <cstring>
 #include <universal/q_shared.h>
-#include <Windows.h>
+#include <windows.h>
 #include <universal/dvar.h>
 #include <universal/assertive.h>
 #include <qcommon/common.h>

@@ -221,12 +221,12 @@ void __cdecl jpeg_memory_src(j_decompress_ptr cinfo, const unsigned __int8 *pubD
     my_source_mgr *src; // [esp+0h] [ebp-4h]
 
     if (!cinfo->src)
-        cinfo->src = (struct jpeg_source_mgr *)cinfo->mem->alloc_small((struct jpeg_common_struct *)cinfo, 0, 32);
+        cinfo->src = (struct jpeg_source_mgr *)cinfo->mem->alloc_small((struct jpeg_common_struct *)cinfo, 0, sizeof(my_source_mgr));
     src = (my_source_mgr *)cinfo->src;
     src->pub.init_source = init_source;
     src->pub.fill_input_buffer = 0;
     src->pub.skip_input_data = skip_input_data;
-    src->pub.resync_to_restart = (unsigned __int8(__cdecl *)(struct jpeg_decompress_struct *, int))jpeg_resync_to_restart;
+    src->pub.resync_to_restart = jpeg_resync_to_restart;
     src->pub.term_source = NULLSUBB;
     src->pub.bytes_in_buffer = iBytes;
     src->pub.next_input_byte = pubData;

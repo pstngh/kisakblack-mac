@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 struct __declspec(align(4)) WinMouseVars_t // sizeof=0x10
 {                                       // XREF: .data:s_wmv/r

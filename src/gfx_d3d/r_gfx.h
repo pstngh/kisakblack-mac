@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <universal/com_math.h>
 
 enum GfxDrawSceneMethod : __int32
@@ -195,7 +196,7 @@ struct GfxSModelDrawSurfLightingData // sizeof=0x28
 
 struct __declspec(align(4)) GfxLightImage // sizeof=0x8
 {                                                                             // XREF: GfxLightDef/r
-        struct GfxImage *image;
+        Ptr32<struct GfxImage> image;
         unsigned __int8 samplerState;
         // padding byte
         // padding byte
@@ -204,7 +205,7 @@ struct __declspec(align(4)) GfxLightImage // sizeof=0x8
 
 struct GfxLightDef // sizeof=0x10
 {                                                                             // XREF: XAssetPoolEntry<GfxLightDef>/r
-        const char *name;
+        Ptr32<const char> name;
         GfxLightImage attenuation;
         int lmapLookupStart;
 };
@@ -240,7 +241,7 @@ struct __declspec(align(16)) GfxLight // sizeof=0x170
         // padding byte
         float44 viewMatrix;
         float44 projMatrix;
-        GfxLightDef *def;
+        Ptr32<GfxLightDef> def;
         // padding byte
         // padding byte
         // padding byte
@@ -499,7 +500,7 @@ struct GfxSurface // sizeof=0x50
 {                                       // XREF: ??$_Insertion_sort1@PAUGfxSurface@@P6A_NABU1@0@ZU1@@std@@YAXPAUGfxSurface@@0P6A_NABU1@1@Z0@Z/r
                                         // ??$_Adjust_heap@PAUGfxSurface@@HU1@P6A_NABU1@0@Z@std@@YAXPAUGfxSurface@@HHU1@P6A_NABU1@2@Z@Z/r ...
     srfTriangles_t tris;
-    Material *material;
+    Ptr32<Material> material;
     unsigned __int8 lightmapIndex;
     unsigned __int8 reflectionProbeIndex;
     unsigned __int8 primaryLightIndex;
@@ -509,9 +510,9 @@ struct GfxSurface // sizeof=0x50
 
 struct GfxLightmapArray // sizeof=0xC
 {
-    GfxImage *primary;
-    GfxImage *secondary;
-    GfxImage *secondaryB;
+    Ptr32<GfxImage> primary;
+    Ptr32<GfxImage> secondary;
+    Ptr32<GfxImage> secondaryB;
 };
 
 struct GfxSceneDef // sizeof=0x14

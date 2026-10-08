@@ -221,7 +221,7 @@ struct broad_phase_memory // sizeof=0xCD8
     void list_bpb_remove(broad_phase_base *bpb_to_remove);
     static broad_phase_memory *allocate_buffer(const broad_phase_memory_info *bpmi);
 };
-static_assert(sizeof(broad_phase_memory) == 0xCD8);
+static_assert(sizeof(void *) != 4 || sizeof(broad_phase_memory) == 0xCD8);
 
 struct bpi_environment_collision_info // sizeof=0x10
 {                                       // XREF: ?broad_phase_process_object_environment_collision@@YAXXZ/r
@@ -324,7 +324,7 @@ struct axis_aligned_sweep_and_prune // sizeof=0x28
     void process_active_pair_list();
     void process();
 };
-static_assert(sizeof(axis_aligned_sweep_and_prune) == 40);
+static_assert(sizeof(void *) != 4 || sizeof(axis_aligned_sweep_and_prune) == 40);
 
 struct __declspec(align(8)) broad_phase_info : broad_phase_base // sizeof=0x70
 {                                                                             // XREF: phys_free_list<broad_phase_info>::T_internal/r

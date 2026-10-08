@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 struct WinConData // sizeof=0x620
 {                                       // XREF: .data:s_wcd/r

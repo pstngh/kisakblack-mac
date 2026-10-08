@@ -3,7 +3,7 @@
 #define XMD_H 1
 
 // Include hell!
-#include <Windows.h>
+#include <windows.h>
 #define boolean jpeg_boolean
 #define HAVE_BOOLEAN 1
 typedef int jpeg_boolean;

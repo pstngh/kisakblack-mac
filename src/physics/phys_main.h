@@ -137,7 +137,7 @@ struct __declspec(align(4)) phys_surface_type_info // sizeof=0x10
     // padding byte
     // padding byte
 };
-static_assert(sizeof(phys_surface_type_info) == 16);
+static_assert(sizeof(void *) != 4 || sizeof(phys_surface_type_info) == 16);
 
 
 struct PhysGlob // sizeof=0x480

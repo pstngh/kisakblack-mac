@@ -6,7 +6,7 @@
 #include "cscr_stringlist.h"
 #include "cscr_memorytree.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <qcommon/common.h>
 #include <xanim/xanim.h>
 #include <universal/com_memory.h>

@@ -17,6 +17,14 @@
 
 #if !defined(_MSC_VER)
 
+// glibc declares the C library functions noexcept in C++; Apple's libc and
+// musl do not. Redeclarations below must match whichever libc is in use.
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
+#define KISAK_LIBC_NOEXCEPT
+#else
+#define KISAK_LIBC_NOEXCEPT noexcept
+#endif
+
 // MSVC makes the C string/float-limits functions broadly visible; the decompiled
 // code uses memset/memcpy/FLT_MAX/etc. without always including the header. Pull
 // them in build-wide (this header is force-included) to match. (Not <cstdlib> —
@@ -29,8 +37,8 @@
 #include <csetjmp>
 // NOT <strings.h>: it declares index()/rindex(), which collide with the engine's
 // `index` variables. Declare the two case-insensitive compares we need directly.
-extern "C" int strcasecmp(const char *, const char *) noexcept;
-extern "C" int strncasecmp(const char *, const char *, size_t) noexcept;
+extern "C" int strcasecmp(const char *, const char *) KISAK_LIBC_NOEXCEPT;
+extern "C" int strncasecmp(const char *, const char *, size_t) KISAK_LIBC_NOEXCEPT;
 
 #ifndef __debugbreak
 #define __debugbreak() __builtin_trap()
@@ -50,7 +58,7 @@ extern "C" int strncasecmp(const char *, const char *, size_t) noexcept;
 // Wide secure printf variants -> the C wide-char equivalents (CubeMapGen/ErrorMsg).
 #include <cwchar>
 #include <cstdarg>
-extern "C" { void exit(int) noexcept; void *realloc(void *, size_t) noexcept; }  // declared directly (not <cstdlib>: random() clash)
+extern "C" { void exit(int) KISAK_LIBC_NOEXCEPT; void *realloc(void *, size_t) KISAK_LIBC_NOEXCEPT; }  // declared directly (not <cstdlib>: random() clash)
 static inline void *_aligned_realloc(void *p, size_t size, size_t /*align*/) { return realloc(p, size); }
 static inline int _vsnwprintf_s(wchar_t *buf, size_t bufsize, size_t /*count*/, const wchar_t *fmt, va_list args) {
     return bufsize ? vswprintf(buf, bufsize, fmt, args) : 0;
@@ -67,10 +75,10 @@ static inline int _snwprintf_s(wchar_t *buf, size_t bufsize, size_t /*count*/, c
 // directly (NOT via <cstdlib>) so we don't pull in POSIX random()/srandom(), which
 // collide with the engine's own random() declaration (only scope-renamed in a few
 // files). These libc symbols are otherwise standard.
-extern "C" long long          atoll(const char *) noexcept;
-extern "C" long long          strtoll(const char *, char **, int) noexcept;
-extern "C" unsigned long long strtoull(const char *, char **, int) noexcept;
-extern "C" int                putenv(char *) noexcept;
+extern "C" long long          atoll(const char *) KISAK_LIBC_NOEXCEPT;
+extern "C" long long          strtoll(const char *, char **, int) KISAK_LIBC_NOEXCEPT;
+extern "C" unsigned long long strtoull(const char *, char **, int) KISAK_LIBC_NOEXCEPT;
+extern "C" int                putenv(char *) KISAK_LIBC_NOEXCEPT;
 static inline long long          _atoi64(const char *s)                    { return atoll(s); }
 static inline long long          _strtoi64(const char *s, char **e, int b)  { return strtoll(s, e, b); }
 static inline unsigned long long _strtoui64(const char *s, char **e, int b) { return strtoull(s, e, b); }

@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 struct XModel;
 struct trace_t;
@@ -13,7 +14,7 @@ struct cStaticModel_s // sizeof=0x50
     cStaticModelWritable writable;
     // padding byte
     // padding byte
-    XModel *xmodel;
+    Ptr32<XModel> xmodel;
     float origin[3];
     float invScaledAxis[3][3];
     float absmin[3];

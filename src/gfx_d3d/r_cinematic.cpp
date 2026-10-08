@@ -1,7 +1,7 @@
 #include "r_cinematic.h"
 #include <qcommon/common.h>
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #include <mmreg.h>
 #endif
 #include <dsound.h>

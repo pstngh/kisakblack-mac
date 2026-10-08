@@ -1,17 +1,18 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <database/db_registry.h>
 #include <gfx_d3d/fxprimitives.h>
 
 struct FxImpactEntry // sizeof=0x8C
 {
-    const FxEffectDef *nonflesh[31];
-    const FxEffectDef *flesh[4];
+    Ptr32<const FxEffectDef> nonflesh[31];
+    Ptr32<const FxEffectDef> flesh[4];
 };
 
 struct FxImpactTable // sizeof=0x8
 {                                       // XREF: XAssetPoolEntry<FxImpactTable>/r
-    const char *name;
-    FxImpactEntry *table;
+    Ptr32<const char> name;
+    Ptr32<FxImpactEntry> table;
 };
 
 struct EffectFile // sizeof=0xB7C

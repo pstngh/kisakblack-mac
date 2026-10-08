@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 struct cbrush_t;
 struct menuDef_t;
@@ -23,9 +24,9 @@ struct PackIndexHeader // sizeof=0x14
 struct PackIndex // sizeof=0x1C
 {                                       // XREF: snd_pack_file/r
                                         // XAssetPoolEntry<PackIndex>/r
-    const char *name;
+    Ptr32<const char> name;
     PackIndexHeader header;
-    PackIndexEntry *entries;
+    Ptr32<PackIndexEntry> entries;
 };
 
 void __cdecl Load_byteArray(bool atStreamStart, int count);

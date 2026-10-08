@@ -1,7 +1,7 @@
 #include <live/live_sessions_win.h>
 #include "win_voice.h"
 #include <qcommon/common.h>
-#include <Windows.h>
+#include <windows.h>
 #include <mmsystem.h>
 #include <cstring>
 #include <groupvoice/encode.h>

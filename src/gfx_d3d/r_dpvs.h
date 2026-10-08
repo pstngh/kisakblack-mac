@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include <xanim/xmodel.h>
 #include "r_gfx.h"
@@ -45,16 +46,16 @@ struct GfxPortalWritable // sizeof=0xC
     bool isAncestor;
     unsigned __int8 recursionDepth;
     unsigned __int8 hullPointCount;
-    float (*hullPoints)[2];
-    struct GfxPortal *queuedParent;
+    Ptr32<float[2]> hullPoints;
+    Ptr32<struct GfxPortal> queuedParent;
 };
 
 struct GfxPortal // sizeof=0x44
 {
     GfxPortalWritable writable;
     DpvsPlane plane;
-    struct GfxCell *cell;
-    float (*vertices)[3];
+    Ptr32<struct GfxCell> cell;
+    Ptr32<float[3]> vertices;
     unsigned __int8 vertexCount;
     // padding byte
     // padding byte

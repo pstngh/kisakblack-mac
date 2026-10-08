@@ -252,7 +252,7 @@ struct GfxViewRenderControl // sizeof=0x38
     unsigned int renderingMode;
     unsigned int additionalPostFX;
 };
-static_assert(sizeof(GfxViewRenderControl) == 0x38);
+static_assert(sizeof(void *) != 4 || sizeof(GfxViewRenderControl) == 0x38);
 
 struct GfxUI3DBackend // sizeof=0xE0
 {                                       // XREF: GfxViewInfo/r

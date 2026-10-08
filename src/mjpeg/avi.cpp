@@ -1,7 +1,7 @@
 #include "avi.h"
 
 #include <cstring>
-#include <Windows.h>
+#include <windows.h>
 #include "yuv.h"
 #include <gfx_d3d/r_dvars.h>
 #include <vpx/vpx.h>

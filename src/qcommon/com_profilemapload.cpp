@@ -1,6 +1,6 @@
 #include "com_profilemapload.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include "threads.h"
 #include <universal/assertive.h>
 #include <universal/dvar.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 //enum $93E05B02D75CB8D5BD679C8A761DAE10 : __int32
 enum ThreadContext_t : __int32 // not a real enum name

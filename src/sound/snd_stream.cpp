@@ -3,7 +3,7 @@
 #include <universal/physicalmemory.h>
 #include <tl/tl_system.h>
 
-#include <Windows.h>
+#include <windows.h>
 #include <qcommon/common.h>
 #include <universal/com_files.h>
 

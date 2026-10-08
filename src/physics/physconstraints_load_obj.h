@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 enum ConstraintType : __int32
 {                                                                             // XREF: PhysConstraint/r
@@ -36,13 +37,13 @@ struct PhysConstraint // sizeof=0xA8
     unsigned __int16 target_ent1;
     // padding byte
     // padding byte
-    const char *target_bone1;
+    Ptr32<const char> target_bone1;
     AttachPointType attach_point_type2;
     int target_index2;
     unsigned __int16 target_ent2;
     // padding byte
     // padding byte
-    const char *target_bone2;
+    Ptr32<const char> target_bone2;
     float offset[3];
     float pos[3];
     float pos2[3];
@@ -58,7 +59,7 @@ struct PhysConstraint // sizeof=0xA8
     float spin_scale;
     float minAngle;
     float maxAngle;
-    struct Material *material;
+    Ptr32<struct Material> material;
     int constraintHandle;
     int rope_index;
     int centity_num[4];
@@ -66,7 +67,7 @@ struct PhysConstraint // sizeof=0xA8
 
 struct PhysConstraints // sizeof=0xA88
 {                                                                             // XREF: XAssetPoolEntry<PhysConstraints>/r
-    const char *name;
+    Ptr32<const char> name;
     unsigned int count;
     PhysConstraint data[16];
 };

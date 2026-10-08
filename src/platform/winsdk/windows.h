@@ -40,6 +40,9 @@ KISAK_DECLARE_HANDLE(HGLRC);
 #include <pthread.h>
 #include <unistd.h>
 #include <sched.h>
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
 #include <ctime>
 #include <cerrno>
 
@@ -267,7 +270,13 @@ typedef struct _MEMORYSTATUS {
 } MEMORYSTATUS, *LPMEMORYSTATUS;
 static inline void GlobalMemoryStatus(MEMORYSTATUS *s) {
     if (!s) return; memset(s, 0, sizeof(*s)); s->dwLength = sizeof(*s);
+#ifdef _SC_AVPHYS_PAGES
     long pages = sysconf(_SC_PHYS_PAGES), avail = sysconf(_SC_AVPHYS_PAGES), psz = sysconf(_SC_PAGE_SIZE);
+#else   // macOS: no _SC_AVPHYS_PAGES; free pages come from the VM sysctl.
+    long pages = sysconf(_SC_PHYS_PAGES), avail = 0, psz = sysconf(_SC_PAGE_SIZE);
+    unsigned int freeCount = 0; size_t len = sizeof(freeCount);
+    if (sysctlbyname("vm.page_free_count", &freeCount, &len, nullptr, 0) == 0) avail = (long)freeCount;
+#endif
     if (pages > 0 && psz > 0) s->dwTotalPhys = (SIZE_T)pages * psz;
     if (avail > 0 && psz > 0) s->dwAvailPhys = (SIZE_T)avail * psz;
     s->dwTotalVirtual = s->dwTotalPhys; s->dwAvailVirtual = s->dwAvailPhys;

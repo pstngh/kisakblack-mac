@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <win32/win_common.h>
 #include <cstddef>
 #include "database.h"
@@ -24,9 +25,9 @@ enum DBCloneMethod : __int32
 
 struct RawFile // sizeof=0xC
 {                                       // XREF: XAssetPoolEntry<RawFile>/r
-    const char *name;
+    Ptr32<const char> name;
     int len;
-    const char *buffer;
+    Ptr32<const char> buffer;
 };
 
 struct XZoneInfoInternal // sizeof=0x44
@@ -44,14 +45,14 @@ struct XAsset // sizeof=0x8
 struct ScriptStringList // sizeof=0x8
 {                                       // XREF: XAssetList/r
     int count;
-    const char **strings;
+    Ptr32<Ptr32<const char>> strings;
 };
 
 struct XAssetList // sizeof=0x10
 {                                       // XREF: .data:g_varXAssetList/r
     ScriptStringList stringList;
     int assetCount;
-    XAsset *assets;
+    Ptr32<XAsset> assets;
 };
 
 struct PhysConstraints;

@@ -6,7 +6,7 @@
 #include <gfx_d3d/r_foliage.h>
 #include <tl/tl_system.h>
 #include <qcommon/threads.h>
-#include <Windows.h>
+#include <windows.h>
 #include <gfx_d3d/r_workercmds.h>
 
 bool g_WorkerCmdInit;

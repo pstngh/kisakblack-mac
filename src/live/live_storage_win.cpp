@@ -1,6 +1,6 @@
 #include "live_storage_win.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <universal/assertive.h>
 #include <qcommon/common.h>
 #include <ddl/ddl_api.h>

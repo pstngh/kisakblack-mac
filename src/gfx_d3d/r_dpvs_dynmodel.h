@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 struct GfxWorldDpvsDynamic // sizeof=0x30
 {                                       // XREF: GfxWorld/r
@@ -7,8 +8,8 @@ struct GfxWorldDpvsDynamic // sizeof=0x30
                                         // R_LoadWorldRuntime+E6/r ...
     unsigned int dynEntClientCount[2];  // XREF: R_LoadWorldInternal(char const *)+1F3/w
                                         // R_LoadWorldInternal(char const *)+1FD/r ...
-    unsigned int *dynEntCellBits[2];    // XREF: R_LoadWorldRuntime+2ED/w
-    unsigned __int8 *dynEntVisData[2][3];
+    Ptr32<unsigned int> dynEntCellBits[2];    // XREF: R_LoadWorldRuntime+2ED/w
+    Ptr32<unsigned __int8> dynEntVisData[2][3];
                                         // XREF: R_LoadWorldRuntime+102/w
 };
 

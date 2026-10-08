@@ -2,7 +2,7 @@
 
 #include <cstdarg>
 #include <cstdio>
-#include <Windows.h>
+#include <windows.h>
 #include "com_buildinfo.h"
 #include "q_shared.h"
 #include <win32/win_common.h>

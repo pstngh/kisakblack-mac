@@ -1,5 +1,5 @@
 #pragma once
-#include <Windows.h>
+#include <windows.h>
 #include <d3d9.h>
 #include "r_bsp.h"
 #include "r_material_load_obj.h"

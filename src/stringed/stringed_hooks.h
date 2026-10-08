@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include <universal/dvar.h>
 
@@ -11,8 +12,8 @@ enum msgLocErrType_t : __int32
 
 struct LocalizeEntry // sizeof=0x8
 {                                       // XREF: XAssetPoolEntry<LocalizeEntry>/r
-    const char *value;
-    const char *name;
+    Ptr32<const char> value;
+    Ptr32<const char> name;
 };
 
 template <typename T>

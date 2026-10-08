@@ -4,7 +4,7 @@
 
 #include <cstring>
 #include <corecrt_malloc.h>
-#include <Windows.h>
+#include <windows.h>
 #include <Psapi.h>
 
 tlSystemCallbacks tlCurSystemCallbacks;

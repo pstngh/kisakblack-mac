@@ -2163,7 +2163,7 @@ void physics_system::validate_member(environment_rigid_body *rb)
             if ((m_flags & 0x20) != 0)
             {
                 using TI = phys_free_list<user_rigid_body>::T_internal;
-                static_assert(sizeof(TI) == 0x1D0, "size mismatch");
+                static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x1D0, "size mismatch");
                 TI *ti = (TI *)((char *)rb - offsetof(TI, m_data));
                 PMM_VALIDATE((char *)ti, sizeof(TI), 16);
 
@@ -2172,7 +2172,7 @@ void physics_system::validate_member(environment_rigid_body *rb)
             else
             {
                 using TI = phys_free_list<rigid_body>::T_internal;
-                static_assert(sizeof(TI) == 0x180, "size mismatch");
+                static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x180, "size mismatch");
                 TI *ti = (TI *)((char *)rb - offsetof(TI, m_data));
                 PMM_VALIDATE((char *)ti, sizeof(TI), 16);
 

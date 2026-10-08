@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include <qcommon/ent.h>
 #include <game/teams.h>
@@ -338,7 +339,7 @@ struct centity_s // sizeof=0x328
         // padding bit
         // padding bit
 };
-static_assert(sizeof(centity_s) == 0x328);
+static_assert(sizeof(void *) != 4 || sizeof(centity_s) == 0x328);
 
 struct fake_centity_s // sizeof=0x32C
 {                                                                             // XREF: fake_centity_t/r
@@ -533,7 +534,7 @@ struct objective_t // sizeof=0x30
         int icon;
         int use3D;
         int color;
-        const char *alt_3D_text;
+        Ptr32<const char> alt_3D_text;   // keeps playerState_s at its network layout
 };
 
 struct playerState_s // sizeof=0x26A4

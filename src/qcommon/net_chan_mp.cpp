@@ -7,7 +7,7 @@
 #include <universal/com_files.h>
 #include <win32/win_net.h>
 
-#include <Windows.h>
+#include <windows.h>
 #include "threads.h"
 #include <server_mp/sv_net_chan_mp.h>
 

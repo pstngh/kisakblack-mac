@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include <d3d9.h>
 #include <database/database.h>
@@ -78,7 +79,7 @@ struct dmaterial_t // sizeof=0x48
 struct __declspec(align(8)) MaterialInfo // sizeof=0x28
 {                                                                             // XREF: Material/r
                                                                                 // FX_ConvertAtlas/r ...
-        const char *name;                                     // XREF: FX_ValidateAtlasSettings+92/r
+        Ptr32<const char> name;                                     // XREF: FX_ValidateAtlasSettings+92/r
                                                                                 // FX_ValidateAtlasSettings+DD/r ...
         unsigned int gameFlags;
         unsigned __int8 pad;
@@ -116,7 +117,7 @@ struct MaterialStreamRouting // sizeof=0x2
 struct MaterialVertexStreamRouting // sizeof=0x68
 {                                                                             // XREF: MaterialVertexDeclaration/r
         MaterialStreamRouting data[16];
-        IDirect3DVertexDeclaration9 *decl[18];
+        Ptr32<IDirect3DVertexDeclaration9> decl[18];
 };
 
 struct MaterialVertexDeclaration // sizeof=0x6C
@@ -130,7 +131,7 @@ struct MaterialVertexDeclaration // sizeof=0x6C
 
 struct __declspec(align(4)) GfxVertexShaderLoadDef // sizeof=0x8
 {                                                                             // XREF: MaterialVertexShaderProgram/r
-        DWORD *program;
+        Ptr32<DWORD> program;
         unsigned __int16 programSize;
         // padding byte
         // padding byte
@@ -138,19 +139,19 @@ struct __declspec(align(4)) GfxVertexShaderLoadDef // sizeof=0x8
 
 struct MaterialVertexShaderProgram // sizeof=0xC
 {                                                                             // XREF: MaterialVertexShader/r
-        IDirect3DVertexShader9 *vs;
+        Ptr32<IDirect3DVertexShader9> vs;
         GfxVertexShaderLoadDef loadDef;
 };
 
 struct MaterialVertexShader // sizeof=0x10
 {
-        const char *name;
+        Ptr32<const char> name;
         MaterialVertexShaderProgram prog;
 };
 
 struct __declspec(align(4)) GfxPixelShaderLoadDef // sizeof=0x8
 {                                                                             // XREF: MaterialPixelShaderProgram/r
-        DWORD *program;
+        Ptr32<DWORD> program;
         unsigned __int16 programSize;
         // padding byte
         // padding byte
@@ -158,13 +159,13 @@ struct __declspec(align(4)) GfxPixelShaderLoadDef // sizeof=0x8
 
 struct MaterialPixelShaderProgram // sizeof=0xC
 {                                                                             // XREF: MaterialPixelShader/r
-        IDirect3DPixelShader9 *ps;
+        Ptr32<IDirect3DPixelShader9> ps;
         GfxPixelShaderLoadDef loadDef;
 };
 
 struct MaterialPixelShader // sizeof=0x10
 {
-        const char *name;
+        Ptr32<const char> name;
         MaterialPixelShaderProgram prog;
 };
 
@@ -178,7 +179,7 @@ struct MaterialArgumentCodeConst // sizeof=0x4
 
 union MaterialArgumentDef // sizeof=0x4
 {                                                                             // XREF: MaterialShaderArgument/r
-        const float *literalConst;
+        Ptr32<const float> literalConst;
         MaterialArgumentCodeConst codeConst;
         unsigned int codeSampler;
         unsigned int nameHash;
@@ -195,14 +196,14 @@ struct MaterialShaderArgument // sizeof=0x8
 struct MaterialPass // sizeof=0x14
 {                                                                             // XREF: MaterialTechnique/r
                                                                                 // Material_LoadTechnique/r
-        MaterialVertexDeclaration *vertexDecl;
+        Ptr32<MaterialVertexDeclaration> vertexDecl;
                                                                                 // XREF: Material_LoadTechnique+3A6/r
-        MaterialVertexShader *vertexShader;
+        Ptr32<MaterialVertexShader> vertexShader;
         //$DC376F3ECA4A0877231069DAD65BD3EF ___u2;
         union //$DC376F3ECA4A0877231069DAD65BD3EF // sizeof=0x4
         {                                                                             // XREF: MaterialPass/r
-            MaterialPixelShader *pixelShader;
-            MaterialPixelShader *localPixelShader;
+            Ptr32<MaterialPixelShader> pixelShader;
+            Ptr32<MaterialPixelShader> localPixelShader;
         };
         unsigned __int8 perPrimArgCount;
         unsigned __int8 perObjArgCount;
@@ -211,14 +212,14 @@ struct MaterialPass // sizeof=0x14
         //$852269A6FD668DA4A9FB8DA442445F23 ___u7;
         union //$852269A6FD668DA4A9FB8DA442445F23 // sizeof=0x4
         {                                                                             // XREF: MaterialPass/r
-            MaterialShaderArgument *localArgs;
-            MaterialShaderArgument *args;
+            Ptr32<MaterialShaderArgument> localArgs;
+            Ptr32<MaterialShaderArgument> args;
         };
 };
 
 struct MaterialTechnique // sizeof=0x1C
 {
-        const char *name;
+        Ptr32<const char> name;
         unsigned __int16 flags;
         unsigned __int16 passCount;
         MaterialPass passArray[1];
@@ -226,11 +227,11 @@ struct MaterialTechnique // sizeof=0x1C
 
 struct MaterialTechniqueSet // sizeof=0x210
 {                                                                             // XREF: XAssetPoolEntry<MaterialTechniqueSet>/r
-        const char *name;
+        Ptr32<const char> name;
         unsigned __int8 worldVertFormat;
         unsigned __int8 unused[1];
         unsigned __int16 techsetFlags;
-        MaterialTechnique *techniques[130];
+        Ptr32<MaterialTechnique> techniques[130];
 };
 static_assert(sizeof(MaterialTechniqueSet) == 528);
 
@@ -250,11 +251,11 @@ struct __declspec(align(4)) GfxImageLoadDef // sizeof=0x10
 
 union GfxTexture // sizeof=0x4
 {                                                                             // XREF: GfxImage/r
-        IDirect3DBaseTexture9 *basemap;
-        IDirect3DTexture9 *map;
-        IDirect3DVolumeTexture9 *volmap;
-        IDirect3DCubeTexture9 *cubemap;
-        GfxImageLoadDef *loadDef;
+        Ptr32<IDirect3DBaseTexture9> basemap;
+        Ptr32<IDirect3DTexture9> map;
+        Ptr32<IDirect3DVolumeTexture9> volmap;
+        Ptr32<IDirect3DCubeTexture9> cubemap;
+        Ptr32<GfxImageLoadDef> loadDef;
 };
 
 struct Picmip // sizeof=0x2
@@ -303,13 +304,13 @@ struct GfxImage // sizeof=0x34
         unsigned __int8 levelCount;
         unsigned __int8 streaming;
         unsigned int baseSize;
-        unsigned __int8 *pixels;
+        Ptr32<unsigned __int8> pixels;
         unsigned int loadedSize;
         unsigned __int8 skippedMipLevels;
         // padding byte
         // padding byte
         // padding byte
-        const char *name;
+        Ptr32<const char> name;
         unsigned int hash;
 };
 
@@ -322,8 +323,8 @@ struct water_t // sizeof=0x44
 {                                                                             // XREF: .data:sceneWaterMapSetups/r
                                                                                 // Material_RegisterWaterImage/r
         WaterWritable writable;
-        complex_s *H0;
-        float *wTerm;
+        Ptr32<complex_s> H0;
+        Ptr32<float> wTerm;
         int M;                                                            // XREF: Material_RegisterWaterImage+17/w
                                                                                 // Material_RegisterWaterImage+1A/r ...
         int N;                                                            // XREF: Material_RegisterWaterImage+1D/w
@@ -336,13 +337,13 @@ struct water_t // sizeof=0x44
                                                                                 // Material_RegisterWaterImage+69/w
         float amplitude;                                        // XREF: Material_RegisterWaterImage+76/w
         float codeConstant[4];
-        GfxImage *image;                                        // XREF: Material_RegisterWaterImage+7B/w
+        Ptr32<GfxImage> image;                                        // XREF: Material_RegisterWaterImage+7B/w
 };
 
 union MaterialTextureDefInfo // sizeof=0x4
 {                                                                             // XREF: MaterialTextureDef/r
-        GfxImage *image;
-        water_t *water;
+        Ptr32<GfxImage> image;
+        Ptr32<water_t> water;
 };
 
 struct MaterialTextureDef // sizeof=0x10
@@ -382,17 +383,17 @@ struct Material // sizeof=0xC0
         //$090A22A23743445EB0E711FA011CE2F0 ___u8;
         union //$090A22A23743445EB0E711FA011CE2F0 // sizeof=0x4
         {                                                                             // XREF: Material/r
-            MaterialTechniqueSet *localTechniqueSet;
-            MaterialTechniqueSet *techniqueSet;
+            Ptr32<MaterialTechniqueSet> localTechniqueSet;
+            Ptr32<MaterialTechniqueSet> techniqueSet;
         };
-        MaterialTextureDef *textureTable;
+        Ptr32<MaterialTextureDef> textureTable;
         //$A4FF57C4AF6A63DB9C0EEC1063D439DF ___u10;
         union //$A4FF57C4AF6A63DB9C0EEC1063D439DF // sizeof=0x4
         {                                                                             // XREF: Material/r
-            MaterialConstantDef *localConstantTable;
-            MaterialConstantDef *constantTable;
+            Ptr32<MaterialConstantDef> localConstantTable;
+            Ptr32<MaterialConstantDef> constantTable;
         };
-        GfxStateBits *stateBitsTable;
+        Ptr32<GfxStateBits> stateBitsTable;
 };
 static_assert(sizeof(Material) == 192);
 
@@ -413,7 +414,7 @@ enum MtlTechSetNotFoundBehavior : __int32
 
 struct MaterialMemory // sizeof=0x8
 {                                                                             // XREF: MaterialList/r
-        Material *material;                                 // XREF: std::_Sort_heap<MaterialMemory *,bool (*)(MaterialMemory const &,MaterialMemory const &)>(MaterialMemory *,MaterialMemory *,bool (*)(MaterialMemory const &,MaterialMemory const &))+4E/w
+        Ptr32<Material> material;                                 // XREF: std::_Sort_heap<MaterialMemory *,bool (*)(MaterialMemory const &,MaterialMemory const &)>(MaterialMemory *,MaterialMemory *,bool (*)(MaterialMemory const &,MaterialMemory const &))+4E/w
         int memory;                                                 // XREF: std::_Sort_heap<MaterialMemory *,bool (*)(MaterialMemory const &,MaterialMemory const &)>(MaterialMemory *,MaterialMemory *,bool (*)(MaterialMemory const &,MaterialMemory const &))+51/w
 };
 

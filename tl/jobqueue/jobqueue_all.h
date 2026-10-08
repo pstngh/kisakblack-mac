@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <tl/tl_system.h>
 
-#include <Windows.h>
+#include <windows.h>
 
 #define JQ_MAX_QUEUES 8
 
@@ -199,7 +199,7 @@ struct __declspec(align(4)) jqBatch // sizeof=0x7C
 
     jqBatch();
 };
-static_assert(sizeof(jqBatch) == 124);
+static_assert(sizeof(void *) != 4 || sizeof(jqBatch) == 124);
 
 template <typename T, int SIZE>
 struct __declspec(align(8)) jqAtomicQueue//<jqBatch,32> // sizeof=0x50

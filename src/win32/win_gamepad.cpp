@@ -1,4 +1,4 @@
-#include <Windows.h>
+#include <windows.h>
 
 #include "win_gamepad.h"
 #include <universal/assertive.h>

@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <gfx_d3d/r_font.h>
 #include <universal/com_expressions.h>
 #include <database/database.h>
@@ -125,10 +126,10 @@ struct columnInfo_s // sizeof=0x20
 
 struct windowDef_t // sizeof=0xA4
 {                                                                             // XREF: menuDef_t/r
-    const char *name;
+    Ptr32<const char> name;
     rectDef_s rect;
     rectDef_s rectClient;
-    const char *group;
+    Ptr32<const char> group;
     unsigned __int8 style;
     unsigned __int8 border;
     unsigned __int8 modal;
@@ -146,7 +147,7 @@ struct windowDef_t // sizeof=0xA4
     float borderColor[4];
     float outlineColor[4];
     float rotation;
-    Material *background;
+    Ptr32<Material> background;
 };
 
 struct rectData_s // sizeof=0x40
@@ -160,7 +161,7 @@ struct rectData_s // sizeof=0x40
 struct animParamsDef_t // sizeof=0x6C
 {                                                                             // XREF: UIAnimInfo/r
                                                                                 // UIAnimInfo/r ...
-    const char *name;
+    Ptr32<const char> name;
     rectDef_s rectClient;
     float borderSize;
     float foreColor[4];
@@ -169,13 +170,13 @@ struct animParamsDef_t // sizeof=0x6C
     float outlineColor[4];
     float textScale;
     float rotation;
-    struct GenericEventHandler *onEvent;
+    Ptr32<struct GenericEventHandler> onEvent;
 };
 
 struct UIAnimInfo // sizeof=0xEC
 {
     int animStateCount;
-    animParamsDef_t **animStates;
+    Ptr32<Ptr32<animParamsDef_t>> animStates;
     animParamsDef_t currentAnimState;
     animParamsDef_t nextAnimState;
     int animating;
@@ -191,13 +192,13 @@ struct ScriptCondition // sizeof=0x10
     // padding byte
     int constructID;
     int blockID;
-    ScriptCondition *next;
+    Ptr32<ScriptCondition> next;
 };
 
 struct __declspec(align(8)) menuDef_t // sizeof=0x190
 {                                                                             // XREF: XAssetPoolEntry<menuDef_t>/r
     windowDef_t window;
-    const char *font;
+    Ptr32<const char> font;
     int fullScreen;
     int ui3dWindowId;
     int itemCount;
@@ -218,8 +219,8 @@ struct __declspec(align(8)) menuDef_t // sizeof=0x190
     int closeFadingTime;
     int fadeTimeCounter;
     int slideTimeCounter;
-    GenericEventHandler *onEvent;
-    struct ItemKeyHandler *onKey;
+    Ptr32<GenericEventHandler> onEvent;
+    Ptr32<struct ItemKeyHandler> onKey;
     ExpressionStatement visibleExp;
     // padding byte
     // padding byte
@@ -227,15 +228,15 @@ struct __declspec(align(8)) menuDef_t // sizeof=0x190
     // padding byte
     unsigned __int64 showBits;
     unsigned __int64 hideBits;
-    const char *allowedBinding;
-    const char *soundName;
+    Ptr32<const char> allowedBinding;
+    Ptr32<const char> soundName;
     int imageTrack;
     int control;
     float focusColor[4];
     float disableColor[4];
     ExpressionStatement rectXExp;
     ExpressionStatement rectYExp;
-    struct itemDef_s **items;
+    Ptr32<Ptr32<struct itemDef_s>> items;
     // padding byte
     // padding byte
     // padding byte
@@ -266,10 +267,10 @@ enum uiMenuCommand_t : __int32
 struct MenuList // sizeof=0xC
 {                                                                             // XREF: $CD64A558AFC89A5F4974E935559855BB/r
                                                                                 // XAssetPoolEntry<MenuList>/r
-    const char *name;
+    Ptr32<const char> name;
     int menuCount;                                            // XREF: Menu_New+7F/r
     // Menu_New:loc_77E40A/r ...
-    menuDef_t **menus;                                    // XREF: UI_LoadMenu_LoadObj+17/w
+    Ptr32<Ptr32<menuDef_t>> menus;                                    // XREF: UI_LoadMenu_LoadObj+17/w
     // Menu_New+9F/r ...
 };
 
@@ -671,17 +672,17 @@ struct nestingStack_t // sizeof=0x304
 
 struct GenericEventScript // sizeof=0x2C
 {                                                                             // XREF: GenericEventScriptNext/r
-    ScriptCondition *prerequisites;
+    Ptr32<ScriptCondition> prerequisites;
     ExpressionStatement condition;
     int type;
     bool fireOnTrue;
     // padding byte
     // padding byte
     // padding byte
-    const char *action;
+    Ptr32<const char> action;
     int blockID;
     int constructID;
-    GenericEventScript *next;
+    Ptr32<GenericEventScript> next;
 };
 
 
@@ -690,14 +691,14 @@ struct MenuCell // sizeof=0xC
     int type;                                                     // XREF: ItemParse_menuItemsDef+375/r
     int maxChars;                                             // XREF: ItemParse_menuItemsDef+340/r
     // ItemParse_menuItemsDef+38A/r
-    char *stringValue;
+    Ptr32<char> stringValue;
 };
 
 struct MenuRow // sizeof=0x18
 {
-    MenuCell *cells;
-    char *eventName;
-    char *onFocusEventName;
+    Ptr32<MenuCell> cells;
+    Ptr32<char> eventName;
+    Ptr32<char> onFocusEventName;
     bool disableArg;
     // padding byte
     // padding byte
@@ -726,19 +727,19 @@ struct listBoxDef_s // sizeof=0x29C
     float focusColor[4];
     float elementHighlightColor[4];
     float elementBackgroundColor[4];
-    Material *selectIcon;
-    Material *backgroundItemListbox;
-    Material *highlightTexture;
+    Ptr32<Material> selectIcon;
+    Ptr32<Material> backgroundItemListbox;
+    Ptr32<Material> highlightTexture;
     int noBlinkingHighlight;
-    MenuRow *rows;
+    Ptr32<MenuRow> rows;
     int maxRows;
     int rowCount;
 };
 
 struct multiDef_s // sizeof=0x18C
 {                                                                             // XREF: multiDef_t/r
-    const char *dvarList[32];
-    const char *dvarStr[32];
+    Ptr32<const char> dvarList[32];
+    Ptr32<const char> dvarStr[32];
     float dvarValue[32];
     int count;
     int actionOnEnterPressOnly;
@@ -760,33 +761,33 @@ struct editFieldDef_s // sizeof=0x24
 
 struct enumDvarDef_s // sizeof=0x4
 {                                                                             // XREF: enumDvarDef_t/r
-    const char *enumDvarName;
+    Ptr32<const char> enumDvarName;
 };
 
 union focusDefData_t // sizeof=0x4
 {                                                                             // XREF: focusItemDef_s/r
-    listBoxDef_s *listBox;
-    multiDef_s *multi;
-    editFieldDef_s *editField;
-    enumDvarDef_s *enumDvar;
-    void *data;
+    Ptr32<listBoxDef_s> listBox;
+    Ptr32<multiDef_s> multi;
+    Ptr32<editFieldDef_s> editField;
+    Ptr32<enumDvarDef_s> enumDvar;
+    Ptr32<void> data;
 };
 
 struct focusItemDef_s // sizeof=0x18
 {                                                                             // XREF: focusItemDef_t/r
-    const char *mouseEnterText;
-    const char *mouseExitText;
-    const char *mouseEnter;
-    const char *mouseExit;
-    struct ItemKeyHandler *onKey;
+    Ptr32<const char> mouseEnterText;
+    Ptr32<const char> mouseExitText;
+    Ptr32<const char> mouseEnter;
+    Ptr32<const char> mouseExit;
+    Ptr32<struct ItemKeyHandler> onKey;
     focusDefData_t focusTypeData;
 };
 
 union textDefData_t // sizeof=0x4
 {                                                                             // XREF: textDef_s/r
-    focusItemDef_s *focusItemDef;
-    struct gameMsgDef_s *gameMsgDef;
-    void *data;
+    Ptr32<focusItemDef_s> focusItemDef;
+    Ptr32<struct gameMsgDef_s> gameMsgDef;
+    Ptr32<void> data;
 };
 
 
@@ -801,8 +802,8 @@ struct textDef_s // sizeof=0x44
     float textaligny;
     float textscale;
     int textStyle;
-    const char *text;
-    struct textExp_s *textExpData;
+    Ptr32<const char> text;
+    Ptr32<struct textExp_s> textExpData;
     textDefData_t textTypeData;
 };
 
@@ -818,25 +819,25 @@ struct ownerDrawDef_s // sizeof=0x10
 
 union itemDefData_t // sizeof=0x4
 {                                                                             // XREF: itemDef_s/r
-    textDef_s *textDef;
-    imageDef_s *imageDef;
-    focusItemDef_s *blankButtonDef;
-    ownerDrawDef_s *ownerDrawDef;
-    void *data;
+    Ptr32<textDef_s> textDef;
+    Ptr32<imageDef_s> imageDef;
+    Ptr32<focusItemDef_s> blankButtonDef;
+    Ptr32<ownerDrawDef_s> ownerDrawDef;
+    Ptr32<void> data;
 };
 
 struct GenericEventHandler // sizeof=0xC
 {                                                                             // XREF: GenericEventHandlerNext/r
-    const char *name;
-    GenericEventScript *eventScript;
-    GenericEventHandler *next;
+    Ptr32<const char> name;
+    Ptr32<GenericEventScript> eventScript;
+    Ptr32<GenericEventHandler> next;
 };
 
 struct ItemKeyHandler // sizeof=0xC
 {                                                                             // XREF: ItemKeyHandlerNext/r
     int key;
-    GenericEventScript *keyScript;
-    ItemKeyHandler *next;
+    Ptr32<GenericEventScript> keyScript;
+    Ptr32<ItemKeyHandler> next;
 };
 
 struct __declspec(align(8)) itemDef_s // sizeof=0x110
@@ -846,13 +847,13 @@ struct __declspec(align(8)) itemDef_s // sizeof=0x110
     int type;
     int dataType;
     int imageTrack;
-    const char *dvar;
-    const char *dvarTest;
-    const char *enableDvar;
+    Ptr32<const char> dvar;
+    Ptr32<const char> dvarTest;
+    Ptr32<const char> enableDvar;
     int dvarFlags;
     itemDefData_t typeData;
-    menuDef_t *parent;
-    rectData_s *rectExpData;
+    Ptr32<menuDef_t> parent;
+    Ptr32<rectData_s> rectExpData;
     ExpressionStatement visibleExp;
     // padding byte
     // padding byte
@@ -862,8 +863,8 @@ struct __declspec(align(8)) itemDef_s // sizeof=0x110
     unsigned __int64 hideBits;
     ExpressionStatement forecolorAExp;
     int ui3dWindowId;
-    GenericEventHandler *onEvent;
-    UIAnimInfo *animInfo;                             // XREF: Menu_RunLeaveFocusScript+10/w
+    Ptr32<GenericEventHandler> onEvent;
+    Ptr32<UIAnimInfo> animInfo;                             // XREF: Menu_RunLeaveFocusScript+10/w
     // Menu_RunFocusScript+10/w ...
 // padding byte
 // padding byte

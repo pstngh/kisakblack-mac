@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include "phys_local.h"
 #include <universal/q_shared.h>
@@ -253,7 +254,7 @@ struct __declspec(align(16)) gjk_aabb_t : gjk_base_t // sizeof=0x80
         virtual bool is_walkable(const phys_vec3 *hit_point, const phys_vec3 *up) override;
         virtual const cbrush_t *get_brush() const override;
 };
-static_assert(sizeof(gjk_aabb_t) == 128);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_aabb_t) == 128);
 
 struct BrushWrapper // sizeof=0x60
 {
@@ -261,17 +262,17 @@ struct BrushWrapper // sizeof=0x60
         int contents;
         float maxs[3];
         unsigned int numsides;
-        cbrushside_t *sides;
+        Ptr32<cbrushside_t> sides;
         int axial_cflags[2][3];
         int axial_sflags[2][3];
         unsigned int numverts;
-        float (*verts)[3];
-        cplane_s *planes;
+        Ptr32<float[3]> verts;
+        Ptr32<cplane_s> planes;
 };
 
 struct PhysGeomInfo // sizeof=0x44
 {
-        BrushWrapper *brush;
+        Ptr32<BrushWrapper> brush;
         int type;
         float orientation[3][3];
         float offset[3];
@@ -281,7 +282,7 @@ struct PhysGeomInfo // sizeof=0x44
 struct PhysGeomList // sizeof=0xC
 {
         unsigned int count;
-        PhysGeomInfo *geoms;
+        Ptr32<PhysGeomInfo> geoms;
         int contents;
 };
 
@@ -338,7 +339,7 @@ struct gjk_obb_t : gjk_base_t // sizeof=0xA0
         // is_walkable() - gjk_base_t
         // get_brush() - gjk_base_t
 };
-static_assert(sizeof(gjk_obb_t) == 160);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_obb_t) == 160);
 
 struct __declspec(align(8)) gjk_brush_t : gjk_base_t // sizeof=0x60
 {
@@ -397,7 +398,7 @@ struct __declspec(align(8)) gjk_brush_t : gjk_base_t // sizeof=0x60
         virtual bool is_walkable(const phys_vec3 *hit_point, const phys_vec3 *up) override;
         virtual const cbrush_t *get_brush() const override;
 };
-static_assert(sizeof(gjk_brush_t) == 96);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_brush_t) == 96);
 
 struct CollisionBorder // sizeof=0x1C
 {
@@ -417,7 +418,7 @@ struct CollisionPartition // sizeof=0x14
         int firstTri;
         int nuinds;
         int fuind;
-        CollisionBorder *borders;
+        Ptr32<CollisionBorder> borders;
 };
 
 struct CollisionAabbTree;
@@ -497,7 +498,7 @@ struct __declspec(align(16)) gjk_partition_t : gjk_base_t // sizeof=0x70
 // a runtime-only physics object (never serialized from a fastfile), so its exact
 // size only has to match the original binary under MSVC.
 #ifdef _MSC_VER
-static_assert(sizeof(gjk_partition_t) == 112);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_partition_t) == 112);
 #endif
 
 struct gjk_double_sphere_t : gjk_base_t // sizeof=0x90
@@ -556,7 +557,7 @@ struct gjk_double_sphere_t : gjk_base_t // sizeof=0x90
         // is_walkable() - gjk_base_t
         // get_brush() - gjk_base_t
 };
-static_assert(sizeof(gjk_double_sphere_t) == 144);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_double_sphere_t) == 144);
 
 struct gjk_cylinder_t : gjk_base_t // sizeof=0xA0
 {
@@ -619,7 +620,7 @@ struct gjk_cylinder_t : gjk_base_t // sizeof=0xA0
 
         const phys_vec3 * get_dims(phys_vec3 *result) const;
 };
-static_assert(sizeof(gjk_cylinder_t) == 160);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_cylinder_t) == 160);
 
 struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
 {                                                                             // XREF: ?render_gjkcc_collision@@YAXAAY02$$CBM00@Z/r
@@ -741,7 +742,7 @@ struct __declspec(align(8)) gjk_polygon_cylinder_t : gjk_base_t // sizeof=0x80
 
         //gjk_polygon_cylinder_t::poly_verts gjk_polygon_cylinder_t::s_poly_verts
 };
-static_assert(sizeof(gjk_polygon_cylinder_t) == 128);
+static_assert(sizeof(void *) != 4 || sizeof(gjk_polygon_cylinder_t) == 128);
 
 struct gjk_geom_list_t // sizeof=0x8
 {

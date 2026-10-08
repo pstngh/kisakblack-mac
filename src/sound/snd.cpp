@@ -6,7 +6,7 @@
 #include <cfloat>
 #include <cstring>
 
-#include <Windows.h>
+#include <windows.h>
 #include <win32/win_shared.h>
 #include "snd_utils.h"
 #include "snd_dvar.h"

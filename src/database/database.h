@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <cstddef>
 
 enum XAssetType : __int32
@@ -65,47 +66,47 @@ inline XAssetType operator++(XAssetType &t, int)
 
 union XAssetHeader // sizeof=0x4
 {                                                                             // XREF: CG_AddVisionSetMenuItem+13/r
-    struct XModelPieces *xmodelPieces;
-    struct PhysPreset *physPreset;
-    struct PhysConstraints *physConstraints;
-    struct DestructibleDef *destructibleDef;
-    struct XAnimParts *parts;
-    struct XModel *model;
-    struct Material *material;
-    struct MaterialPixelShader *pixelShader;
-    struct MaterialVertexShader *vertexShader;
-    struct MaterialTechniqueSet *techniqueSet;
-    struct GfxImage *image;
-    struct SndBank *sound;
-    struct SndPatch *soundPatch;
-    struct clipMap_t *clipMap;
-    struct ComWorld *comWorld;
-    struct GameWorldSp *gameWorldSp;
-    struct GameWorldMp *gameWorldMp;
-    struct MapEnts *mapEnts;
-    struct GfxWorld *gfxWorld;
-    struct GfxLightDef *lightDef;
-    struct Font_s *font;
-    struct MenuList *menuList;
-    struct menuDef_t *menu;
-    struct LocalizeEntry *localize;
-    struct WeaponVariantDef *weapon;
-    struct SndDriverGlobals *sndDriverGlobals;
-    struct FxEffectDef *fx;
-    struct FxImpactTable *impactFx;
-    struct RawFile *rawfile;
-    struct StringTable *stringTable;
-    struct PackIndex *packIndex;
-    struct XGlobals *xGlobals;
-    struct ddlRoot_t *ddlRoot;
-    struct Glasses *glasses;
-    struct TextureList *textureList;
-    struct EmblemSet *emblemSet;
-    void *data;
+    Ptr32<struct XModelPieces> xmodelPieces;
+    Ptr32<struct PhysPreset> physPreset;
+    Ptr32<struct PhysConstraints> physConstraints;
+    Ptr32<struct DestructibleDef> destructibleDef;
+    Ptr32<struct XAnimParts> parts;
+    Ptr32<struct XModel> model;
+    Ptr32<struct Material> material;
+    Ptr32<struct MaterialPixelShader> pixelShader;
+    Ptr32<struct MaterialVertexShader> vertexShader;
+    Ptr32<struct MaterialTechniqueSet> techniqueSet;
+    Ptr32<struct GfxImage> image;
+    Ptr32<struct SndBank> sound;
+    Ptr32<struct SndPatch> soundPatch;
+    Ptr32<struct clipMap_t> clipMap;
+    Ptr32<struct ComWorld> comWorld;
+    Ptr32<struct GameWorldSp> gameWorldSp;
+    Ptr32<struct GameWorldMp> gameWorldMp;
+    Ptr32<struct MapEnts> mapEnts;
+    Ptr32<struct GfxWorld> gfxWorld;
+    Ptr32<struct GfxLightDef> lightDef;
+    Ptr32<struct Font_s> font;
+    Ptr32<struct MenuList> menuList;
+    Ptr32<struct menuDef_t> menu;
+    Ptr32<struct LocalizeEntry> localize;
+    Ptr32<struct WeaponVariantDef> weapon;
+    Ptr32<struct SndDriverGlobals> sndDriverGlobals;
+    Ptr32<struct FxEffectDef> fx;
+    Ptr32<struct FxImpactTable> impactFx;
+    Ptr32<struct RawFile> rawfile;
+    Ptr32<struct StringTable> stringTable;
+    Ptr32<struct PackIndex> packIndex;
+    Ptr32<struct XGlobals> xGlobals;
+    Ptr32<struct ddlRoot_t> ddlRoot;
+    Ptr32<struct Glasses> glasses;
+    Ptr32<struct TextureList> textureList;
+    Ptr32<struct EmblemSet> emblemSet;
+    Ptr32<void> data;
 
     XAssetHeader()
     {
-        data = NULL;
+        data = nullptr;
     }
 
     XAssetHeader(void *p)

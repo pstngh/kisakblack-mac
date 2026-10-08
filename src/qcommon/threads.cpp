@@ -1,6 +1,6 @@
 #include "threads.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <universal/q_shared.h>
 #include "common.h"
 #include <tl/jobqueue/jobqueue_all.h>

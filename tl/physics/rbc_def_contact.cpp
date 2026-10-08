@@ -22,7 +22,7 @@ void __thiscall rigid_body_constraint_contact::verify_constraint(
     g_physics_system->validate_member(b2_);
 
     using TI = phys_free_list<rigid_body_constraint_contact>::T_internal;
-    static_assert(sizeof(TI) == 0x38, "size mismatch");
+    static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x38, "size mismatch");
     TI *ti = (TI *)((char *)this - offsetof(TI, m_data));
     PMM_VALIDATE((char *)ti, sizeof(TI), 4u);
 }

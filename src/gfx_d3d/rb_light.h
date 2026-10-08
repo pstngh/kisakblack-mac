@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "r_utils.h"
 #include "r_pointlights.h"
 
@@ -57,19 +58,19 @@ struct GfxLightGrid // sizeof=0x38
                                         // R_LoadLightGridPoints_Version15:loc_A93BA4/w ...
     unsigned int colAxis;               // XREF: R_LoadLightGridPoints_Version15+738/w
                                         // R_LoadLightGridPoints_Version15+74E/w ...
-    unsigned __int16 *rowDataStart;     // XREF: R_LoadLightGridPoints_Version15+886/w
+    Ptr32<unsigned __int16> rowDataStart;     // XREF: R_LoadLightGridPoints_Version15+886/w
                                         // R_LoadLightGridPoints_Version15+896/r ...
     unsigned int rawRowDataSize;        // XREF: R_LoadLightGridRowData+4/o
                                         // R_LoadLightGridRowData+18/r ...
-    unsigned __int8 *rawRowData;        // XREF: R_LoadLightGridRowData+21/w
+    Ptr32<unsigned __int8> rawRowData;        // XREF: R_LoadLightGridRowData+21/w
                                         // R_LoadLightGridRowData+42/w ...
     unsigned int entryCount;            // XREF: R_LoadLightGridPoints_Version15+8E5/w
                                         // R_LoadLightGridPoints_Version15+906/w ...
-    GfxLightGridEntry *entries;         // XREF: R_LoadLightGridPoints_Version15+8E0/w
+    Ptr32<GfxLightGridEntry> entries;         // XREF: R_LoadLightGridPoints_Version15+8E0/w
                                         // R_EmitDefaultLightGridEntry_Version15+B/r ...
     unsigned int colorCount;            // XREF: R_LoadLightGridPoints_Version15+207/r
                                         // R_LoadLightGridPoints_Version15+21C/r ...
-    GfxCompressedLightGridColors *colors;
+    Ptr32<GfxCompressedLightGridColors> colors;
                                         // XREF: R_LoadLightGridPoints_Version15+650/r
                                         // R_LoadLightGridPoints_Version15+663/r ...
 };

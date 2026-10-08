@@ -1,6 +1,6 @@
 #include "win_shared.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <mmsystem.h>
 
 int sys_timeBase;

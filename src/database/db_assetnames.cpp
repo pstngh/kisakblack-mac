@@ -268,7 +268,7 @@ int __cdecl DB_SizeofXAsset_menuDef_t_()
     return 400;
 }
 
-static_assert(sizeof(XAnimTree_s) == 8);
+static_assert(sizeof(void *) != 4 || sizeof(XAnimTree_s) == 8);
 //int __cdecl XAnimTreeSize()
 //{
 //    return 8;

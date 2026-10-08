@@ -3,27 +3,15 @@
 // random(), which collides with the engine's own random().
 #ifndef KISAK_CORECRT_MALLOC_H
 #define KISAK_CORECRT_MALLOC_H
-// Emscripten/musl declares the standard allocators in its own headers WITHOUT a
-// noexcept spec; redeclaring them here with noexcept is an exception-spec mismatch
-// under Clang. Drop the spec on the web build (musl prototypes win). The MSVC
-// _aligned_* helpers are not in musl, so keep declaring those ourselves.
-#ifdef __EMSCRIPTEN__
+// The exception spec must match the libc's own prototypes (noexcept on glibc,
+// none on musl/Emscripten and Apple; see KISAK_LIBC_NOEXCEPT). The MSVC
+// _aligned_* helpers are not in any of them, so declare those ourselves.
 extern "C" {
-    void *malloc(size_t);
-    void *calloc(size_t, size_t);
-    void *realloc(void *, size_t);
-    void  free(void *);
-    void *_aligned_malloc(size_t, size_t);
-    void  _aligned_free(void *);
+    void *malloc(size_t) KISAK_LIBC_NOEXCEPT;
+    void *calloc(size_t, size_t) KISAK_LIBC_NOEXCEPT;
+    void *realloc(void *, size_t) KISAK_LIBC_NOEXCEPT;
+    void  free(void *) KISAK_LIBC_NOEXCEPT;
+    void *_aligned_malloc(size_t, size_t) KISAK_LIBC_NOEXCEPT;
+    void  _aligned_free(void *) KISAK_LIBC_NOEXCEPT;
 }
-#else
-extern "C" {
-    void *malloc(size_t) noexcept;
-    void *calloc(size_t, size_t) noexcept;
-    void *realloc(void *, size_t) noexcept;
-    void  free(void *) noexcept;
-    void *_aligned_malloc(size_t, size_t) noexcept;
-    void  _aligned_free(void *) noexcept;
-}
-#endif
 #endif

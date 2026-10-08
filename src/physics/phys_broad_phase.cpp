@@ -1862,7 +1862,7 @@ void __cdecl destroy_broad_phase_info(broad_phase_info *bpi)
     if (bpi)
     {
         using TI = phys_free_list<broad_phase_info>::T_internal;
-        static_assert(sizeof(TI) == 0x90, "size mismatch");
+        static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x90, "size mismatch");
         TI *ti = (TI *)((char *)bpi - offsetof(TI, m_data));
         PMM_VALIDATE((char *)ti, sizeof(TI), 16);
         G_BPM->g_list_broad_phase_info.remove(ti);

@@ -448,7 +448,7 @@ struct __declspec(align(4)) server_t // sizeof=0x5C28C
     // padding byte
     // padding byte
 };
-static_assert(sizeof(server_t) == 377548);
+static_assert(sizeof(void *) != 4 || sizeof(server_t) == 377548);
 
 struct XNKID;
 

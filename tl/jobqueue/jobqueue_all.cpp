@@ -1,6 +1,6 @@
 #include "jobqueue_all.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include "../tl_system.h"
 #include <universal/q_shared.h>
 #include <qcommon/threads.h>
@@ -1573,7 +1573,7 @@ void __cdecl jqWorkerLoop(jqWorker *Worker, jqBatchGroup *GroupID, bool BreakWhe
                     if (!freeList)
                     {
                         block = (jqAtomicQueue<jqBatch,32>::NodeType *)tlMemAlloc(sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8, 4, 0);
-                        static_assert(sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8 == 0x1008);
+                        static_assert(sizeof(void *) != 4 || sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8 == 0x1008);
 
                         //v17 = block;
                         //v18 = 31;
@@ -1736,7 +1736,7 @@ void __cdecl jqTempWorkerLoop(jqWorker *Worker, jqBatchGroup *GroupID, bool (__c
         {
 
           block = (jqAtomicQueue<jqBatch, 32>::NodeType *)tlMemAlloc(sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8, 4u, 0);
-          static_assert(sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8 == 0x1008);
+          static_assert(sizeof(void *) != 4 || sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8 == 0x1008);
 
           //v12 = block;
           //v13 = 31;

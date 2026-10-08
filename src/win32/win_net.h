@@ -3,7 +3,7 @@
 // Winsock2 must precede Windows.h.  Otherwise Windows.h may include the legacy
 // winsock.h first, hiding Winsock2 declarations such as gethostname.
 #include <winsock2.h>
-#include <Windows.h>
+#include <windows.h>
 
 
 struct socketpool_t // sizeof=0x10

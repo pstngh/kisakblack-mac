@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <gfx_d3d/r_material.h>
 #include <universal/dvar.h>
 #include "flame_physics.h"
@@ -199,19 +200,19 @@ struct flameTable // sizeof=0x1DC
         float flameVar_smokeOriginOffset;
         float flameVar_collisionSpeedScale;
         float flameVar_collisionVolumeScale;
-        const char *name;
-        Material *fire;
-        Material *smoke;
-        Material *heat;
-        Material *drips;
-        Material *streamFuel;
-        Material *streamFuel2;
-        Material *streamFlame;
-        Material *streamFlame2;
-        const char *flameOffLoopSound;
-        const char *flameIgniteSound;
-        const char *flameOnLoopSound;
-        const char *flameCooldownSound;
+        Ptr32<const char> name;
+        Ptr32<Material> fire;
+        Ptr32<Material> smoke;
+        Ptr32<Material> heat;
+        Ptr32<Material> drips;
+        Ptr32<Material> streamFuel;
+        Ptr32<Material> streamFuel2;
+        Ptr32<Material> streamFlame;
+        Ptr32<Material> streamFlame2;
+        Ptr32<const char> flameOffLoopSound;
+        Ptr32<const char> flameIgniteSound;
+        Ptr32<const char> flameOnLoopSound;
+        Ptr32<const char> flameCooldownSound;
 };
 
 struct flameWeaponConfig_t // sizeof=0x44

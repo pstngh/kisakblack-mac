@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "snd.h"
 #include "snd_radverb.h"
 
@@ -15,25 +16,25 @@ struct SndIndexEntry // sizeof=0x4
 
 struct SndBank // sizeof=0x28
 {                                       // XREF: XAssetPoolEntry<SndBank>/r
-    const char *name;
+    Ptr32<const char> name;
     unsigned int aliasCount;
-    snd_alias_list_t *alias;
-    SndIndexEntry *aliasIndex;
+    Ptr32<snd_alias_list_t> alias;
+    Ptr32<SndIndexEntry> aliasIndex;
     unsigned int packHash;
     unsigned int packLocation;
     unsigned int radverbCount;
-    snd_radverb *radverbs;
+    Ptr32<snd_radverb> radverbs;
     unsigned int snapshotCount;
-    snd_snapshot *snapshots;
+    Ptr32<snd_snapshot> snapshots;
 };
 
 struct SndPatch // sizeof=0x14
 {                                       // XREF: XAssetPoolEntry<SndPatch>/r
-    char *name;
+    Ptr32<char> name;
     unsigned int elementCount;
-    unsigned int *elements;
+    Ptr32<unsigned int> elements;
     unsigned int fileCount;
-    SoundFile *files;
+    Ptr32<SoundFile> files;
 };
 
 void __cdecl SND_AddBank(SndBank *bank);

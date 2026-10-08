@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include <universal/dvar.h>
 
@@ -10,8 +11,8 @@ struct sunflare_t // sizeof=0x60
     // padding byte
     // padding byte
     // padding byte
-    Material *spriteMaterial;
-    Material *flareMaterial;
+    Ptr32<Material> spriteMaterial;
+    Ptr32<Material> flareMaterial;
     float spriteSize;
     float flareMinSize;
     float flareMinDot;

@@ -1,10 +1,11 @@
 #pragma once
+#include <universal/ptr32.h>
 
 struct ddlEnumDef_t // sizeof=0xC
 {
-    const char *name;
+    Ptr32<const char> name;
     int memberCount;
-    const char **members;
+    Ptr32<Ptr32<const char>> members;
 };
 
 union ddlResult_t // sizeof=0x40
@@ -18,7 +19,7 @@ union ddlResult_t // sizeof=0x40
 
 struct ddlMemberDef_t // sizeof=0x30
 {
-    const char *name;
+    Ptr32<const char> name;
     int size;
     int offset;
     int type;
@@ -34,10 +35,10 @@ struct ddlMemberDef_t // sizeof=0x30
 
 struct ddlStructDef_t // sizeof=0x10
 {
-    const char *name;
+    Ptr32<const char> name;
     int size;
     int memberCount;
-    ddlMemberDef_t *members;
+    Ptr32<ddlMemberDef_t> members;
 };
 
 struct ddlDef_t // sizeof=0x1C
@@ -45,11 +46,11 @@ struct ddlDef_t // sizeof=0x1C
                                         // ddlDefNext/r
     int version;
     int size;
-    ddlStructDef_t *structList;
+    Ptr32<ddlStructDef_t> structList;
     int structCount;
-    ddlEnumDef_t *enumList;
+    Ptr32<ddlEnumDef_t> enumList;
     int enumCount;
-    ddlDef_t *next;
+    Ptr32<ddlDef_t> next;
 };
 
 struct ddlState_t // sizeof=0x10
@@ -67,8 +68,8 @@ struct ddlState_t // sizeof=0x10
 
 struct ddlRoot_t // sizeof=0x8
 {                                       // XREF: XAssetPoolEntry<ddlRoot_t>/r
-    const char *name;
-    ddlDef_t *ddlDef;
+    Ptr32<const char> name;
+    Ptr32<ddlDef_t> ddlDef;
 };
 
 void __cdecl DDL_Init();

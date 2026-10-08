@@ -1,5 +1,9 @@
-if (NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    message(FATAL_ERROR "The portable target currently supports Linux hosts")
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(KISAK_MACOS OFF)
+elseif (APPLE)
+    set(KISAK_MACOS ON)
+else()
+    message(FATAL_ERROR "The portable target supports Linux and macOS hosts")
 endif()
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -32,6 +36,11 @@ target_include_directories(${BIN_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/tl"
     "${SRC_DIR}/jpeg"
 )
+
+if (KISAK_MACOS)
+    include(cmake/macos.cmake)
+    return()
+endif()
 
 target_compile_definitions(${BIN_NAME} PRIVATE KISAK_MP)
 target_compile_options(${BIN_NAME} PRIVATE

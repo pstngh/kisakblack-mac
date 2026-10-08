@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <qcommon/cmd.h>
 #include <qcommon/msg_mp.h>
 #include <bgame/bg_emblems.h>
@@ -33,14 +34,14 @@ struct EmblemLayer // sizeof=0xC
 
 struct EmblemCategory // sizeof=0x8
 {
-    const char *name;
-    const char *description;
+    Ptr32<const char> name;
+    Ptr32<const char> description;
 };
 
 struct EmblemIcon // sizeof=0x28
 {
-    GfxImage *image;
-    const char *description;
+    Ptr32<GfxImage> image;
+    Ptr32<const char> description;
     float outlineSize;
     int defaultColor;
     int cost;
@@ -53,8 +54,8 @@ struct EmblemIcon // sizeof=0x28
 
 struct EmblemBackground // sizeof=0x18
 {
-    Material *material;
-    const char *description;
+    Ptr32<Material> material;
+    Ptr32<const char> description;
     int cost;
     int unlockLevel;
     int unlockPLevel;
@@ -65,15 +66,15 @@ struct EmblemSet // sizeof=0x2C
 {                                       // XREF: XAssetPoolEntry<EmblemSet>/r
     int colorCount;
     int layerCount;
-    EmblemLayer *layers;
+    Ptr32<EmblemLayer> layers;
     int categoryCount;
-    EmblemCategory *categories;
+    Ptr32<EmblemCategory> categories;
     int iconCount;
-    EmblemIcon *icons;
+    Ptr32<EmblemIcon> icons;
     int backgroundCount;
-    EmblemBackground *backgrounds;
+    Ptr32<EmblemBackground> backgrounds;
     int backgroundLookupCount;
-    __int16 *backgroundLookup;
+    Ptr32<__int16> backgroundLookup;
 };
 
 struct __declspec(align(4)) CompositeEmblemLayer // sizeof=0x20

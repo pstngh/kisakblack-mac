@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 struct WinVars_t // sizeof=0x20
 {                                       // XREF: .data:WinVars_t g_wv/r

@@ -1,6 +1,6 @@
 #include "win_configure.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include "win_localize.h"
 #include "win_main.h"
 #include <d3d9.h>

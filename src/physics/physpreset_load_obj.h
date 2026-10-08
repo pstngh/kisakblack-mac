@@ -1,8 +1,9 @@
 #pragma once
+#include <universal/ptr32.h>
 
 struct PhysPreset // sizeof=0x54
 {                                       // XREF: XAssetPoolEntry<PhysPreset>/r
-    const char *name;                   // XREF: Ragdoll_CreatePhysObj+3A9/w
+    Ptr32<const char> name;                   // XREF: Ragdoll_CreatePhysObj+3A9/w
     int flags;
     float mass;                         // XREF: Ragdoll_CreatePhysObj+3A4/w
                                         // GlassShard::InitPhysicsObj(bool)+1CB/w
@@ -11,7 +12,7 @@ struct PhysPreset // sizeof=0x54
                                         // GlassShard::InitPhysicsObj(bool)+1D9/w
     float bulletForceScale;             // XREF: Ragdoll_CreatePhysObj+37D/w
     float explosiveForceScale;          // XREF: Ragdoll_CreatePhysObj+38A/w
-    const char *sndAliasPrefix;         // XREF: Ragdoll_CreatePhysObj+3B0/w
+    Ptr32<const char> sndAliasPrefix;         // XREF: Ragdoll_CreatePhysObj+3B0/w
     float piecesSpreadFraction;
     float piecesUpwardVelocity;
     int canFloat;                       // XREF: Ragdoll_CreatePhysObj+3B7/w

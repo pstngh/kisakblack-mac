@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "r_screenshot.h"
 #include <cgame_mp/cg_local_mp.h>
 
@@ -10,8 +11,8 @@ struct GfxReflectionProbeVolumeData // sizeof=0x60
 struct GfxReflectionProbe // sizeof=0x18
 {
     float origin[3];
-    GfxImage *reflectionImage;
-    GfxReflectionProbeVolumeData *probeVolumes;
+    Ptr32<GfxImage> reflectionImage;
+    Ptr32<GfxReflectionProbeVolumeData> probeVolumes;
     unsigned int probeVolumeCount;
 };
 

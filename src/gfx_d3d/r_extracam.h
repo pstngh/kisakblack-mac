@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 enum eExtraCamResolution : __int32
 {                                       // XREF: ?R_ExtraCam_Init@@YAXH@Z/r
@@ -34,7 +35,7 @@ struct __declspec(align(4)) ExtraCamConfig // sizeof=0x10
 
 struct XGlobals // sizeof=0x28
 {                                       // XREF: XAssetPoolEntry<XGlobals>/r
-    const char *name;
+    Ptr32<const char> name;
     int xanimStreamBufferSize;
     int cinematicMaxWidth;
     int cinematicMaxHeight;

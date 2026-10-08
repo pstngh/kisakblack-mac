@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 struct __declspec(align(4)) miniDumper // sizeof=0x314
 {                                       // XREF: .data:g_miniDumper/r

@@ -2,7 +2,7 @@
 #include <universal/assertive.h>
 #include <cstring>
 
-#include <Windows.h> // interlockedxchg
+#include <windows.h> // interlockedxchg
 #include <cmath>
 
 struct phys_vec2 // sizeof=0x8
@@ -247,7 +247,7 @@ struct chull_t // sizeof=0x20
     int touched;
     chull_t *next_list;
 };
-static_assert(sizeof(chull_t) == 0x20);
+static_assert(sizeof(void *) != 4 || sizeof(chull_t) == 0x20);
 
 struct minspec_mutex // sizeof=0x4
 {                                       // XREF: .data:minspec_mutex g_render_mutex/r

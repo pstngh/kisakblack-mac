@@ -1,6 +1,6 @@
 #include "timing.h"
 
-#include <Windows.h>
+#include <windows.h>
 
 long double msecPerRawTimerTick;
 

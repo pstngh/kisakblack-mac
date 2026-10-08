@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #include <mmreg.h>
 #endif
 #include <XAPOBase.h>

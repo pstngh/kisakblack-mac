@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "r_material.h"
 #include <universal/q_shared.h>
 
@@ -122,30 +123,30 @@ struct FxElemVisStateSample // sizeof=0x30
 
 struct FxElemMarkVisuals // sizeof=0x8
 {                                       // XREF: $02AC52774A03C1B6F49B7C17F56F8A85/r
-    Material *materials[2];
+    Ptr32<Material> materials[2];
 };
 
 union FxEffectDefRef // sizeof=0x4
 {                                       // XREF: FxElemVisuals/r
                                         // FxElemDef/r ...
-    const FxEffectDef *handle;
-    const char *name;
+    Ptr32<const FxEffectDef> handle;
+    Ptr32<const char> name;
 };
 
 union FxElemVisuals // sizeof=0x4
 {                                       // XREF: FX_GenSpriteVerts+4C/w
                                         // FX_GenSpriteVerts+52/r ...
-    const void *anonymous;
-    Material *material;
-    XModel *model;
+    Ptr32<const void> anonymous;
+    Ptr32<Material> material;
+    Ptr32<XModel> model;
     FxEffectDefRef effectDef;
-    const char *soundName;
+    Ptr32<const char> soundName;
 };
 
 union FxElemDefVisuals // sizeof=0x4
 {                                       // XREF: FxElemDef/r
-    FxElemMarkVisuals *markArray;
-    FxElemVisuals *array;
+    Ptr32<FxElemMarkVisuals> markArray;
+    Ptr32<FxElemVisuals> array;
     FxElemVisuals instance;
 };
 
@@ -165,15 +166,15 @@ struct FxTrailDef // sizeof=0x1C
     //$A41F6DDA83A77139D9FD89879C7CFB09 ___u4;
     union //$A41F6DDA83A77139D9FD89879C7CFB09 // sizeof=0x4
     {                                       // XREF: FxTrailDef/r
-        FxTrailVertex *vertsEA;
-        FxTrailVertex *verts;
+        Ptr32<FxTrailVertex> vertsEA;
+        Ptr32<FxTrailVertex> verts;
     };
     int indCount;
     //$D31B43AE1E46D24CA4A859818848B5E1 ___u6;
     union //$D31B43AE1E46D24CA4A859818848B5E1 // sizeof=0x4
     {                                       // XREF: FxTrailDef/r
-        unsigned __int16 *indsEA;
-        unsigned __int16 *inds;
+        Ptr32<unsigned __int16> indsEA;
+        Ptr32<unsigned __int16> inds;
     };
 };
 
@@ -192,7 +193,7 @@ union FxElemDefUnion // sizeof=0x8
 struct FxElemSpawnSound // sizeof=0x4
 {                                       // XREF: FxElemDef/r
                                         // FxEditorElemDef/r
-    const char *spawnSound;
+    Ptr32<const char> spawnSound;
 };
 
 struct FxElemDef // sizeof=0x124
@@ -220,8 +221,8 @@ struct FxElemDef // sizeof=0x124
     unsigned __int8 visualCount;
     unsigned __int8 velIntervalCount;
     unsigned __int8 visStateIntervalCount;
-    const FxElemVelStateSample *velSamples;
-    const FxElemVisStateSample *visSamples;
+    Ptr32<const FxElemVelStateSample> velSamples;
+    Ptr32<const FxElemVisStateSample> visSamples;
     FxElemDefVisuals visuals;
     float collMins[3];
     float collMaxs[3];
@@ -234,8 +235,8 @@ struct FxElemDef // sizeof=0x124
     //$6560A5492D3E60888A9CD1F2E81D900E ___u34;
     union //$6560A5492D3E60888A9CD1F2E81D900E // sizeof=0x4
     {                                       // XREF: FxElemDef/r
-        FxTrailDef *localTrailDef;
-        FxTrailDef *trailDef;
+        Ptr32<FxTrailDef> localTrailDef;
+        Ptr32<FxTrailDef> trailDef;
     };
     unsigned __int8 sortOrder;
     unsigned __int8 lightingFrac;
@@ -251,7 +252,7 @@ struct FxElemDef // sizeof=0x124
 
 struct FxEffectDef // sizeof=0x3C
 {                                       // XREF: XAssetPoolEntry<FxEffectDef>/r
-    const char *name;
+    Ptr32<const char> name;
     unsigned __int8 flags;
     unsigned __int8 efPriority;
     unsigned __int8 reserved[2];
@@ -263,8 +264,8 @@ struct FxEffectDef // sizeof=0x3C
     //$7BD2F22D4D2E155DDD2F5AE6C1F591D8 ___u9;
     union //$7BD2F22D4D2E155DDD2F5AE6C1F591D8 // sizeof=0x4
     {                                       // XREF: FxEffectDef/r
-        const FxElemDef *elemDefsEA;
-        const FxElemDef *elemDefs;
+        Ptr32<const FxElemDef> elemDefsEA;
+        Ptr32<const FxElemDef> elemDefs;
     };
     float boundingBoxDim[3];
     float boundingSphere[4];

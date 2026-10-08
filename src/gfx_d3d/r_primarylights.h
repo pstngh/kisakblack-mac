@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "r_rendercmds.h"
 #include <DynEntity/DynEntity_gamestate.h>
 #include "r_rendercmds.h"
@@ -31,7 +32,7 @@ struct ComPrimaryLight // sizeof=0xDC
     float cookieControl0[4];
     float cookieControl1[4];
     float cookieControl2[4];
-    const char *defName;
+    Ptr32<const char> defName;
 };
 
 struct GfxShadowedLightEntry // sizeof=0x8
@@ -68,13 +69,13 @@ struct GfxLightRegionHull // sizeof=0x50
     float kdopMidPoint[9];
     float kdopHalfSize[9];
     unsigned int axisCount;
-    GfxLightRegionAxis *axis;
+    Ptr32<GfxLightRegionAxis> axis;
 };
 
 struct GfxLightRegion // sizeof=0x8
 {
     unsigned int hullCount;
-    GfxLightRegionHull *hulls;
+    Ptr32<GfxLightRegionHull> hulls;
 };
 
 void __cdecl R_ClearShadowedPrimaryLightHistory(int localClientNum);

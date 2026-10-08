@@ -1,6 +1,6 @@
 #include "win_splash.h"
 
-#include <Windows.h>
+#include <windows.h>
 
 HWND g_splashWnd;
 

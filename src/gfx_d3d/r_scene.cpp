@@ -1,6 +1,6 @@
 #include "r_scene.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include "r_dvars.h"
 #include "r_warn.h"
 #include "r_stream.h"
