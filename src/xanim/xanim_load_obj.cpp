@@ -615,7 +615,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                 v87[animPartIndex].partIndex = j;
                                 v7 = *(unsigned int *)&part[animPartIndex].partIndex;
                                 v8 = j;
-                                v85[2 * j] = (unsigned int)part[animPartIndex].quat;
+                                v85[2 * j] = (unsigned int)Ptr32_Encode(part[animPartIndex].quat);
                                 v85[2 * v8 + 1] = v7;
                                 parts->names[j] = v82[animPartIndex];
                                 PartQuatType = XAnimGetPartQuatType(animPartIndex);
@@ -658,7 +658,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                 animPartIndex = *(unsigned __int16 *)&v86[2 * j];
                                 v14 = *(unsigned int *)&v87[animPartIndex].partIndex;
                                 v15 = j;
-                                *(unsigned int *)&dest[8 * j + 128] = (unsigned int)v87[animPartIndex].trans;
+                                *(unsigned int *)&dest[8 * j + 128] = (unsigned int)Ptr32_Encode(v87[animPartIndex].trans);
                                 *(unsigned int *)&dest[8 * v15 + 132] = v14;
                                 PartQuatType = XAnimGetPartTransType(animPartIndex);
                                 *(&i + PartQuatType) = j + 1;
@@ -695,7 +695,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                             v70 += parts->boneCount[1];
                             while ( animPartIndex < v70 )
                             {
-                                tableSize = *(unsigned __int16 *)v85[2 * animPartIndex];
+                                tableSize = *(unsigned __int16 *)Ptr32_Decode(v85[2 * animPartIndex]);
                                 ++v91;
                                 if ( v44 )
                                 {
@@ -716,7 +716,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                             v70 += parts->boneCount[2];
                             while ( animPartIndex < v70 )
                             {
-                                tableSize = *(unsigned __int16 *)v85[2 * animPartIndex];
+                                tableSize = *(unsigned __int16 *)Ptr32_Decode(v85[2 * animPartIndex]);
                                 ++v91;
                                 if ( v44 )
                                 {
@@ -931,7 +931,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                             v70 += parts->boneCount[1];
                             while ( animPartIndex < v70 )
                             {
-                                tableSize = *(unsigned __int16 *)v85[2 * animPartIndex];
+                                tableSize = *(unsigned __int16 *)Ptr32_Decode(v85[2 * animPartIndex]);
                                 v16 = truncate_cast<unsigned short>(tableSize);
                                 *dataShort++ = v16;
                                 memcpy(v75, *(unsigned __int8 **)(v85[2 * animPartIndex] + 4), 2 * (2 * tableSize + 2));
@@ -941,13 +941,13 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                     &dataByte,
                                     &dataShort,
                                     &indices,
-                                    (XAnimDynamicIndices *)(v85[2 * animPartIndex++] + 8),
+                                    (XAnimDynamicIndices *)Ptr32_Decode(v85[2 * animPartIndex++] + 8),
                                     v44);
                             }
                             v70 += parts->boneCount[2];
                             while ( animPartIndex < v70 )
                             {
-                                tableSize = *(unsigned __int16 *)v85[2 * animPartIndex];
+                                tableSize = *(unsigned __int16 *)Ptr32_Decode(v85[2 * animPartIndex]);
                                 v17 = truncate_cast<unsigned short>(tableSize);
                                 *dataShort++ = v17;
                                 memcpy(v75, *(unsigned __int8 **)(v85[2 * animPartIndex] + 4), 2 * (4 * tableSize + 4));
@@ -957,13 +957,13 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                     &dataByte,
                                     &dataShort,
                                     &indices,
-                                    (XAnimDynamicIndices *)(v85[2 * animPartIndex++] + 8),
+                                    (XAnimDynamicIndices *)Ptr32_Decode(v85[2 * animPartIndex++] + 8),
                                     v44);
                             }
                             v70 += parts->boneCount[3];
                             while ( animPartIndex < v70 )
                             {
-                                *(unsigned int *)dataShort = *(unsigned int *)(v85[2 * animPartIndex++] + 4);
+                                *(unsigned int *)dataShort = *(unsigned int *)Ptr32_Decode(v85[2 * animPartIndex++] + 4);
                                 dataShort += 2;
                             }
                             v70 += parts->boneCount[4];
@@ -971,8 +971,8 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                             {
                                 v18 = v85[2 * animPartIndex];
                                 v19 = dataShort;
-                                *(unsigned int *)dataShort = *(unsigned int *)(v18 + 4);
-                                *((unsigned int *)v19 + 1) = *(unsigned int *)(v18 + 8);
+                                *(unsigned int *)dataShort = *(unsigned int *)Ptr32_Decode(v18 + 4);
+                                *((unsigned int *)v19 + 1) = *(unsigned int *)Ptr32_Decode(v18 + 8);
                                 ++animPartIndex;
                                 dataShort += 4;
                             }
@@ -994,18 +994,18 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                 *dataByte++ = dest[8 * animPartIndex + 132];
                                 *dataShort = **(_WORD **)&dest[8 * animPartIndex + 128];
                                 tableSize = (unsigned __int16)*dataShort++;
-                                *v71 = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 4);
-                                v71[1] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 8);
-                                v71[2] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 12);
-                                v71[3] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 16);
-                                v71[4] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 20);
-                                v71[5] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 24);
+                                *v71 = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 4);
+                                v71[1] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 8);
+                                v71[2] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 12);
+                                v71[3] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 16);
+                                v71[4] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 20);
+                                v71[5] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 24);
                                 v47 = 0;
                                 while ( v47 <= tableSize )
                                 {
-                                    *v78 = *(_BYTE *)(3 * v47 + *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28));
-                                    v78[1] = *(_BYTE *)(*(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28) + 3 * v47 + 1);
-                                    v78[2] = *(_BYTE *)(*(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28) + 3 * v47++ + 2);
+                                    *v78 = *(_BYTE *)Ptr32_Decode(3 * v47 + *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28));
+                                    v78[1] = *(_BYTE *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28) + 3 * v47 + 1);
+                                    v78[2] = *(_BYTE *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28) + 3 * v47++ + 2);
                                     v78 += 3;
                                 }
                                 XAnimEmitFrameIndices(
@@ -1013,7 +1013,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                     &dataByte,
                                     &dataShort,
                                     &indices,
-                                    (XAnimDynamicIndices *)(*(unsigned int *)&dest[8 * animPartIndex++ + 128] + 32),
+                                    (XAnimDynamicIndices *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex++ + 128] + 32),
                                     v44);
                                 v71 += 6;
                             }
@@ -1023,20 +1023,20 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                 *dataByte++ = dest[8 * animPartIndex + 132];
                                 *dataShort = **(_WORD **)&dest[8 * animPartIndex + 128];
                                 tableSize = (unsigned __int16)*dataShort++;
-                                *v71 = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 4);
-                                v71[1] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 8);
-                                v71[2] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 12);
-                                v71[3] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 16);
-                                v71[4] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 20);
-                                v71[5] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 24);
+                                *v71 = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 4);
+                                v71[1] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 8);
+                                v71[2] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 12);
+                                v71[3] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 16);
+                                v71[4] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 20);
+                                v71[5] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 24);
                                 v47 = 0;
                                 while ( v47 <= tableSize )
                                 {
-                                    *(_WORD *)v75 = *(_WORD *)(6 * v47 + *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28));
-                                    *((_WORD *)v75 + 1) = *(_WORD *)(*(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28)
+                                    *(_WORD *)v75 = *(_WORD *)Ptr32_Decode(6 * v47 + *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28));
+                                    *((_WORD *)v75 + 1) = *(_WORD *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28)
                                                                                                  + 6 * v47
                                                                                                  + 2);
-                                    *((_WORD *)v75 + 2) = *(_WORD *)(*(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28)
+                                    *((_WORD *)v75 + 2) = *(_WORD *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 28)
                                                                                                  + 6 * v47++
                                                                                                  + 4);
                                     v75 += 6;
@@ -1046,7 +1046,7 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                                     &dataByte,
                                     &dataShort,
                                     &indices,
-                                    (XAnimDynamicIndices *)(*(unsigned int *)&dest[8 * animPartIndex++ + 128] + 32),
+                                    (XAnimDynamicIndices *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex++ + 128] + 32),
                                     v44);
                                 v71 += 6;
                             }
@@ -1054,9 +1054,9 @@ XAnimParts *__cdecl XAnimLoadFile(char *name, void *(__cdecl *Alloc)(int), bool 
                             while ( animPartIndex < v70 )
                             {
                                 *dataByte = dest[8 * animPartIndex + 132];
-                                *v71 = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 4);
-                                v71[1] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex + 128] + 8);
-                                v71[2] = *(unsigned int *)(*(unsigned int *)&dest[8 * animPartIndex++ + 128] + 12);
+                                *v71 = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 4);
+                                v71[1] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex + 128] + 8);
+                                v71[2] = *(unsigned int *)Ptr32_Decode(*(unsigned int *)&dest[8 * animPartIndex++ + 128] + 12);
                                 ++dataByte;
                                 v71 += 3;
                             }

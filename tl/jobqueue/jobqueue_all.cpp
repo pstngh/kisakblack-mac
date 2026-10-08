@@ -1,4 +1,5 @@
 #include "jobqueue_all.h"
+#include <universal/ptr32.h>
 
 #include <windows.h>
 #include "../tl_system.h"
@@ -835,7 +836,7 @@ bool __cdecl jqPoll(jqBatchGroup *GroupID)
     p_group = GroupID;
     if (!GroupID)
         p_group = &jqPool.group;
-    if (((unsigned __int8)p_group & 7) != 0
+    if (((unsigned __int8)Ptr32_Encode(p_group) & 7) != 0
         && _tlAssert(
             "c:\\projects_pc\\cod\\codsrc\\tl\\jobqueue\\jobqueue.cpp",
             390,
@@ -933,11 +934,11 @@ void __cdecl jqCheckDMALS(const void *addr)
 {
   if ( !addr )
     tlFatal("%s (LS) is NULL.", jqCheckContext);
-  if ( ((unsigned __int8)addr & 0xF) != 0 )
+  if ( ((unsigned __int8)Ptr32_Encode(addr) & 0xF) != 0 )
     tlFatal("%s 0x%x (LS) not 16byte aligned.", jqCheckContext, addr);
-  if ( (unsigned int)addr > 0x40000 )
+  if ( (unsigned int)Ptr32_Encode(addr) > 0x40000 )
     tlFatal("%s 0x%x (LS) is > 256k.", jqCheckContext, addr);
-  if ( (unsigned int)addr < 0x4000 )
+  if ( (unsigned int)Ptr32_Encode(addr) < 0x4000 )
     tlFatal("%s 0x%x (LS) is in kernel memory.", jqCheckContext, addr);
 }
 
@@ -945,9 +946,9 @@ void __cdecl jqCheckDMAMain(const void *addr)
 {
   if ( !addr )
     tlFatal("%s (Main) is NULL.", jqCheckContext);
-  if ( ((unsigned __int8)addr & 0xF) != 0 )
+  if ( ((unsigned __int8)Ptr32_Encode(addr) & 0xF) != 0 )
     tlFatal("%s 0x%x (Main) not 16byte aligned.", jqCheckContext, addr);
-  if ( (unsigned int)addr < 0x40000 )
+  if ( (unsigned int)Ptr32_Encode(addr) < 0x40000 )
     tlFatal("%s 0x%x (Main) is < 256k.", jqCheckContext, addr);
 }
 
@@ -2463,7 +2464,7 @@ void jqAtomicHeap::Init(
     p_CellAvailable = &this->Levels[0].CellAvailable;
     do
     {
-      v15 = ((unsigned int)*(p_CellAvailable - 2) + 1023) & 0xFFFFFC00;
+      v15 = ((unsigned int)Ptr32_Encode(*(p_CellAvailable - 2)) + 1023) & 0xFFFFFC00;
       *p_CellAvailable = (unsigned __int64 *)LevelData;
       p_CellAvailable[1] = v13;
       LevelData += v15 / 8;
@@ -2473,7 +2474,7 @@ void jqAtomicHeap::Init(
     }
     while ( ia < this->NLevels );
   }
-  v16 = (unsigned int *)*((unsigned int *)&this->TotalBlocks + 5 * this->NLevels);
+  v16 = (unsigned int *)Ptr32_Decode(*((unsigned int *)&this->TotalBlocks + 5 * this->NLevels));
   *v16 = 1;
   v16[1] = 0;
 }

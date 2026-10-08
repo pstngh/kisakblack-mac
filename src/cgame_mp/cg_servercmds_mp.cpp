@@ -1109,7 +1109,7 @@ void __cdecl CG_ConfigStringModified(int localClientNum)
                                 }
                                 else
                                 {
-                                    *((unsigned int *)cgs + num - 1403) = (unsigned int)FX_Register(str);
+                                    *((unsigned int *)cgs + num - 1403) = (unsigned int)Ptr32_Encode(FX_Register(str));
                                     if ( !*((unsigned int *)cgs + num - 1403)
                                         && !Assert_MyHandler(
                                                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame_mp\\cg_servercmds_mp.cpp",
@@ -1124,7 +1124,7 @@ void __cdecl CG_ConfigStringModified(int localClientNum)
                             }
                             else
                             {
-                                *((unsigned int *)cgs + num - 1403) = (unsigned int)R_RegisterModel(str);
+                                *((unsigned int *)cgs + num - 1403) = (unsigned int)Ptr32_Encode(R_RegisterModel(str));
                             }
                             break;
                     }

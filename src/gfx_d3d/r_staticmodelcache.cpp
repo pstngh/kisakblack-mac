@@ -784,7 +784,7 @@ unsigned int SMC_ClearCache()
             v1->freenode.prev = &s_cache.freelist[smcIter][0];
             v1->freenode.next = s_cache.freelist[smcIter][0].next;
             s_cache.freelist[smcIter][0].next = &v1->freenode;
-            result = (unsigned int)v1;
+            result = (unsigned int)Ptr32_Encode(v1);
             v1->freenode.next->prev = &v1->freenode;
         }
     }

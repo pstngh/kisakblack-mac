@@ -73,7 +73,7 @@ const snd_master *__cdecl SND_GetMasterCurrent()
 {
     unsigned int v0; // eax
 
-    if ( !snd_master_override->current.integer || !*(_BYTE *)snd_master_override->current.integer )
+    if ( !snd_master_override->current.integer || !*(_BYTE *)Ptr32_Decode(snd_master_override->current.integer) )
         return SND_GetMasterByConfig();
     v0 = SND_HashName(snd_master_override->current.string);
     return SND_GetMaster(v0);

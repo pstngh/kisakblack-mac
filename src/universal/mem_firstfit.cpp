@@ -1,4 +1,5 @@
 #include "mem_firstfit.h"
+#include <universal/ptr32.h>
 #include "assertive.h"
 #include <win32/win_common.h>
 
@@ -31,24 +32,24 @@ HunkUser *__cdecl Hunk_FirstFitInit(
     {
         __debugbreak();
     }
-    buffer[2] = (unsigned int)name;
+    buffer[2] = (unsigned int)Ptr32_Encode(name);
     *buffer = scheme;
     buffer[1] = flags;
     buffer[3] = type;
     buffer[6] = -1;
     buffer[4] = size;
-    buffer[5] = (unsigned int)(buffer + 8);
-    *(unsigned int *)buffer[5] = 0;
-    *(unsigned int *)(buffer[5] + 4) = buffer[4] - 32;
+    buffer[5] = (unsigned int)Ptr32_Encode(buffer + 8);
+    *(unsigned int *)Ptr32_Decode(buffer[5]) = 0;
+    *(unsigned int *)Ptr32_Decode(buffer[5] + 4) = buffer[4] - 32;
     buffer[7] = 32;
     return (HunkUser *)buffer;
 }
 
 void __cdecl Hunk_FirstFitReset(HunkUser *_user)
 {
-    _user[1].flags = (unsigned int)&_user[2];
-    *(unsigned int *)_user[1].flags = 0;
-    *(unsigned int *)(_user[1].flags + 4) = _user[1].scheme - 32;
+    _user[1].flags = (unsigned int)Ptr32_Encode(&_user[2]);
+    *(unsigned int *)Ptr32_Decode(_user[1].flags) = 0;
+    *(unsigned int *)Ptr32_Decode(_user[1].flags + 4) = _user[1].scheme - 32;
     _user[1].type = 32;
 }
 
@@ -76,17 +77,17 @@ int __cdecl Hunk_FirstFitAlloc(HunkUser *_user, int size, int alignment)
         __debugbreak();
     }
     Sys_EnterCriticalSection(CRITSECT_MEMFIRSTFIT);
-    free_link = (unsigned int *)_user[1].flags;
+    free_link = (unsigned int *)Ptr32_Decode(_user[1].flags);
     last = 0;
     while ( 1 )
     {
         if ( !free_link )
             goto LABEL_16;
-        adj_size = (~(alignment - 1) & ((unsigned int)free_link + alignment + 11)) - (unsigned int)free_link + size;
+        adj_size = (~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11)) - (unsigned int)Ptr32_Encode(free_link) + size;
         if ( (int)free_link[1] >= adj_size )
             break;
         last = (_firstfit_heapnode *)free_link;
-        free_link = (unsigned int *)*free_link;
+        free_link = (unsigned int *)Ptr32_Decode(*free_link);
     }
     if ( !*free_link && (int)(free_link[1] - adj_size) <= 1024 )
     {
@@ -96,20 +97,20 @@ LABEL_16:
     }
     if ( (int)(free_link[1] - adj_size) > 1024 )
     {
-        *(unsigned int *)((~(alignment - 1) & ((unsigned int)free_link + alignment + 11)) + size) = *free_link;
+        *(unsigned int *)Ptr32_Decode((~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11)) + size) = *free_link;
         *(unsigned int *)((char *)free_link + adj_size + 4) = free_link[1] - adj_size;
-        *free_link = (~(alignment - 1) & ((unsigned int)free_link + alignment + 11)) + size;
+        *free_link = (~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11)) + size;
         free_link[1] = adj_size;
     }
     if ( last )
-        last->next = (_firstfit_heapnode *)*free_link;
+        last->next = (_firstfit_heapnode *)Ptr32_Decode(*free_link);
     else
         _user[1].flags = *free_link;
     *free_link = -559038737;
-    *(unsigned int *)((~(alignment - 1) & ((unsigned int)free_link + alignment + 11)) - 12 + 8) = (unsigned int)free_link;
+    *(unsigned int *)Ptr32_Decode((~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11)) - 12 + 8) = (unsigned int)Ptr32_Encode(free_link);
     _user[1].type += free_link[1];
     Sys_LeaveCriticalSection(CRITSECT_MEMFIRSTFIT);
-    return ~(alignment - 1) & ((unsigned int)free_link + alignment + 11);
+    return ~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11);
 }
 
 void __cdecl Hunk_FirstFitFree(HunkUser *_user, unsigned int *ptr)
@@ -122,8 +123,8 @@ void __cdecl Hunk_FirstFitFree(HunkUser *_user, unsigned int *ptr)
     {
         Sys_EnterCriticalSection(CRITSECT_MEMFIRSTFIT);
         last = 0;
-        scan = (_firstfit_heapnode *)_user[1].flags;
-        free_link = (_firstfit_heapnode *)*(ptr - 1);
+        scan = (_firstfit_heapnode *)Ptr32_Decode(_user[1].flags);
+        free_link = (_firstfit_heapnode *)Ptr32_Decode(*(ptr - 1));
         if ( free_link->next == (_firstfit_heapnode *)-559038737 )
         {
             _user[1].type -= free_link->size;
@@ -148,8 +149,8 @@ void __cdecl Hunk_FirstFitFree(HunkUser *_user, unsigned int *ptr)
                     }
                     else
                     {
-                        free_link->next = (_firstfit_heapnode *)_user[1].flags;
-                        _user[1].flags = (unsigned int)free_link;
+                        free_link->next = (_firstfit_heapnode *)Ptr32_Decode(_user[1].flags);
+                        _user[1].flags = (unsigned int)Ptr32_Encode(free_link);
                     }
                     if ( last && (_firstfit_heapnode *)((char *)last + last->size) == free_link )
                     {

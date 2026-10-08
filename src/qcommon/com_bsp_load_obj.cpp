@@ -70,7 +70,7 @@ char *__cdecl Com_GetBspLump(LumpType type, unsigned int elemSize, unsigned int 
         *count = 0;
         return 0;
     }
-    else if ( type < (unsigned int)Com_GetBspLumpCountForVersion(comBspGlob.header->version) )
+    else if ( type < (unsigned int)Ptr32_Encode(Com_GetBspLumpCountForVersion(comBspGlob.header->version)) )
     {
         return Com_ValidateBspLumpData(
                          type,
@@ -219,7 +219,7 @@ unsigned __int8 *__cdecl Com_ReadLumpOutOfBsp(int h, LumpType type, unsigned int
             return 0;
         }
     }
-    else if ( type < (unsigned int)Com_GetBspLumpCountForVersion(version) )
+    else if ( type < (unsigned int)Ptr32_Encode(Com_GetBspLumpCountForVersion(version)) )
     {
         readSize = 8 * type;
         FS_Seek(h, 8 * type, 0);
@@ -249,7 +249,7 @@ unsigned __int8 *__cdecl Com_ReadLumpOutOfBspAtOffset(
     if ( length % elemSize )
         Com_Error(ERR_DROP, "LoadMap: lump %i has funny size", type);
     FS_Seek(h, offset, 2);
-    data = (unsigned __int8 *)Hunk_AllocateTempMemoryHigh(length, "Com_ReadLumpOutOfBsp");
+    data = (unsigned __int8 *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(length, "Com_ReadLumpOutOfBsp"));
     if ( FS_Read(data, length, h) != length )
         return 0;
     *count = length / elemSize;
@@ -349,7 +349,7 @@ char __cdecl Com_CheckVersionLumpCountError(int version)
         if ( comBspGlob.fileSize < 8 * comBspGlob.header->chunkCount + 12 )
             return 1;
     }
-    else if ( comBspGlob.fileSize < 8 * (int)Com_GetBspLumpCountForVersion(version) + 8 )
+    else if ( comBspGlob.fileSize < 8 * (int)Ptr32_Encode(Com_GetBspLumpCountForVersion(version)) + 8 )
     {
         return 1;
     }
@@ -996,7 +996,7 @@ ComPrimaryLight *Com_LoadPrimaryLights_Version14()
                                                                     1,
                                                                     "%s",
                                                                     "comWorld.primaryLights[0].type == GFX_LIGHT_TYPE_NONE");
-        if ( !(_BYTE)result )
+        if ( !(_BYTE)Ptr32_Encode(result) )
             __debugbreak();
     }
     comWorld.primaryLights[1].type = 1;

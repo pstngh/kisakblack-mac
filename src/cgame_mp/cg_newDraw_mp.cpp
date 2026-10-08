@@ -4599,9 +4599,9 @@ void    CG_DrawPlayerStance(
     v19 = hud_fade_stance->current.value * 1000.0;
     //fadeAlpha = DOUBLE_9_313225746154785eN10;
     fadeAlpha = 9.313225746154785e-10;
-    cgs = (const cgs_t *)(int)(v19 + 9.313225746154785e-10);
+    cgs = (const cgs_t *)Ptr32_Decode((int)(v19 + 9.313225746154785e-10));
     x = cgs;
-    y = CG_FadeHudMenu(localClientNum, hud_fade_stance, cgameGlob->stanceFadeTime, (int)cgs);
+    y = CG_FadeHudMenu(localClientNum, hud_fade_stance, cgameGlob->stanceFadeTime, (int)Ptr32_Encode(cgs));
     if ( y != 0.0 )
     {
         if ( cg_hudStanceHintPrints->current.enabled )
@@ -4622,7 +4622,7 @@ void    CG_DrawPlayerStance(
         //BLOPS_NULLSUB((jpeg_decompress_struct *)&drawColor[2]);
         deltaTime = *color;
         halfWidth = color[1];
-        proneStr = (const char *)*((unsigned int *)color + 2);
+        proneStr = (const char *)Ptr32_Decode(*((unsigned int *)color + 2));
         if ( (cgameGlob->predictedPlayerState.pm_flags & 0x1000) != 0 && cgameGlob->proneBlockedEndTime < cgameGlob->time )
             cgameGlob->proneBlockedEndTime = cgameGlob->time + 1500;
         if ( cgameGlob->proneBlockedEndTime > cgameGlob->time )

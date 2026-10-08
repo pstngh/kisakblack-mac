@@ -367,7 +367,7 @@ void RB_Resource_Update_Internal()
                 dx.device->CreatePixelShader((const DWORD*)action->data, (IDirect3DPixelShader9 **)action->resource);
                 goto LABEL_2;
             case ACTION_LOADVERTEXBUFFER:
-                Load_VertexBuffer((IDirect3DVertexBuffer9 **)action->resource, (unsigned __int8 *)action->data, action->p1);
+                Load_VertexBuffer((Ptr32<IDirect3DVertexBuffer9> *)action->resource, (unsigned __int8 *)action->data, action->p1);
                 goto LABEL_2;
             case ACTION_LOADINDEXBUFFER:
                 ib = (IDirect3DIndexBuffer9 **)action->resource;

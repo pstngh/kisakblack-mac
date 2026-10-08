@@ -48,7 +48,7 @@ sval_u __cdecl node0(scriptInstance_t inst, ParseToken_t type)
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 1);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 1));
     result.node[0].type = type;
     return result;
 }
@@ -72,7 +72,7 @@ sval_u __cdecl node1(scriptInstance_t inst, ParseToken_t type, sval_u val1)
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 2);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 2));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     return result;
@@ -82,7 +82,7 @@ sval_u __cdecl node2(scriptInstance_t inst, ParseToken_t type, sval_u val1, sval
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 3);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 3));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -93,9 +93,9 @@ sval_u __cdecl node2_(scriptInstance_t inst, sval_u val1, sval_u val2)
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 2);
-    *(unsigned int *)result.stringValue = val1.stringValue;
-    *(sval_u *)(result.stringValue + 4) = val2;
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 2));
+    *(unsigned int *)Ptr32_Decode(result.stringValue) = val1.stringValue;
+    *(sval_u *)Ptr32_Decode(result.stringValue + 4) = val2;
     return result;
 }
 
@@ -103,7 +103,7 @@ sval_u __cdecl node3(scriptInstance_t inst, ParseToken_t type, sval_u val1, sval
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 4);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 4));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -115,7 +115,7 @@ sval_u __cdecl node4(scriptInstance_t inst, ParseToken_t type, sval_u val1, sval
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 5);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 5));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -135,7 +135,7 @@ sval_u __cdecl node5(
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 6);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 6));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -157,7 +157,7 @@ sval_u __cdecl node6(
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 7);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 7));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -181,7 +181,7 @@ sval_u __cdecl node7(
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 8);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 8));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -207,7 +207,7 @@ sval_u __cdecl node8(
 {
     sval_u result; // eax
 
-    result.stringValue = (unsigned int)Scr_AllocNode(inst, 9);
+    result.stringValue = (unsigned int)Ptr32_Encode(Scr_AllocNode(inst, 9));
     result.node[0].type = type;
     result.node[1].node = val1.node;
     result.node[2].node = val2.node;
@@ -412,9 +412,9 @@ sval_u __cdecl debugger_buffer(
     //    MyAssertHandler((char *)".\\script\\scr_parsetree.cpp", 594, 0, "%s", "IsPowerOf2( alignment )");
     alignmenta = alignment - 1;
     result = Scr_AllocDebugExpr(inst, type, size + alignmenta + 8, "debugger_buffer");
-    bufCopy = (unsigned __int8 *)(~alignmenta & ((unsigned int)&result[2] + alignmenta));
+    bufCopy = (unsigned __int8 *)Ptr32_Decode(~alignmenta & ((unsigned int)Ptr32_Encode(&result[2]) + alignmenta));
     memcpy(bufCopy, (unsigned __int8 *)buf, size);
-    result[1].intValue = (int)bufCopy;
+    result[1].intValue = (int)Ptr32_Encode(bufCopy);
     return *result; // sus deref
 }
 

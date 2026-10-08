@@ -1,4 +1,5 @@
 #include "q_shared.h"
+#include <setjmp.h>
 #include "assertive.h"
 #include <string.h>
 #include <qcommon/msg_mp.h>
@@ -23,7 +24,7 @@ struct va_info_t
 
 va_info_t va_info[15];
 TraceThreadInfo g_traceThreadInfo[15];
-int g_com_error[15][16];
+jmp_buf g_com_error[15];   // per-thread Com_Error targets (MSVC: int[16])
 int valueindex;
 
 // *WARNING* One or more selections were skipped as they could not be interpreted as c data
@@ -1200,14 +1201,14 @@ bool __cdecl KeyValueToField(
             case 0xA:
                 I_strncpyz(dest, pszKeyValue, 0x2000);
                 v12 = R_RegisterModel(dest);
-                *(unsigned int *)&pStruct[pField->iOffset] = (unsigned int)v12;
+                *(unsigned int *)&pStruct[pField->iOffset] = (unsigned int)Ptr32_Encode(v12);
                 if ( v12 )
                     return 1;
                 result = 0;
                 break;
             case 0xD:
                 I_strncpyz(name, pszKeyValue, 245);
-                *(unsigned int *)&pStruct[pField->iOffset] = (unsigned int)PhysPreset_Register(name);
+                *(unsigned int *)&pStruct[pField->iOffset] = (unsigned int)Ptr32_Encode(PhysPreset_Register(name));
                 return 1;
             case 0xE:
                 *(_WORD *)&pStruct[pField->iOffset] = SL_GetLowercaseString(pszKeyValue, 0, SCRIPTINSTANCE_SERVER);

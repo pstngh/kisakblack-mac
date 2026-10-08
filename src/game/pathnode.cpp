@@ -282,9 +282,9 @@ const pathnode_parent_t *__cdecl get_pathnode_parent(const pathnode_t *node)
     if ( (node->constant.spawnflags & 0x100) == 0 )
         return &node_parent_world;
     m_tree_root = g_pathnode_parent_map.m_tree_root;
-    while ( m_tree_root && node != (const pathnode_t *)m_tree_root->m_avl_key )
+    while ( m_tree_root && node != (const pathnode_t *)Ptr32_Decode(m_tree_root->m_avl_key) )
     {
-        if ( (unsigned int)node >= m_tree_root->m_avl_key )
+        if ( (unsigned int)Ptr32_Encode(node) >= m_tree_root->m_avl_key )
             m_tree_root = m_tree_root->m_avl_tree_node.m_right;
         else
             m_tree_root = m_tree_root->m_avl_tree_node.m_left;
@@ -473,7 +473,7 @@ void __cdecl setup_pathnode_parent(pathnode_t *node, int entnum, const float *or
     node_parent->entnum = entnum;
     node_parent->m_node = node;
     node_parent->m_next = 0;
-    generic_avl_map_add(&g_pathnode_parent_map, node_parent, (unsigned int)node);
+    generic_avl_map_add(&g_pathnode_parent_map, node_parent, (unsigned int)Ptr32_Encode(node));
 }
 
 bool __cdecl is_moving_entity(gentity_s *gent)
@@ -592,7 +592,7 @@ void __cdecl G_SpawnPathnodeDynamic(SpawnVar *spawnVar)
                         {
                             animscript = SL_ConvertToString(loadNode->constant.animscript, SCRIPTINSTANCE_SERVER);
                             DataForFile = Hunk_FindDataForFile(1, animscript);
-                            loadNode->constant.animscriptfunc = (int)DataForFile;
+                            loadNode->constant.animscriptfunc = (int)Ptr32_Encode(DataForFile);
                             if ( !loadNode->constant.animscriptfunc )
                             {
                                 printf(
@@ -1111,7 +1111,7 @@ void __cdecl Path_MovingNodesInCylinder()
             }
             if (m_tree_root)
             {
-                for (j = m_tree_root->m_data; j; j = (void *)*((_DWORD *)j + 5))
+                for (j = m_tree_root->m_data; j; j = (void *)Ptr32_Decode(*((_DWORD *)j + 5)))
                     Path_NodesInCylinder_process(*((pathnode_t **)j + 4));
             }
         }
@@ -3089,7 +3089,7 @@ void __cdecl Path_ConnectPathsForEntity(gentity_s *ent)
     {
         __debugbreak();
     }
-    ent->flags |= (unsigned int)&objBuf[1758][2];
+    ent->flags |= (unsigned int)Ptr32_Encode(&objBuf[1758][2]);
     oldInfoIndex = ent->disconnectedLinks;
     if ( oldInfoIndex )
     {

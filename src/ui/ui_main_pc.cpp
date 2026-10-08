@@ -984,12 +984,12 @@ int __cdecl UI_JoinMod_HandleKey(int flags, int key)
             nextJoinMod = ui_browserMod->current.string;
         else
             nextJoinMod = sharedUiInfo.modList[63].modDescr;
-        nextJoinModa = (int)(nextJoinMod - 1);
+        nextJoinModa = (int)Ptr32_Encode(nextJoinMod - 1);
     }
     else
     {
         nextJoinModa = ui_browserMod->current.integer + 1;
-        if ( (const char *)nextJoinModa == sharedUiInfo.modList[63].modDescr )
+        if ( (const char *)Ptr32_Decode(nextJoinModa) == sharedUiInfo.modList[63].modDescr )
             nextJoinModa = -2;
     }
     if ( (nextJoinModa < -2 || nextJoinModa > 64)
@@ -1268,10 +1268,10 @@ Material *__cdecl UI_GetLevelShot(int index)
     if ( index < 0 || index >= sharedUiInfo.mapCount )
         index = 0;
     if ( !sharedUiInfo.mapList[index].timeToBeat[31] )
-        sharedUiInfo.mapList[index].timeToBeat[31] = (int)Material_RegisterHandle(
+        sharedUiInfo.mapList[index].timeToBeat[31] = (int)Ptr32_Encode(Material_RegisterHandle(
                                                                                                                 (char *)&sharedUiInfo.mapList[index].mapPackTypeIndex,
-                                                                                                                3);
-    return (Material *)sharedUiInfo.mapList[index].timeToBeat[31];
+                                                                                                                3));
+    return (Material *)Ptr32_Decode(sharedUiInfo.mapList[index].timeToBeat[31]);
 }
 
 void __cdecl UI_DrawMapPreview(int contextIndex, const rectDef_s *rect, const float *color)

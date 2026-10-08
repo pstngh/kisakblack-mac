@@ -261,7 +261,7 @@ unsigned int CMod_LoadNodes()
                 Com_Error(ERR_DROP, "CMod_LoadNodes: children exceeded");
         }
         ++nodeIter;
-        result = (unsigned int)&out[1];
+        result = (unsigned int)Ptr32_Encode(&out[1]);
         ++out;
         in += 36;
     }
@@ -348,7 +348,7 @@ unsigned int CMod_LoadCollisionBorders()
         out->start = in->start;
         out->length = in->length;
         ++index;
-        result = (unsigned int)&in[1];
+        result = (unsigned int)Ptr32_Encode(&in[1]);
         ++in;
         ++out;
     }
@@ -398,7 +398,7 @@ unsigned int CMod_LoadCollisionPartitions()
             __debugbreak();
         }
         ++index;
-        result = (unsigned int)(in + 20);
+        result = (unsigned int)Ptr32_Encode(in + 20);
         in += 20;
         ++out;
     }
@@ -710,9 +710,9 @@ cLeafBrushNode_s *__cdecl CMod_PartionLeafBrushes_r(
     if ( axis >= 0 )
     {
         len = 2 * numLeafBrushes;
-        leafBrushesCopy = (unsigned __int16 *)CM_Hunk_AllocateTempMemoryHigh(
+        leafBrushesCopy = (unsigned __int16 *)Ptr32_Decode(CM_Hunk_AllocateTempMemoryHigh(
                                                                                         2 * numLeafBrushes,
-                                                                                        "CMod_PartionLeafBrushes_r");
+                                                                                        "CMod_PartionLeafBrushes_r"));
         memcpy((unsigned __int8 *)leafBrushesCopy, (unsigned __int8 *)leafBrushes, len);
         numLeafBrushesChild = 0;
         for ( k = 0; k < numLeafBrushes; ++k )
@@ -973,7 +973,7 @@ const unsigned __int8 *CMod_LoadBrushes()
     allocSizeBrushVerts = 12 * vertsCount;
     cm.brushVerts = (float (*)[3])CM_Hunk_Alloc(12 * vertsCount, "CMod_LoadBrushes", 27);
     memcpy((unsigned __int8 *)cm.brushVerts, inVerts, allocSizeBrushVerts);
-    result = (const unsigned __int8 *)vertsCount;
+    result = (const unsigned __int8 *)Ptr32_Decode(vertsCount);
     cm.numBrushVerts = vertsCount;
     outVerts = cm.brushVerts;
     outBrush = cm.brushes;
@@ -1269,7 +1269,7 @@ unsigned int CMod_LoadCollisionAabbTrees()
         out->childCount = *((_WORD *)in + 13);
         out->u.firstChildIndex = *((unsigned int *)in + 7);
         ++index;
-        result = (unsigned int)(in + 32);
+        result = (unsigned int)Ptr32_Encode(in + 32);
         in += 32;
         ++out;
     }

@@ -565,7 +565,7 @@ float (*__cdecl TestOccludersPartial(const float (*bounds)[3], int *numOccluders
     __int64 min_8; // [esp+E88h] [ebp-10h]
     int planeIdx; // [esp+E94h] [ebp-4h]
 
-    if ( ((unsigned __int8)plane & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(plane) & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_dpvs_static.cpp",
                     288,
@@ -1091,7 +1091,7 @@ int __cdecl R_AddCellStaticSurfacesInFrustum(DpvsStaticCellCmd *dpvsCell)
         // 16-byte aligned, but GCC doesn't honor alignas(16) on this stack local
         // here (no stack realignment in the prologue). Hand-align a pointer into the
         // over-allocated storage instead.
-        occluderPlanes = (float (*)[4])(((unsigned)planebufStorage + 15u) & ~15u);
+        occluderPlanes = (float (*)[4])(((unsigned)Ptr32_Encode(planebufStorage) + 15u) & ~15u);
         for (j = 0; j < 5 * dpvsGlob.numOccluders; ++j)
         {
             float *v3 = occluderPlanes[j];

@@ -334,8 +334,8 @@ void __thiscall WeaponOptions::WeaponOverride::Init(const WeaponVariantDef *weap
         Com_PrintWarning(
             14,
             "Couldn't find weapon parent '%s' for weapon '%s' in weaponOptions.csv\n",
-            weapVarDef->weapDef->parentWeaponName,
-            weapVarDef->szInternalName);
+            (const char *)weapVarDef->weapDef->parentWeaponName,
+            (const char *)weapVarDef->szInternalName);
     }
     else
     {

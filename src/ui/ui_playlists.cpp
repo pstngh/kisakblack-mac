@@ -1303,7 +1303,7 @@ char __cdecl Playlist_AppendRules(const char *base, const char *token)
                 __debugbreak();
             }
             s_playlistRuleBuffer[s_playlistRuleBufferUsed] = 59;
-            *(_BYTE *)(s_playlistRuleBufferUsed + 160499321) = 0;
+            *(_BYTE *)Ptr32_Decode(s_playlistRuleBufferUsed + 160499321) = 0;
             if ( ++s_playlistRuleBufferUsed >= 0x8000
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_playlists.cpp",

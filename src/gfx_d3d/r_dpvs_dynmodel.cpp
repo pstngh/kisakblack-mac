@@ -18,7 +18,7 @@ void __cdecl R_AddCellDynModelSurfacesInFrustumCmd(const DpvsPlane **data)
     if ( r_drawDynEnts->current.enabled )
     {
         worldDpvsDyn = &rgp.world->dpvsDyn;
-        if ( (unsigned int)data[1] >= rgp.world->dpvsPlanes.cellCount
+        if ( (unsigned int)Ptr32_Encode(data[1]) >= rgp.world->dpvsPlanes.cellCount
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_dpvs_dynmodel.cpp",
                         183,
@@ -31,7 +31,7 @@ void __cdecl R_AddCellDynModelSurfacesInFrustumCmd(const DpvsPlane **data)
         }
         dynEntClientWordCount = worldDpvsDyn->dynEntClientWordCount[0];
         planeCount = *((unsigned __int8 *)data + 10);
-        dynEntCellBits = &worldDpvsDyn->dynEntCellBits[0][worldDpvsDyn->dynEntClientWordCount[0] * (unsigned int)data[1]];
+        dynEntCellBits = &worldDpvsDyn->dynEntCellBits[0][worldDpvsDyn->dynEntClientWordCount[0] * (unsigned int)Ptr32_Encode(data[1])];
         dynEntVisData = worldDpvsDyn->dynEntVisData[0][*((unsigned __int16 *)data + 4)];
         planes = *data;
         dynModelList = DynEnt_GetClientModelPoseList();

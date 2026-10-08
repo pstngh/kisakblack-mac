@@ -89,10 +89,10 @@ HunkUser *__cdecl Hunk_UserDebugInit(
     buffer[2] = 0;
     buffer[3] = 0;
     buffer[4] = 0;
-    buffer[4] = (unsigned int)Hunk_FirstFitInit(buffer + 5, size - 20, HU_SCHEME_FIRSTFIT, flags, 0, name, type);
+    buffer[4] = (unsigned int)Ptr32_Encode(Hunk_FirstFitInit(buffer + 5, size - 20, HU_SCHEME_FIRSTFIT, flags, 0, name, type));
     *buffer = scheme;
     buffer[1] = flags;
-    buffer[2] = (unsigned int)name;
+    buffer[2] = (unsigned int)Ptr32_Encode(name);
     buffer[3] = type;
     return (HunkUser *)buffer;
 }
@@ -224,8 +224,8 @@ HunkUser *__cdecl Hunk_UserDefaultInit(
         __debugbreak();
     }
     memset(buffer, 0, 0x2Cu);
-    *((unsigned int *)buffer + 7) = (unsigned int) & buffer[size];
-    *((unsigned int *)buffer + 8) = (unsigned int)(buffer + 40);
+    *((unsigned int *)buffer + 7) = (unsigned int) Ptr32_Encode(& buffer[size]);
+    *((unsigned int *)buffer + 8) = (unsigned int)Ptr32_Encode(buffer + 40);
     *((unsigned int *)buffer + 8) = (*((unsigned int *)buffer + 8) + 31) & 0xFFFFFFE0;
     if ( (*((unsigned int *)buffer + 8) & 0x1F) != 0
         && !Assert_MyHandler(
@@ -244,10 +244,10 @@ HunkUser *__cdecl Hunk_UserDefaultInit(
         v7 = (*((unsigned int *)buffer + 8) + 4095) & 0xFFFFF000;
     *((unsigned int *)buffer + 9) = v7;
     *((unsigned int *)buffer + 6) = size;
-    *((unsigned int *)buffer + 4) = (unsigned int)buffer;
+    *((unsigned int *)buffer + 4) = (unsigned int)Ptr32_Encode(buffer);
     *(unsigned int *)buffer = scheme;
     *((unsigned int *)buffer + 1) = flags;
-    *((unsigned int *)buffer + 2) = (unsigned int)name;
+    *((unsigned int *)buffer + 2) = (unsigned int)Ptr32_Encode(name);
     *((unsigned int *)buffer + 3) = type;
     if ( *((unsigned int *)buffer + 5)
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\mem_userhunk.cpp", 200, 0, "%s", "!user->next") )
@@ -280,15 +280,15 @@ void __cdecl Hunk_UserDefaultReset(HunkUserDefault *_user)
     }
     if ((_user->hunkUser.flags & 2) != 0)
     {
-        _user->pos = (int)_user->buf;
+        _user->pos = (int)Ptr32_Encode(_user->buf);
         _user->locked = _user->maxSize + _user->pos;
     }
     else
     {
-        pos = (char *)((unsigned int)&_user[93].buf[3] & 0xFFFFF000);
-        if (pos != (char *)((_user->pos + 4095) & 0xFFFFF000))
+        pos = (char *)Ptr32_Decode((unsigned int)Ptr32_Encode(&_user[93].buf[3]) & 0xFFFFF000);
+        if (pos != (char *)Ptr32_Decode((_user->pos + 4095) & 0xFFFFF000))
         {
-            if (_user->pos - (int)pos <= 0
+            if (_user->pos - (int)Ptr32_Encode(pos) <= 0
                 && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\mem_userhunk.cpp",
                     229,
@@ -298,9 +298,9 @@ void __cdecl Hunk_UserDefaultReset(HunkUserDefault *_user)
             {
                 __debugbreak();
             }
-            Z_VirtualDecommit(pos, _user->pos - (_DWORD)pos, _user->hunkUser.type);
+            Z_VirtualDecommit(pos, _user->pos - (_DWORD)Ptr32_Encode(pos), _user->hunkUser.type);
         }
-        _user->pos = (int)_user->buf;
+        _user->pos = (int)Ptr32_Encode(_user->buf);
         _user->locked = (_user->pos + 4095) & 0xFFFFF000;
         memset(_user->buf, 0, 0xFD8u);
     }
@@ -429,7 +429,7 @@ int __cdecl Hunk_UserDefaultAlloc(HunkUserDefault *user, unsigned int size, int 
         {
             __debugbreak();
         }
-        Z_VirtualCommit((char *)current->locked, range, user->hunkUser.type);
+        Z_VirtualCommit((char *)Ptr32_Decode(current->locked), range, user->hunkUser.type);
         current->locked += range;
     }
     if ((user->hunkUser.flags & 8) != 0)
@@ -585,7 +585,7 @@ void __cdecl Hunk_UserSetPos(HunkUser *_user, unsigned char *pos)
     iassert(pos >= user->buf);
     iassert((psize_int)pos <= user->pos);
 
-    user->pos = (int)pos;
+    user->pos = (int)Ptr32_Encode(pos);
 }
 
 char *__cdecl Hunk_CopyString(HunkUser *user, const char *in)

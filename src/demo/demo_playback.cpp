@@ -1808,7 +1808,7 @@ void __cdecl Demo_RunFirstFrameEvents(int localClientNum)
             Dvar_SetInt((dvar_s *)r_clipSize, 0);
             Dvar_SetInt((dvar_s *)r_clipCodec, 0);
             Dvar_SetInt((dvar_s *)r_clipFPS, 24);
-            FS_BuildOSPath((char *)fs_homepath->current.integer, (char*)"movies", (char *)"", ospath);
+            FS_BuildOSPath((char *)Ptr32_Decode(fs_homepath->current.integer), (char*)"movies", (char *)"", ospath);
             FS_CreatePath(ospath);
             v1 = va("movie_start \"%s%s.avi\"\n", ospath, demo.demoName);
             Cbuf_AddText(localClientNum, v1);

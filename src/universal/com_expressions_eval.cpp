@@ -47,7 +47,7 @@ void __cdecl GetToastPopupTitle(int localClientNum, itemDef_s *item, OperandStac
     result.dataType = VAL_STRING;
     result.internals.string = uiInfo->toastPopupTitle;
     if (uiscript_debug && uiscript_debug->current.integer)
-        Expression_TraceInternal("GetToastPopupTitle() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetToastPopupTitle() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -1686,7 +1686,7 @@ char *__cdecl GetSourceString(Operand operand)
     char *result; // [esp+8h] [ebp-4h]
 
     if ( operand.dataType == VAL_STRING )
-        return (char *)operand.internals.intVal;
+        return (char *)Ptr32_Decode(operand.internals.intVal);
     if ( (unsigned int)currentTempOperand >= 0x20
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_expressions_eval.cpp",
@@ -1778,7 +1778,7 @@ void __cdecl GetDvarValue(int localClientNum, itemDef_s *item, OperandStack *dat
             NameForValueType = GetNameForValueType(source.dataType);
             Expression_Error("Must use a string as the name of a dvar, not a %s\n", NameForValueType);
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &result);
             return;
         }
@@ -1800,10 +1800,10 @@ void __cdecl GetDvarValue(int localClientNum, itemDef_s *item, OperandStack *dat
                     result.internals.intVal = dvar->current.integer;
                     break;
                 case DVAR_TYPE_STRING:
-                    result.internals.intVal = (int)CopyTempString(dvar->current.string);
+                    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(dvar->current.string));
                     break;
                 default:
-                    result.internals.intVal = (int)Dvar_DisplayableValue(dvar);
+                    result.internals.intVal = (int)Ptr32_Encode(Dvar_DisplayableValue(dvar));
                     break;
             }
         }
@@ -1815,7 +1815,7 @@ void __cdecl GetDvarValue(int localClientNum, itemDef_s *item, OperandStack *dat
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     }
     AddOperandToStack(dataStack, &result);
     if ( uiscript_debug && uiscript_debug->current.integer )
@@ -1911,7 +1911,7 @@ void __cdecl GetDvarStringValue(int localClientNum, itemDef_s *item, OperandStac
             NameForValueType = GetNameForValueType(source.dataType);
             Expression_Error("Must use a string as the name of a dvar, not a %s\n", NameForValueType);
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &result);
             return;
         }
@@ -1921,20 +1921,20 @@ void __cdecl GetDvarStringValue(int localClientNum, itemDef_s *item, OperandStac
     if ( dvar )
     {
         if ( dvar->type == DVAR_TYPE_STRING )
-            result.internals.intVal = (int)CopyTempString(dvar->current.string);
+            result.internals.intVal = (int)Ptr32_Encode(CopyTempString(dvar->current.string));
         else
-            result.internals.intVal = (int)Dvar_DisplayableValue(dvar);
+            result.internals.intVal = (int)Ptr32_Encode(Dvar_DisplayableValue(dvar));
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     }
     if ( uiscript_debug && uiscript_debug->current.integer )
     {
         if ( dvar )
-            Expression_TraceInternal("dvarstring( %s ) = %s\n", dvar->name, result.internals.string);
+            Expression_TraceInternal("dvarstring( %s ) = %s\n", dvar->name, (const char *)result.internals.string);
         else
-            Expression_TraceInternal("dvarstring( %s ) = %s\n", "NULL", result.internals.string);
+            Expression_TraceInternal("dvarstring( %s ) = %s\n", "NULL", (const char *)result.internals.string);
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -1959,7 +1959,7 @@ void __cdecl GetDvarBoolValue(int localClientNum, itemDef_s *item, OperandStack 
             NameForValueType = GetNameForValueType(source.dataType);
             Expression_Error("Must use a string as the name of a dvar, not a %s\n", NameForValueType);
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &result);
             return;
         }
@@ -2023,7 +2023,7 @@ void __cdecl GetDvarIntValue(int localClientNum, itemDef_s *item, OperandStack *
             NameForValueType = GetNameForValueType(source.dataType);
             Expression_Error("Must use a string as the name of a dvar, not a %s\n", NameForValueType);
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &result);
             return;
         }
@@ -2091,7 +2091,7 @@ void __cdecl GetDvarFloatValue(int localClientNum, itemDef_s *item, OperandStack
             NameForValueType = GetNameForValueType(source.dataType);
             Expression_Error("Must use a string as the name of a dvar, not a %s\n", NameForValueType);
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &result);
             return;
         }
@@ -2152,18 +2152,18 @@ void __cdecl GetLocalVarStringValue(int localClientNum, itemDef_s *item, Operand
     if ( var )
     {
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)UILocalVar_GetString(var, stringBuf, size);
+        result.internals.intVal = (int)Ptr32_Encode(UILocalVar_GetString(var, stringBuf, size));
         if ( uiscript_debug )
         {
             if ( uiscript_debug->current.integer )
-                Expression_TraceInternal("localVarString( %s ) = %s\n", source.internals.string, result.internals.string);
+                Expression_TraceInternal("localVarString( %s ) = %s\n", (const char *)source.internals.string, (const char *)result.internals.string);
         }
         AddOperandToStack(dataStack, &result);
     }
     else
     {
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
         AddOperandToStack(dataStack, &result);
     }
 }
@@ -2215,7 +2215,7 @@ void __cdecl GetLocalVarBoolValue(int localClientNum, itemDef_s *item, OperandSt
         if ( uiscript_debug )
         {
             if ( uiscript_debug->current.integer )
-                Expression_TraceInternal("localVarBool( %s ) = %i\n", source.internals.string, result.internals.intVal);
+                Expression_TraceInternal("localVarBool( %s ) = %i\n", (const char *)source.internals.string, result.internals.intVal);
         }
         AddOperandToStack(dataStack, &result);
     }
@@ -2242,7 +2242,7 @@ void __cdecl GetLocalVarIntValue(int localClientNum, itemDef_s *item, OperandSta
         if (uiscript_debug)
         {
             if (uiscript_debug->current.integer)
-                Expression_TraceInternal("localVarInt( %s ) = %i\n", source.internals.string, result.internals.intVal);
+                Expression_TraceInternal("localVarInt( %s ) = %i\n", (const char *)source.internals.string, result.internals.intVal);
         }
         AddOperandToStack(dataStack, &result);
     }
@@ -2269,7 +2269,7 @@ void __cdecl GetLocalVarFloatValue(int localClientNum, itemDef_s *item, OperandS
         if ( uiscript_debug )
         {
             if ( uiscript_debug->current.integer )
-                Expression_TraceInternal("localVarFloat( %s ) = %f\n", source.internals.string, result.internals.floatVal);
+                Expression_TraceInternal("localVarFloat( %s ) = %f\n", (const char *)source.internals.string, result.internals.floatVal);
         }
         AddOperandToStack(dataStack, &result);
     }
@@ -2402,14 +2402,14 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                                             {
                                                                                 if ( I_stricmp(source.internals.string, "xuid") )
                                                                                 {
-                                                                                    Expression_Error("Unknown player field '%s'\n", source.internals.string);
+                                                                                    Expression_Error("Unknown player field '%s'\n", (const char *)source.internals.string);
                                                                                     result.dataType = VAL_INT;
                                                                                     result.internals.intVal = 0;
                                                                                 }
                                                                                 else
                                                                                 {
                                                                                     result.dataType = VAL_STRING;
-                                                                                    result.internals.intVal = (int)"";
+                                                                                    result.internals.intVal = (int)Ptr32_Encode("");
                                                                                     LocalClientGlobals = CG_GetLocalClientGlobals(localClientNum);
                                                                                     if ( LocalClientGlobals->predictedPlayerState.clientNum >= 0x20u
                                                                                         && !Assert_MyHandler(
@@ -2428,13 +2428,13 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                                                         xuid = LocalClientGlobals->bgs.clientinfo[LocalClientGlobals->predictedPlayerState.clientNum].xuid;
                                                                                         Com_sprintf(xuidStr, 0x22u, "%lld", xuid);
                                                                                         result.dataType = VAL_STRING;
-                                                                                        result.internals.intVal = (int)CopyTempString(xuidStr);
+                                                                                        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(xuidStr));
                                                                                     }
                                                                                     if ( uiscript_debug && uiscript_debug->current.integer )
                                                                                         Expression_TraceInternal(
                                                                                             "player( %s ) = %s\n",
-                                                                                            source.internals.string,
-                                                                                            result.internals.string);
+                                                                                            (const char *)source.internals.string,
+                                                                                            (const char *)result.internals.string);
                                                                                 }
                                                                             }
                                                                             else
@@ -2443,18 +2443,18 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                                                 result.internals.intVal = 0;
                                                                                 v8 = CG_GetLocalClientGlobals(localClientNum);
                                                                                 result.dataType = VAL_STRING;
-                                                                                result.internals.intVal = (int)CG_GetTeamName(v8->bgs.clientinfo[v8->predictedPlayerState.clientNum].team);
+                                                                                result.internals.intVal = (int)Ptr32_Encode(CG_GetTeamName(v8->bgs.clientinfo[v8->predictedPlayerState.clientNum].team));
                                                                                 if ( uiscript_debug && uiscript_debug->current.integer )
                                                                                     Expression_TraceInternal(
                                                                                         "player( %s ) = %s\n",
-                                                                                        source.internals.string,
-                                                                                        result.internals.string);
+                                                                                        (const char *)source.internals.string,
+                                                                                        (const char *)result.internals.string);
                                                                             }
                                                                         }
                                                                         else
                                                                         {
                                                                             result.dataType = VAL_STRING;
-                                                                            result.internals.intVal = (int)"";
+                                                                            result.internals.intVal = (int)Ptr32_Encode("");
                                                                             v9 = CG_GetLocalClientGlobals(localClientNum);
                                                                             CL_GetRankIcon(
                                                                                 v9->bgs.clientinfo[v9->predictedPlayerState.clientNum].rank,
@@ -2463,34 +2463,34 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                                             if ( material )
                                                                             {
                                                                                 result.dataType = VAL_STRING;
-                                                                                result.internals.intVal = (int)CopyTempString(material->info.name);
+                                                                                result.internals.intVal = (int)Ptr32_Encode(CopyTempString(material->info.name));
                                                                             }
                                                                             if ( uiscript_debug && uiscript_debug->current.integer )
                                                                                 Expression_TraceInternal(
                                                                                     "player( %s ) = %s\n",
-                                                                                    source.internals.string,
-                                                                                    result.internals.string);
+                                                                                    (const char *)source.internals.string,
+                                                                                    (const char *)result.internals.string);
                                                                         }
                                                                     }
                                                                     else
                                                                     {
                                                                         result.dataType = VAL_STRING;
-                                                                        result.internals.intVal = (int)"";
+                                                                        result.internals.intVal = (int)Ptr32_Encode("");
                                                                         v11 = CG_GetLocalClientGlobals(localClientNum);
                                                                         CL_GetClientName(localClientNum, v11->predictedPlayerState.clientNum, string, 32, 0);
                                                                         result.dataType = VAL_STRING;
-                                                                        result.internals.intVal = (int)CopyTempString(string);
+                                                                        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(string));
                                                                         if ( uiscript_debug && uiscript_debug->current.integer )
                                                                             Expression_TraceInternal(
                                                                                 "player( %s ) = %s\n",
-                                                                                source.internals.string,
-                                                                                result.internals.string);
+                                                                                (const char *)source.internals.string,
+                                                                                (const char *)result.internals.string);
                                                                     }
                                                                 }
                                                                 else
                                                                 {
                                                                     result.dataType = VAL_STRING;
-                                                                    result.internals.intVal = (int)"";
+                                                                    result.internals.intVal = (int)Ptr32_Encode("");
                                                                     memset(clanTag, 0, 7);
                                                                     v14 = CG_GetLocalClientGlobals(localClientNum);
                                                                     clientNum = v14->predictedPlayerState.clientNum;
@@ -2498,29 +2498,29 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                                     if ( (cg_s *)((char *)v14 + clientNum * 1480) != (cg_s *)-389184 && *clanAbbrev )
                                                                         Com_sprintf(clanTag, 7u, "[%s]", clanAbbrev);
                                                                     result.dataType = VAL_STRING;
-                                                                    result.internals.intVal = (int)CopyTempString(clanTag);
+                                                                    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(clanTag));
                                                                     if ( uiscript_debug && uiscript_debug->current.integer )
                                                                         Expression_TraceInternal(
                                                                             "player( %s ) = %s\n",
-                                                                            source.internals.string,
-                                                                            result.internals.string);
+                                                                            (const char *)source.internals.string,
+                                                                            (const char *)result.internals.string);
                                                                 }
                                                             }
                                                             else
                                                             {
                                                                 result.dataType = VAL_STRING;
-                                                                result.internals.intVal = (int)"";
+                                                                result.internals.intVal = (int)Ptr32_Encode("");
                                                                 v16 = CG_GetLocalClientGlobals(localClientNum);
                                                                 rankText = CL_GetRankData(
                                                                                          v16->bgs.clientinfo[v16->predictedPlayerState.clientNum].rank,
                                                                                          MP_RANKTABLE_DISPLAYLEVEL);
                                                                 result.dataType = VAL_STRING;
-                                                                result.internals.intVal = (int)rankText;
+                                                                result.internals.intVal = (int)Ptr32_Encode(rankText);
                                                                 if ( uiscript_debug && uiscript_debug->current.integer )
                                                                     Expression_TraceInternal(
                                                                         "player( %s ) = %s\n",
-                                                                        source.internals.string,
-                                                                        result.internals.string);
+                                                                        (const char *)source.internals.string,
+                                                                        (const char *)result.internals.string);
                                                             }
                                                         }
                                                         else
@@ -2534,7 +2534,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                             if ( uiscript_debug && uiscript_debug->current.integer )
                                                                 Expression_TraceInternal(
                                                                     "player( %s ) = %i\n",
-                                                                    source.internals.string,
+                                                                    (const char *)source.internals.string,
                                                                     result.internals.intVal);
                                                         }
                                                     }
@@ -2561,7 +2561,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                         if ( uiscript_debug && uiscript_debug->current.integer )
                                                             Expression_TraceInternal(
                                                                 "player( %s ) = %i\n",
-                                                                source.internals.string,
+                                                                (const char *)source.internals.string,
                                                                 result.internals.intVal);
                                                     }
                                                 }
@@ -2579,7 +2579,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                     if ( uiscript_debug && uiscript_debug->current.integer )
                                                         Expression_TraceInternal(
                                                             "player( %s ) = %i\n",
-                                                            source.internals.string,
+                                                            (const char *)source.internals.string,
                                                             result.internals.intVal);
                                                 }
                                             }
@@ -2594,7 +2594,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                                 if ( uiscript_debug && uiscript_debug->current.integer )
                                                     Expression_TraceInternal(
                                                         "player( %s ) = %i\n",
-                                                        source.internals.string,
+                                                        (const char *)source.internals.string,
                                                         result.internals.intVal);
                                             }
                                         }
@@ -2609,7 +2609,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                             if ( uiscript_debug && uiscript_debug->current.integer )
                                                 Expression_TraceInternal(
                                                     "player( %s ) = %i\n",
-                                                    source.internals.string,
+                                                    (const char *)source.internals.string,
                                                     result.internals.intVal);
                                         }
                                     }
@@ -2619,7 +2619,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                         result.dataType = VAL_INT;
                                         result.internals = (operandInternalDataUnion)v28->intVal;
                                         if ( uiscript_debug && uiscript_debug->current.integer )
-                                            Expression_TraceInternal("player( %s ) = %i\n", source.internals.string, result.internals.intVal);
+                                            Expression_TraceInternal("player( %s ) = %i\n", (const char *)source.internals.string, result.internals.intVal);
                                     }
                                 }
                                 else
@@ -2627,7 +2627,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                     result.dataType = VAL_INT;
                                     result.internals.intVal = (unsigned __int8)CG_LookingThroughNightVision(localClientNum);
                                     if ( uiscript_debug && uiscript_debug->current.integer )
-                                        Expression_TraceInternal("player( %s ) = %i\n", source.internals.string, result.internals.intVal);
+                                        Expression_TraceInternal("player( %s ) = %i\n", (const char *)source.internals.string, result.internals.intVal);
                                 }
                             }
                             else
@@ -2635,7 +2635,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                                 result.dataType = VAL_INT;
                                 result.internals.intVal = CG_GetPlayerClipAmmoCount(localClientNum);
                                 if ( uiscript_debug && uiscript_debug->current.integer )
-                                    Expression_TraceInternal("player( %s ) = %s\n", source.internals.string, result.internals.string);
+                                    Expression_TraceInternal("player( %s ) = %s\n", (const char *)source.internals.string, (const char *)result.internals.string);
                             }
                         }
                         else
@@ -2643,49 +2643,49 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
                             result.dataType = VAL_INT;
                             result.internals.intVal = CG_IsPlayerDead(localClientNum);
                             if ( uiscript_debug && uiscript_debug->current.integer )
-                                Expression_TraceInternal("player( %s ) = %i\n", source.internals.string, result.internals.intVal);
+                                Expression_TraceInternal("player( %s ) = %i\n", (const char *)source.internals.string, result.internals.intVal);
                         }
                     }
                     else
                     {
                         result.dataType = VAL_STRING;
-                        result.internals.intVal = (int)CG_GetPlayerOpposingTeamName(localClientNum);
+                        result.internals.intVal = (int)Ptr32_Encode(CG_GetPlayerOpposingTeamName(localClientNum));
                         if ( uiscript_debug && uiscript_debug->current.integer )
-                            Expression_TraceInternal("player( %s ) = %s\n", source.internals.string, result.internals.string);
+                            Expression_TraceInternal("player( %s ) = %s\n", (const char *)source.internals.string, (const char *)result.internals.string);
                     }
                 }
                 else
                 {
                     result.dataType = VAL_STRING;
-                    result.internals.intVal = (int)CG_GetPlayerTeamName(localClientNum);
+                    result.internals.intVal = (int)Ptr32_Encode(CG_GetPlayerTeamName(localClientNum));
                     if ( uiscript_debug && uiscript_debug->current.integer )
-                        Expression_TraceInternal("player( %s ) = %s\n", source.internals.string, result.internals.string);
+                        Expression_TraceInternal("player( %s ) = %s\n", (const char *)source.internals.string, (const char *)result.internals.string);
                 }
             }
             else
             {
                 result.dataType = VAL_STRING;
-                result.internals.intVal = (int)"";
+                result.internals.intVal = (int)Ptr32_Encode("");
                 v29 = CG_GetLocalClientGlobals(localClientNum);
                 CL_GetClientName(localClientNum, v29->clientNum, buf, 38, 1);
                 result.dataType = VAL_STRING;
-                result.internals.intVal = (int)CopyTempString(buf);
+                result.internals.intVal = (int)Ptr32_Encode(CopyTempString(buf));
                 if ( uiscript_debug && uiscript_debug->current.integer )
-                    Expression_TraceInternal("player( %s ) = %s\n", source.internals.string, result.internals.string);
+                    Expression_TraceInternal("player( %s ) = %s\n", (const char *)source.internals.string, (const char *)result.internals.string);
             }
         }
         else
         {
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             cgameGlob = CG_GetLocalClientGlobals(localClientNum);
             CL_GetClientName(localClientNum, cgameGlob->predictedPlayerState.clientNum, clientName, 38, 1);
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)CopyTempString(clientName);
+            result.internals.intVal = (int)Ptr32_Encode(CopyTempString(clientName));
             if ( uiscript_debug )
             {
                 if ( uiscript_debug->current.integer )
-                    Expression_TraceInternal("player( %s ) = %s\n", source.internals.string, result.internals.string);
+                    Expression_TraceInternal("player( %s ) = %s\n", (const char *)source.internals.string, (const char *)result.internals.string);
             }
         }
         AddOperandToStack(dataStack, &result);
@@ -2695,7 +2695,7 @@ void __cdecl GetPlayerField(int localClientNum, itemDef_s *item, OperandStack *d
         NameForValueType = GetNameForValueType(source.dataType);
         Expression_Error("Must use a string as the name of a player field, not a %s\n", NameForValueType);
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
         AddOperandToStack(dataStack, &result);
     }
 }
@@ -2750,28 +2750,28 @@ void __cdecl GetFieldForTeam(int localClientNum, team_t team, Operand *fieldName
             {
                 if ( I_stricmp(fieldName->internals.string, "ffaname") )
                 {
-                    Expression_Error("Unknown team field '%s'\n", fieldName->internals.string);
+                    Expression_Error("Unknown team field '%s'\n", (const char *)fieldName->internals.string);
                     result->dataType = VAL_INT;
                     result->internals.intVal = 0;
                 }
                 else
                 {
                     result->dataType = VAL_STRING;
-                    result->internals.intVal = (int)CG_GetFFATeamName(cgameGlob->bgs.clientinfo[cgameGlob->clientNum].ffaTeam);
+                    result->internals.intVal = (int)Ptr32_Encode(CG_GetFFATeamName(cgameGlob->bgs.clientinfo[cgameGlob->clientNum].ffaTeam));
                     if ( uiscript_debug && uiscript_debug->current.integer )
                         Expression_TraceInternal(
                             "team(%i)( %s ) = %s\n",
                             team,
-                            fieldName->internals.string,
-                            result->internals.string);
+                            (const char *)fieldName->internals.string,
+                            (const char *)result->internals.string);
                 }
             }
             else
             {
                 result->dataType = VAL_STRING;
-                result->internals.intVal = (int)CG_GetTeamName(team);
+                result->internals.intVal = (int)Ptr32_Encode(CG_GetTeamName(team));
                 if ( uiscript_debug && uiscript_debug->current.integer )
-                    Expression_TraceInternal("team(%i)( %s ) = %s\n", team, fieldName->internals.string, result->internals.string);
+                    Expression_TraceInternal("team(%i)( %s ) = %s\n", team, (const char *)fieldName->internals.string, (const char *)result->internals.string);
             }
         }
         else
@@ -2781,7 +2781,7 @@ void __cdecl GetFieldForTeam(int localClientNum, team_t team, Operand *fieldName
             if ( uiscript_debug )
             {
                 if ( uiscript_debug->current.integer )
-                    Expression_TraceInternal("team(%i)( %s ) = %i\n", team, fieldName->internals.string, result->internals.intVal);
+                    Expression_TraceInternal("team(%i)( %s ) = %i\n", team, (const char *)fieldName->internals.string, result->internals.intVal);
             }
         }
     }
@@ -2790,7 +2790,7 @@ void __cdecl GetFieldForTeam(int localClientNum, team_t team, Operand *fieldName
         NameForValueType = GetNameForValueType(fieldName->dataType);
         Expression_Error(" Must use a string as the name of a team parameter, not a %s\n", NameForValueType);
         result->dataType = VAL_STRING;
-        result->internals.intVal = (int)"";
+        result->internals.intVal = (int)Ptr32_Encode("");
     }
 }
 
@@ -2934,7 +2934,7 @@ void __cdecl GetPartyMissingMapPackError(int localClientNum, itemDef_s *item, Op
 {
     Operand operandResult; // [esp+0h] [ebp-8h] BYREF
 
-    operandResult.internals.intVal = (int)"";
+    operandResult.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &operandResult);
 }
 
@@ -3366,7 +3366,7 @@ void __cdecl GetCurrentClanTagFeature(int localClientNum, itemDef_s *item, Opera
     }
     result.internals.intVal = index;
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentClanTagFeature() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentClanTagFeature() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3415,9 +3415,9 @@ void __cdecl GetClanTagFeatureName(int localClientNum, itemDef_s *item, OperandS
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     index = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_UnlockablesGetClanTagFeature(index, CLANTAG_COL_NAME);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetClanTagFeature(index, CLANTAG_COL_NAME));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetClanTagFeatureName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetClanTagFeatureName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3571,9 +3571,9 @@ void __cdecl GetAttachmentsFormatted(int localClientNum, itemDef_s *item, Operan
             }
         }
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)fullWeaponName;
+        result.internals.intVal = (int)Ptr32_Encode(fullWeaponName);
         if ( uiscript_debug && uiscript_debug->current.integer )
-            Expression_TraceInternal("GetWeaponFullName() = %s\n", result.internals.string);
+            Expression_TraceInternal("GetWeaponFullName() = %s\n", (const char *)result.internals.string);
         AddOperandToStack(dataStack, &result);
     }
     else
@@ -3593,11 +3593,11 @@ void __cdecl GetAttachmentName(int localClientNum, itemDef_s *item, OperandStack
     result.dataType = VAL_STRING;
     attachmentNum = GetSourceInt(&source).intVal;
     if ( (unsigned int)attachmentNum < 0x18 )
-        result.internals.intVal = (int)BG_GetAttachmentDisplayName((eAttachment)attachmentNum);
+        result.internals.intVal = (int)Ptr32_Encode(BG_GetAttachmentDisplayName((eAttachment)attachmentNum));
     else
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetAttachmentName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetAttachmentName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3621,9 +3621,9 @@ void __cdecl GetAttachmentImage(int localClientNum, itemDef_s *item, OperandStac
         __debugbreak();
     }
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)BG_GetAttachmentImage((eAttachment)attachmentNum);
+    result.internals.intVal = (int)Ptr32_Encode(BG_GetAttachmentImage((eAttachment)attachmentNum));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetAttachmentImage() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetAttachmentImage() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3647,9 +3647,9 @@ void __cdecl GetAttachmentDesc(int localClientNum, itemDef_s *item, OperandStack
         __debugbreak();
     }
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)BG_GetAttachmentDesc((eAttachment)attachmentNum);
+    result.internals.intVal = (int)Ptr32_Encode(BG_GetAttachmentDesc((eAttachment)attachmentNum));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetAttachmentName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetAttachmentName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3721,9 +3721,9 @@ void __cdecl GetWeaponOptionImage(int localClientNum, itemDef_s *item, OperandSt
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     weaponOption = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_GetWeaponOptionImage(weaponOption);
+    result.internals.intVal = (int)Ptr32_Encode(BG_GetWeaponOptionImage(weaponOption));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetWeaponOptionImage() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetWeaponOptionImage() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3736,9 +3736,9 @@ void __cdecl GetWeaponOptionName(int localClientNum, itemDef_s *item, OperandSta
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     weaponOption = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_GetWeaponOptionDisplayName(weaponOption);
+    result.internals.intVal = (int)Ptr32_Encode(BG_GetWeaponOptionDisplayName(weaponOption));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetWeaponOptionName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetWeaponOptionName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3779,7 +3779,7 @@ void __cdecl GetPooledFileDetails(int localClientNum, itemDef_s *item, OperandSt
     GetOperandList(dataStack, &list);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3799,9 +3799,9 @@ void __cdecl GetDemoFileID(int localClientNum, itemDef_s *item, OperandStack *da
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetDemoFileID() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetDemoFileID() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3824,7 +3824,7 @@ void __cdecl GetAutoJoinLobbyStatus(int localClientNum, itemDef_s *item, Operand
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( uiscript_debug && uiscript_debug->current.integer )
         Expression_TraceInternal("GetAutoJoinLobbyStatus() = %d\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
@@ -3838,7 +3838,7 @@ void __cdecl GetCounterTotal(int localClientNum, itemDef_s *item, OperandStack *
     GetOperandList(dataStack, &list);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3880,7 +3880,7 @@ void __cdecl GetUploadTimeRemaining(int localClientNum, itemDef_s *item, Operand
 
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3986,7 +3986,7 @@ void __cdecl ShowBusyDotsIndicator(int localClientNum, itemDef_s *item, OperandS
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)UI_GetBusyDotsIndicator();
+    result.internals.intVal = (int)Ptr32_Encode(UI_GetBusyDotsIndicator());
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3997,7 +3997,7 @@ void __cdecl HostMigrationWaitingForPlayers(int localClientNum, itemDef_s *item,
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("HostMigrationWaitingForPlayers() = %s\n", result.internals.string);
+        Expression_TraceInternal("HostMigrationWaitingForPlayers() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4012,7 +4012,7 @@ void __cdecl GetCurrentItemOption(int localClientNum, itemDef_s *item, OperandSt
                                                             sharedUiInfo.sortedItemPivot,
                                                             OptionFromIndexAndGroupDvar);
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentItemOption() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentItemOption() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4080,9 +4080,9 @@ void __cdecl GetItemRef(int localClientNum, itemDef_s *item, OperandStack *dataS
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     index = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_UnlockablesGetItemRef(index);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemRef(index));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetItemRef() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetItemRef() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4095,9 +4095,9 @@ void __cdecl GetItemName(int localClientNum, itemDef_s *item, OperandStack *data
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     v3.intVal = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_UnlockablesGetItemName(v3.intVal);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemName(v3.intVal));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetItemName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetItemName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4110,9 +4110,9 @@ void __cdecl GetItemImage(int localClientNum, itemDef_s *item, OperandStack *dat
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     index = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_UnlockablesGetItemImage(index);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemImage(index));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetItemImage() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetItemImage() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4215,9 +4215,9 @@ void __cdecl GetItemGroup(int localClientNum, itemDef_s *item, OperandStack *dat
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     v3.intVal = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_UnlockablesGetItemGroup(v3.intVal);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemGroup(v3.intVal));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetItemGroup() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetItemGroup() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4230,9 +4230,9 @@ void __cdecl GetItemDesc(int localClientNum, itemDef_s *item, OperandStack *data
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     index = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)BG_UnlockablesGetItemDesc(index);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemDesc(index));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetItemDesc() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetItemDesc() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4367,7 +4367,7 @@ void __cdecl GetCurrentItemMultiText(int localClientNum, itemDef_s *item, Operan
     float value; // [esp+18h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( !item
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_expressions_eval.cpp",
@@ -4435,7 +4435,7 @@ void __cdecl GetClanMOTD(int localClientNum, itemDef_s *item, OperandStack *data
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4593,14 +4593,14 @@ void __cdecl GetKeyBinding(int localClientNum, itemDef_s *item, OperandStack *da
     {
         UI_GetKeyBindingLocalizedString(localClientNum, source.internals.string, resultString, 0);
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)resultString;
+        result.internals.intVal = (int)Ptr32_Encode(resultString);
     }
     else
     {
         NameForValueType = GetNameForValueType(source.dataType);
         Expression_Error(" Must use a string as KeyBinding() parameter, not a %s\n", NameForValueType);
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -4706,7 +4706,7 @@ void __cdecl IsMenuOpen(int localClientNum, itemDef_s *item, OperandStack *dataS
         if ( uiscript_debug )
         {
             if ( uiscript_debug->current.integer )
-                Expression_TraceInternal("ismenuopen( %s ) = %i\n", source.internals.string, result.internals.intVal);
+                Expression_TraceInternal("ismenuopen( %s ) = %i\n", (const char *)source.internals.string, result.internals.intVal);
         }
         AddOperandToStack(dataStack, &result);
     }
@@ -4791,9 +4791,9 @@ void __cdecl ToUpper(int localClientNum, itemDef_s *item, OperandStack *dataStac
     GetOperand(dataStack, &source);
     origString = GetSourceString(source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)UI_ToUpper(origString);
+    result.internals.intVal = (int)Ptr32_Encode(UI_ToUpper(origString));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("toUpper() = %s\n", result.internals.string);
+        Expression_TraceInternal("toUpper() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4806,11 +4806,11 @@ void __cdecl GetPlaylistName(int localClientNum, itemDef_s *item, OperandStack *
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     result.dataType = VAL_STRING;
     PlaylistIdForNum = Playlist_GetPlaylistIdForNum(controllerIndex, playlist->current.integer);
-    result.internals.intVal = (int)Playlist_GetPlaylistName(controllerIndex, PlaylistIdForNum);
-    if ( !result.internals.intVal || !*(_BYTE *)result.internals.intVal )
-        result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode(Playlist_GetPlaylistName(controllerIndex, PlaylistIdForNum));
+    if ( !result.internals.intVal || !*(_BYTE *)Ptr32_Decode(result.internals.intVal) )
+        result.internals.intVal = (int)Ptr32_Encode("");
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("getPlaylistName() = %s\n", result.internals.string);
+        Expression_TraceInternal("getPlaylistName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -4886,7 +4886,7 @@ void __cdecl SecondsAsTimeDisplay(int localClientNum, itemDef_s *item, OperandSt
         I_strncat(resultString_0, 128, " ");
     }
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)resultString_0;
+    result.internals.intVal = (int)Ptr32_Encode(resultString_0);
     if ( uiscript_debug && uiscript_debug->current.integer )
         Expression_TraceInternal("secondsToTime() = %s\n", resultString_0);
     AddOperandToStack(dataStack, &result);
@@ -4903,7 +4903,7 @@ void __cdecl SecondsAsCountdownDisplay(int localClientNum, itemDef_s *item, Oper
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)resultString_1;
+    result.internals.intVal = (int)Ptr32_Encode(resultString_1);
     if ( list.operandCount <= 2 )
     {
         if ( list.operandCount == 2 )
@@ -4933,7 +4933,7 @@ void __cdecl SecondsAsCountdownDisplay(int localClientNum, itemDef_s *item, Oper
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
         Expression_Error("Expected 1 or 2 parameters to secondsAsCountdown()\n");
         AddOperandToStack(dataStack, &result);
     }
@@ -5012,13 +5012,13 @@ void __cdecl GetGametypeObjective(int localClientNum, itemDef_s *item, OperandSt
     if ( CL_GetLocalClientConnectionState(localClientNum) >= 8 )
     {
         cgameGlob = CG_GetLocalClientGlobals(localClientNum);
-        result.internals.intVal = (int)CG_GetGametypeDescription(localClientNum);
+        result.internals.intVal = (int)Ptr32_Encode(CG_GetGametypeDescription(localClientNum));
         if ( !result.internals.intVal )
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -5052,18 +5052,18 @@ void __cdecl GetGametypeName(int localClientNum, itemDef_s *item, OperandStack *
     if ( CL_GetLocalClientConnectionState(localClientNum) >= 8 )
     {
         cgs = CG_GetLocalClientStaticGlobals(localClientNum);
-        result.internals.intVal = (int)UI_GetGameTypeDisplayName(cgs->gametype);
+        result.internals.intVal = (int)Ptr32_Encode(UI_GetGameTypeDisplayName(cgs->gametype));
     }
     else if ( g_gametype )
     {
-        result.internals.intVal = (int)UI_GetGameTypeDisplayName(g_gametype->current.string);
+        result.internals.intVal = (int)Ptr32_Encode(UI_GetGameTypeDisplayName(g_gametype->current.string));
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     }
     if ( !result.internals.intVal )
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5077,11 +5077,11 @@ void __cdecl GetGametypeInternal(int localClientNum, itemDef_s *item, OperandSta
     cgs = CG_GetLocalClientStaticGlobals(localClientNum);
     result.dataType = VAL_STRING;
     if ( CL_GetLocalClientConnectionState(localClientNum) >= 8 )
-        result.internals.intVal = (int)cgs->gametype;
+        result.internals.intVal = (int)Ptr32_Encode(cgs->gametype);
     else
         result.internals.intVal = g_gametype->current.integer;
     if ( !result.internals.intVal )
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5230,10 +5230,10 @@ void __cdecl EmblemLayerName(int localClientNum, itemDef_s *item, OperandStack *
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     v3.intVal = GetOperandValueInt(&source).intVal;
     LayerName = UI_EmblemGetLayerName(v3.intVal);
-    result.internals.intVal = (int)CopyTempString(LayerName);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(LayerName));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5351,11 +5351,11 @@ void __cdecl EmblemIconName(int localClientNum, itemDef_s *item, OperandStack *d
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     floatVal = (unsigned __int16)GetOperandValueInt(&source).floatVal;
     IconDesc = BG_EmblemsGetIconDesc(controllerIndex, floatVal);
-    result.internals.intVal = (int)CopyTempString(IconDesc);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(IconDesc));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5369,11 +5369,11 @@ void __cdecl EmblemIconUnlockDesc(int localClientNum, itemDef_s *item, OperandSt
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     floatVal = (unsigned __int16)GetOperandValueInt(&source).floatVal;
     IconUnlockDesc = BG_EmblemsGetIconUnlockDesc(controllerIndex, floatVal);
-    result.internals.intVal = (int)CopyTempString(IconUnlockDesc);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(IconUnlockDesc));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5521,14 +5521,14 @@ void __cdecl EmblemBackgroundMaterial(int localClientNum, itemDef_s *item, Opera
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     v3.intVal = GetOperandValueInt(&source).intVal;
     id = BG_EmblemsGetBackgroundID(v3.intVal);
     mat = BG_EmblemsGetBackgroundMaterial(id);
     if ( mat )
         result.internals.intVal = (int)mat->info.name;
     else
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5546,7 +5546,7 @@ void __cdecl EmblemPlayerBackgroundMaterial(int localClientNum, itemDef_s *item,
     GetOperandList(dataStack, &list);
     useServer = GetSourceInt(&list.operands[1]).intVal;
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount >= 2 )
     {
         controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
@@ -5560,7 +5560,7 @@ void __cdecl EmblemPlayerBackgroundMaterial(int localClientNum, itemDef_s *item,
         if ( mat )
             result.internals.intVal = (int)mat->info.name;
         else
-            result.internals.intVal = (int)"emblem_bg_nocod";
+            result.internals.intVal = (int)Ptr32_Encode("emblem_bg_nocod");
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -5587,12 +5587,12 @@ void __cdecl EmblemBackgroundName(int localClientNum, itemDef_s *item, OperandSt
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     v3.intVal = GetOperandValueInt(&source).intVal;
     id = BG_EmblemsGetBackgroundID(v3.intVal);
     BackgroundDesc = BG_EmblemsGetBackgroundDesc(controllerIndex, id);
-    result.internals.intVal = (int)CopyTempString(BackgroundDesc);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(BackgroundDesc));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5607,12 +5607,12 @@ void __cdecl EmblemBackgroundUnlockDesc(int localClientNum, itemDef_s *item, Ope
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     v3.intVal = GetOperandValueInt(&source).intVal;
     id = BG_EmblemsGetBackgroundID(v3.intVal);
     BackgroundUnlockDesc = BG_EmblemsGetBackgroundUnlockDesc(controllerIndex, id);
-    result.internals.intVal = (int)CopyTempString(BackgroundUnlockDesc);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(BackgroundUnlockDesc));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5626,11 +5626,11 @@ void __cdecl EmblemStateDisplay(int localClientNum, itemDef_s *item, OperandStac
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     v3.intVal = GetOperandValueInt(&source).intVal;
     StateDisplay = UI_EmblemGetStateDisplay(controllerIndex, v3.intVal);
-    result.internals.intVal = (int)CopyTempString(StateDisplay);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(StateDisplay));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5644,11 +5644,11 @@ void __cdecl EmblemCategoryDisplay(int localClientNum, itemDef_s *item, OperandS
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     v3.intVal = GetOperandValueInt(&source).intVal;
     CategoryDisplay = UI_EmblemGetCategoryDisplay(controllerIndex, v3.intVal);
-    result.internals.intVal = (int)CopyTempString(CategoryDisplay);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(CategoryDisplay));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5818,11 +5818,11 @@ void __cdecl GetClientName(int localClientNum, itemDef_s *item, OperandStack *da
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     clientNum = GetSourceInt(&source).intVal;
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     CL_GetClientName(localClientNum, clientNum, clientName, 38, 1);
-    result.internals.intVal = (int)CopyTempString(clientName);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(clientName));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5835,7 +5835,7 @@ void __cdecl ToOrdinal(int localClientNum, itemDef_s *item, OperandStack *dataSt
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
     number = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)UI_TranslateIntegerToOrdinal(number);
+    result.internals.intVal = (int)Ptr32_Encode(UI_TranslateIntegerToOrdinal(number));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5933,9 +5933,9 @@ void __cdecl GetDemoTitleName(int localClientNum, itemDef_s *item, OperandStack 
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( Demo_IsPlaying() )
-        result.internals.intVal = (int)Demo_GetTitleName();
+        result.internals.intVal = (int)Ptr32_Encode(Demo_GetTitleName());
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5944,9 +5944,9 @@ void __cdecl GetDemoTitleDescription(int localClientNum, itemDef_s *item, Operan
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( Demo_IsPlaying() )
-        result.internals.intVal = (int)Demo_GetTitleDescription();
+        result.internals.intVal = (int)Ptr32_Encode(Demo_GetTitleDescription());
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5955,9 +5955,9 @@ void __cdecl GetDemoAuthor(int localClientNum, itemDef_s *item, OperandStack *da
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( Demo_IsPlaying() )
-        result.internals.intVal = (int)Demo_GetAuthor();
+        result.internals.intVal = (int)Ptr32_Encode(Demo_GetAuthor());
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5966,9 +5966,9 @@ void __cdecl GetDemoTimeInfo(int localClientNum, itemDef_s *item, OperandStack *
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( Demo_IsPlaying() )
-        result.internals.intVal = (int)Demo_GetTimeInfo();
+        result.internals.intVal = (int)Ptr32_Encode(Demo_GetTimeInfo());
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5977,9 +5977,9 @@ void __cdecl GetDemoDuration(int localClientNum, itemDef_s *item, OperandStack *
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( Demo_IsPlaying() )
-        result.internals.intVal = (int)Demo_GetDuration();
+        result.internals.intVal = (int)Ptr32_Encode(Demo_GetDuration());
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6000,17 +6000,17 @@ void __cdecl GetDemoSegmentInformation(int localClientNum, itemDef_s *item, Oper
     const char *infoKey; // [esp+64h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperandList(dataStack, &list);
     if ( list.operandCount == 2 )
     {
         segmentIndex = GetOperandValueInt(list.operands).intVal;
         infoKey = GetSourceString(list.operands[1]);
-        result.internals.intVal = (int)Demo_GetSegmentInformation(segmentIndex, infoKey);
+        result.internals.intVal = (int)Ptr32_Encode(Demo_GetSegmentInformation(segmentIndex, infoKey));
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
         Expression_Error("Expected 2 parameters to getDemoSegmentInformation()\n");
     }
     AddOperandToStack(dataStack, &result);
@@ -6030,7 +6030,7 @@ void __cdecl CanStartDemoPlayback(int localClientNum, itemDef_s *item, OperandSt
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_INT;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6041,10 +6041,10 @@ void __cdecl GetDemoSaveScreenName(int localClientNum, itemDef_s *item, OperandS
     const char *type; // [esp+10h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperand(dataStack, &source);
     type = GetSourceString(source);
-    result.internals.intVal = (int)Demo_GetSaveScreenName(type);
+    result.internals.intVal = (int)Ptr32_Encode(Demo_GetSaveScreenName(type));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6055,10 +6055,10 @@ void __cdecl GetDemoSaveScreenDescription(int localClientNum, itemDef_s *item, O
     const char *type; // [esp+10h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperand(dataStack, &source);
     type = GetSourceString(source);
-    result.internals.intVal = (int)Demo_GetSaveScreenDescription(type);
+    result.internals.intVal = (int)Ptr32_Encode(Demo_GetSaveScreenDescription(type));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6067,9 +6067,9 @@ void __cdecl GetTheaterFilmNotSelectedMessage(int localClientNum, itemDef_s *ite
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetTheaterFilmNotSelectedMessage() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetTheaterFilmNotSelectedMessage() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6552,7 +6552,7 @@ void __cdecl GetCurrentItemClassifiedHintText(int localClientNum, itemDef_s *ite
     ConversionArguments convArgs; // [esp+414h] [ebp-28h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     StringTable_GetAsset("mp/attributesTable.csv", (XAssetHeader *)&attributesTable);
     purchasesNeeded = BG_UnlockablesGetNumPurchasesBeforeDeclassified(sharedUiInfo.itemIndex);
     memset(convArgs.args, 0, sizeof(convArgs.args));
@@ -6567,7 +6567,7 @@ void __cdecl GetCurrentItemClassifiedHintText(int localClientNum, itemDef_s *ite
     else
         v6 = UI_SafeTranslateString("MPUI_CLASSIFIED_TOOLTIP");
     UI_ReplaceConversions(v6, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6611,9 +6611,9 @@ void __cdecl GetCurrentItemName(int localClientNum, itemDef_s *item, OperandStac
     {
         __debugbreak();
     }
-    result.internals.intVal = (int)BG_UnlockablesGetItemName(index);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemName(index));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentItemName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentItemName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6636,7 +6636,7 @@ void __cdecl GetCurrentItemIndex(int localClientNum, itemDef_s *item, OperandSta
     }
     result.internals.intVal = index;
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentItemIndex() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentItemIndex() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6657,9 +6657,9 @@ void __cdecl GetCurrentItemAttachmentName(int localClientNum, itemDef_s *item, O
     {
         __debugbreak();
     }
-    result.internals.intVal = (int)BG_UnlockablesGetItemAttachmentDisplayName(index, sharedUiInfo.attachmentNum);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemAttachmentDisplayName(index, sharedUiInfo.attachmentNum));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentItemAttachmentName() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentItemAttachmentName() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6680,9 +6680,9 @@ void __cdecl GetCurrentItemAttachmentDesc(int localClientNum, itemDef_s *item, O
     {
         __debugbreak();
     }
-    result.internals.intVal = (int)BG_UnlockablesGetItemAttachmentDesc(index, sharedUiInfo.attachmentNum);
+    result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemAttachmentDesc(index, sharedUiInfo.attachmentNum));
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentItemAttachmentDesc() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentItemAttachmentDesc() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6705,7 +6705,7 @@ void __cdecl GetCurrentItemAttachmentNum(int localClientNum, itemDef_s *item, Op
     }
     result.internals.intVal = attachmentNum;
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCurrentItemAttachmentNum() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetCurrentItemAttachmentNum() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6942,7 +6942,7 @@ void __cdecl GetUserTagFromIndex(int localClientNum, itemDef_s *item, OperandSta
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6988,7 +6988,7 @@ void __cdecl GetFileShareFilterList(int localClientNum, itemDef_s *item, Operand
 
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7016,7 +7016,7 @@ void __cdecl GetBaseLbMenuName(int localClientNum, itemDef_s *item, OperandStack
     OperandList list; // [esp+18h] [ebp-58h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperandList(dataStack, &list);
     lbType = list.operands[0].internals.intVal;
     lbMenuPrefix = list.operands[1].internals.string;
@@ -7038,7 +7038,7 @@ void __cdecl GetBaseLbMenuName(int localClientNum, itemDef_s *item, OperandStack
     }
     v3 = va("%d", lbType);
     v4 = StringTable_Lookup(gameTypesTable, 5, v3, 1);
-    result.internals.intVal = (int)va("%s%s", lbMenuPrefix, v4);
+    result.internals.intVal = (int)Ptr32_Encode(va("%s%s", lbMenuPrefix, v4));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7061,7 +7061,7 @@ void __cdecl GetLeaderboardMinReqText(int localClientNum, itemDef_s *item, Opera
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     gameModePrefix = GetSourceString(list.operands[0]);
     lbTypeByResetPeriod = GetSourceInt(&list.operands[1]).intVal;
     if ( lbTypeByResetPeriod )
@@ -7082,14 +7082,14 @@ void __cdecl GetLeaderboardMinReqText(int localClientNum, itemDef_s *item, Opera
         convArgs.args[1] = va("%d", totalMatchesPlayed);
         v4 = UI_SafeTranslateString("MPUI_LEADERBOARD_MIN_REQ_TEXT");
         UI_ReplaceConversions(v4, &convArgs, outputString, 1024);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     }
     else
     {
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     }
     if ( !result.internals.intVal )
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7098,9 +7098,9 @@ void __cdecl GetPreviousGameType(int localClientNum, itemDef_s *item, OperandSta
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( !"" )
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7129,11 +7129,11 @@ void __cdecl GetCurrentWeapon(int localClientNum, itemDef_s *item, OperandStack 
 
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( cgameGlob->predictedPlayerState.weaponstate < 20 || cgameGlob->predictedPlayerState.weaponstate > 25 )
-        result.internals.intVal = (int)BG_WeaponName(cgameGlob->predictedPlayerState.weapon);
+        result.internals.intVal = (int)Ptr32_Encode(BG_WeaponName(cgameGlob->predictedPlayerState.weapon));
     else
-        result.internals.intVal = (int)BG_WeaponName(cgameGlob->predictedPlayerState.offHandIndex);
+        result.internals.intVal = (int)Ptr32_Encode(BG_WeaponName(cgameGlob->predictedPlayerState.offHandIndex));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7245,7 +7245,7 @@ void __cdecl GetFlagCarrierForTeam(int localClientNum, itemDef_s *item, OperandS
     const cg_s *cgameGlob; // [esp+58h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperand(dataStack, &source);
     teamName = GetSourceString(source);
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
@@ -7264,7 +7264,7 @@ void __cdecl GetFlagCarrierForTeam(int localClientNum, itemDef_s *item, OperandS
                 if ( ((*((unsigned int *)cent + 201) >> 1) & 1) != 0 && (cent->nextState.lerp.eFlags2 & 1) != 0 )
                 {
                     CL_GetClientName(localClientNum, i, clientName, 38, 0);
-                    result.internals.intVal = (int)CopyTempString(clientName);
+                    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(clientName));
                     break;
                 }
             }
@@ -7283,7 +7283,7 @@ void __cdecl GetFlagStatusForTeam(int localClientNum, itemDef_s *item, OperandSt
     const cg_s *cgameGlob; // [esp+18h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperand(dataStack, &source);
     teamName = GetSourceString(source);
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
@@ -7292,9 +7292,9 @@ void __cdecl GetFlagStatusForTeam(int localClientNum, itemDef_s *item, OperandSt
     if ( !I_stricmp(teamName, v3) )
         isAway = cgameGlob->axisFlagAway;
     if ( isAway )
-        result.internals.intVal = (int)UI_SafeTranslateString("OBJECTIVES_FLAG_AWAY_CAPS");
+        result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("OBJECTIVES_FLAG_AWAY_CAPS"));
     else
-        result.internals.intVal = (int)UI_SafeTranslateString("OBJECTIVES_FLAG_HOME_CAPS");
+        result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("OBJECTIVES_FLAG_HOME_CAPS"));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7360,11 +7360,11 @@ void __cdecl GetContractName(int localClientNum, itemDef_s *item, OperandStack *
     GetOperand(dataStack, &source);
     index = GetSourceInt(&source).intVal;
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( index >= 0 )
-        result.internals.intVal = (int)LiveContracts_GetContractName(index);
+        result.internals.intVal = (int)Ptr32_Encode(LiveContracts_GetContractName(index));
     else
-        result.internals.intVal = (int)UI_SafeTranslateString("MPUI_CONTRACT_EMPTY_CAPS");
+        result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("MPUI_CONTRACT_EMPTY_CAPS"));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7377,8 +7377,8 @@ void __cdecl GetContractDesc(int localClientNum, itemDef_s *item, OperandStack *
     GetOperand(dataStack, &source);
     index = GetSourceInt(&source).intVal;
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
-    result.internals.intVal = (int)LiveContracts_GetContractDesc(index);
+    result.internals.intVal = (int)Ptr32_Encode("");
+    result.internals.intVal = (int)Ptr32_Encode(LiveContracts_GetContractDesc(index));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7626,7 +7626,7 @@ void __cdecl GetContractRewardText(int localClientNum, itemDef_s *item, OperandS
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     xpStringRef = 0;
     contractIndex = GetSourceInt(list.operands).intVal;
     v3.intVal = GetSourceInt(&list.operands[1]).intVal;
@@ -7644,14 +7644,14 @@ void __cdecl GetContractRewardText(int localClientNum, itemDef_s *item, OperandS
             if ( xpReward > 0 )
             {
                 v8 = UI_SafeTranslateString(xpStringRef);
-                result.internals.intVal = (int)UI_ReplaceConversionInt(v8, xpReward);
+                result.internals.intVal = (int)Ptr32_Encode(UI_ReplaceConversionInt(v8, xpReward));
             }
         }
         else
         {
             v11 = cpReward;
             v7 = UI_SafeTranslateString("MENU_POINTS");
-            result.internals.intVal = (int)UI_ReplaceConversionInt(v7, v11);
+            result.internals.intVal = (int)Ptr32_Encode(UI_ReplaceConversionInt(v7, v11));
         }
     }
     else
@@ -7661,7 +7661,7 @@ void __cdecl GetContractRewardText(int localClientNum, itemDef_s *item, OperandS
         v9 = cpReward;
         v5 = UI_SafeTranslateString("MENU_POINTS");
         v6 = UI_ReplaceConversionInt(v5, v9);
-        result.internals.intVal = (int)va("%s        %s", v6, v10);
+        result.internals.intVal = (int)Ptr32_Encode(va("%s        %s", v6, v10));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -7675,8 +7675,8 @@ void __cdecl GetContractExpirationType(int localClientNum, itemDef_s *item, Oper
     GetOperand(dataStack, &source);
     contractIndex = GetSourceInt(&source).intVal;
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
-    result.internals.intVal = (int)LiveContracts_GetExpirationType(contractIndex);
+    result.internals.intVal = (int)Ptr32_Encode("");
+    result.internals.intVal = (int)Ptr32_Encode(LiveContracts_GetExpirationType(contractIndex));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7775,7 +7775,7 @@ void __cdecl GetClanDateFounded(int localClientNum, itemDef_s *item, OperandStac
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7790,7 +7790,7 @@ void __cdecl GetClanName(int localClientNum, itemDef_s *item, OperandStack *data
     const char *clanName; // [esp+18h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     clanName = Clan_GetName(controllerIndex);
     currEquippedClanTagFeatureIndex = BG_UnlockablesGetEquippedClanTagFeatureIndex(controllerIndex);
@@ -7802,7 +7802,7 @@ void __cdecl GetClanName(int localClientNum, itemDef_s *item, OperandStack *data
     if ( clanName && *clanName )
     {
         Name = Clan_GetName(controllerIndex);
-        result.internals.intVal = (int)va("[^%i%s^7]", clanTagColor, Name);
+        result.internals.intVal = (int)Ptr32_Encode(va("[^%i%s^7]", clanTagColor, Name));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -7833,7 +7833,7 @@ void __cdecl GetPlayerCardTitle(int localClientNum, itemDef_s *item, OperandStac
     convArgs.args[0] = playerName;
     v3 = UI_SafeTranslateString("MENU_PLAYERCARD_TITLE_CAPS");
     UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7848,7 +7848,7 @@ void __cdecl GetClanTagAndName(int localClientNum, itemDef_s *item, OperandStack
     int feature; // [esp+10h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     playerName = CL_ControllerIndex_GetUsername();
     feature = LiveStats_GetClanTagFeature(controllerIndex);
@@ -7857,11 +7857,11 @@ void __cdecl GetClanTagAndName(int localClientNum, itemDef_s *item, OperandStack
     {
         v4 = Clan_GetName(controllerIndex);
         v5 = va("[%s] %s", v4, playerName);
-        result.internals.intVal = (int)CopyTempString(v5);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(v5));
     }
     else
     {
-        result.internals.intVal = (int)CopyTempString(playerName);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(playerName));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -7875,7 +7875,7 @@ void __cdecl GetXUID(int localClientNum, itemDef_s *item, OperandStack *dataStac
 
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     //if (Live_IsSignedIn(controllerIndex))
     //{
     //    LODWORD(v3) = Live_GetXuid(controllerIndex);
@@ -7884,7 +7884,7 @@ void __cdecl GetXUID(int localClientNum, itemDef_s *item, OperandStack *dataStac
     //}
     //else
     {
-        result.internals.intVal = (int)CopyTempString("0");
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString("0"));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -7898,7 +7898,7 @@ void __cdecl GetSellText(int localClientNum, itemDef_s *item, OperandStack *data
     GetOperand(dataStack, &source);
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7921,12 +7921,12 @@ void __cdecl GetSelfGamertag(int localClientNum, itemDef_s *item, OperandStack *
     int controllerIndex; // [esp+8h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     //if (Live_IsSignedIn(controllerIndex))
     //    result.internals.intVal = (int)Live_ControllerIndex_GetClientName(controllerIndex);
     //else
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -8026,7 +8026,7 @@ void __cdecl GetDisplayLevelByXUID(int localClientNum, itemDef_s *item, OperandS
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     SourceString = GetSourceString(source);
     xuid = I_atoi64(SourceString);
     v6 = xuid;
@@ -8035,7 +8035,7 @@ void __cdecl GetDisplayLevelByXUID(int localClientNum, itemDef_s *item, OperandS
     if ( rank >= 0 )
     {
         RankData = CL_GetRankData(rank, MP_RANKTABLE_DISPLAYLEVEL);
-        result.internals.intVal = (int)CopyTempString(RankData);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(RankData));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -8431,16 +8431,16 @@ void __cdecl GetStatForFriendOrSelf(int localClientNum, itemDef_s *item, Operand
         if ( searchState.member->type == 5 )
         {
             result.dataType = VAL_STRING;
-            result.internals.intVal = (int)LiveStats_GetDStringStatFromForcedBase(
+            result.internals.intVal = (int)Ptr32_Encode(LiveStats_GetDStringStatFromForcedBase(
                                                                              controllerIndex,
                                                                              &searchState,
-                                                                             (char *)buffer);
+                                                                             (char *)buffer));
         }
         else if ( searchState.member->type == 3 )
         {
             result.dataType = VAL_STRING;
             LODWORD(v3) = LiveStats_GetDInt64StatFromForcedBase(controllerIndex, &searchState, (char *)buffer);
-            result.internals.intVal = (int)va("%llu", v3);
+            result.internals.intVal = (int)Ptr32_Encode(va("%llu", v3));
         }
         else
         {
@@ -8558,9 +8558,9 @@ void __cdecl GetToastPopupIcon(int localClientNum, itemDef_s *item, OperandStack
 
     uiInfo = UI_GetInfo(localClientNum);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)uiInfo->toastPopupIconName;
+    result.internals.intVal = (int)Ptr32_Encode(uiInfo->toastPopupIconName);
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetToastPopupIcon() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetToastPopupIcon() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -8571,9 +8571,9 @@ void __cdecl GetToastPopupDescription(int localClientNum, itemDef_s *item, Opera
 
     uiInfo = UI_GetInfo(localClientNum);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)uiInfo->toastPopupDesc;
+    result.internals.intVal = (int)Ptr32_Encode(uiInfo->toastPopupDesc);
     if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetToastPopupDescription() = %s\n", result.internals.string);
+        Expression_TraceInternal("GetToastPopupDescription() = %s\n", (const char *)result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -8585,11 +8585,11 @@ void __cdecl GetFloatAsFormattedString(int localClientNum, itemDef_s *item, Oper
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount >= 2 )
     {
         value = list.operands[0].internals.floatVal;
-        result.internals.intVal = (int)va("%.*f", list.operands[1].internals.intVal, list.operands[0].internals.floatVal);
+        result.internals.intVal = (int)Ptr32_Encode(va("%.*f", list.operands[1].internals.intVal, list.operands[0].internals.floatVal));
     }
     else
     {
@@ -8862,7 +8862,7 @@ void __cdecl GetCombatRecordInfoBarText(int localClientNum, itemDef_s *item, Ope
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount != 2 )
     {
         Com_PrintError(13, "UI Expression Error: Expected 2 parameters to GetCombatRecordInfoBarText()\n");
@@ -8896,18 +8896,18 @@ void __cdecl GetCombatRecordInfoBarText(int localClientNum, itemDef_s *item, Ope
                     v16 = LiveCombatRecord_GetSortedItemData(currIndex, forFriend, SORT_KEY);
                     v15 = (int)LiveCombatRecord_GetSortedItemData(currIndex, forFriend, PARAM2);
                     v9 = LiveCombatRecord_GetSortedItemData(currIndex, forFriend, PARAM1);
-                    result.internals.intVal = (int)va("%d/%d ( %.2f )", (int)v9, v15, v16);
+                    result.internals.intVal = (int)Ptr32_Encode(va("%d/%d ( %.2f )", (int)v9, v15, v16));
                 }
                 else
                 {
                     v18 = (int)LiveCombatRecord_GetSortedItemData(currIndex, forFriend, PARAM2);
                     v8 = LiveCombatRecord_GetSortedItemData(currIndex, forFriend, PARAM1);
-                    result.internals.intVal = (int)va("%d/%d", (int)v8, v18);
+                    result.internals.intVal = (int)Ptr32_Encode(va("%d/%d", (int)v8, v18));
                 }
                 break;
             case 6:
                 v10 = LiveCombatRecord_GetSortedItemData(currIndex, forFriend, SORT_KEY);
-                result.internals.intVal = (int)va("%.2f %%", v10 * 100.0);
+                result.internals.intVal = (int)Ptr32_Encode(va("%.2f %%", v10 * 100.0));
                 break;
             case 13:
                 memset(convArgs.args, 0, sizeof(convArgs.args));
@@ -8920,11 +8920,11 @@ void __cdecl GetCombatRecordInfoBarText(int localClientNum, itemDef_s *item, Ope
                 v13 = va("MPUI_CR_EQUIPMENT_%s", suffix);
                 equipmentUsageString = UI_SafeTranslateString(v13);
                 UI_ReplaceConversions((char *)equipmentUsageString, &convArgs, outputString, 1024);
-                result.internals.intVal = (int)CopyTempString(outputString);
+                result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
                 break;
             default:
                 v14 = LiveCombatRecord_GetSortedItemData(currIndex, forFriend, PARAM1);
-                result.internals.intVal = (int)va("%d", (int)v14);
+                result.internals.intVal = (int)Ptr32_Encode(va("%d", (int)v14));
                 break;
         }
 LABEL_31:
@@ -8961,7 +8961,7 @@ LABEL_31:
                                                     v6);
     if ( nextMilestoneRowNum == -1 )
     {
-        result.internals.intVal = (int)UI_SafeTranslateString("STATS_NO_MORE_MILESTONES");
+        result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("STATS_NO_MORE_MILESTONES"));
         AddOperandToStack(dataStack, &result);
     }
     else
@@ -8980,7 +8980,7 @@ LABEL_31:
         else
             currStatsMilestoneString = UI_SafeTranslateString("STATS_MILESTONES_COMBAT_RECORD_HEADSHOTS");
         UI_ReplaceConversions((char *)currStatsMilestoneString, &convArgs, outputString, 1024);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
         AddOperandToStack(dataStack, &result);
     }
 }
@@ -8996,14 +8996,14 @@ void __cdecl GetCopyClassDialogTitle(int localClientNum, itemDef_s *item, Operan
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     classIndexToCopy = GetSourceInt(&source).intVal;
     memset(convArgs.args, 0, sizeof(convArgs.args));
     convArgs.argCount = 1;
     convArgs.args[0] = Dvar_GetString(customClassDvars[classIndexToCopy]);
     v3 = UI_SafeTranslateString("MPUI_COPY_CLASS_TITLE");
     UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9020,7 +9020,7 @@ void __cdecl GetCopyClassConfirmationText(int localClientNum, itemDef_s *item, O
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount >= 2 )
     {
         classIndexToCopy = GetSourceInt(list.operands).intVal;
@@ -9034,7 +9034,7 @@ void __cdecl GetCopyClassConfirmationText(int localClientNum, itemDef_s *item, O
         convArgs.args[1] = Dvar_GetString(customClassDvars[classIndexToCopy]);
         v3 = UI_SafeTranslateString("MPUI_COPY_CLASS_CONFIRMATION");
         UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
         AddOperandToStack(dataStack, &result);
     }
     else
@@ -9055,14 +9055,14 @@ void __cdecl GetCopyCustomGametypeClassDialogTitle(int localClientNum, itemDef_s
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     memset(&convArgs, 0, sizeof(convArgs));
     classIndexToCopy = GetSourceInt(&source).intVal;
     convArgs.argCount = 1;
     convArgs.args[0] = g_customGameModeClassDescriptions[classIndexToCopy].name;
     v3 = UI_SafeTranslateString("MPUI_COPY_CLASS_TITLE");
     UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9079,7 +9079,7 @@ void __cdecl GetCopyCustomGametypeClassConfirmationText(int localClientNum, item
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount >= 2 )
     {
         classIndexToCopy = GetSourceInt(list.operands).intVal;
@@ -9093,7 +9093,7 @@ void __cdecl GetCopyCustomGametypeClassConfirmationText(int localClientNum, item
         convArgs.args[1] = g_customGameModeClassDescriptions[classIndexToCopy].name;
         v3 = UI_SafeTranslateString("MPUI_COPY_CLASS_CONFIRMATION");
         UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
         AddOperandToStack(dataStack, &result);
     }
     else
@@ -9112,16 +9112,16 @@ void __cdecl GetCombatRecordInfoBarTagText(int localClientNum, itemDef_s *item, 
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     infoBarNumber = GetSourceInt(&source).intVal;
     if ( Dvar_GetInt("ui_combatCurrViewNum") == 2 )
     {
         PersonalBestStatNameByIndex = LiveCombatRecord_GetPersonalBestStatNameByIndex(infoBarNumber);
-        result.internals.intVal = (int)va("MPUI_%s", PersonalBestStatNameByIndex);
+        result.internals.intVal = (int)Ptr32_Encode(va("MPUI_%s", PersonalBestStatNameByIndex));
     }
     else
     {
-        result.internals.intVal = (int)BG_UnlockablesGetItemName(infoBarNumber);
+        result.internals.intVal = (int)Ptr32_Encode(BG_UnlockablesGetItemName(infoBarNumber));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -9273,7 +9273,7 @@ void __cdecl GetCombatRecordPieChartText(int localClientNum, itemDef_s *item, Op
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount != 2 )
     {
         Com_PrintError(13, "UI Expression Error: Expected 2 parameters to GetCombatRecordPieChartText()\n");
@@ -9342,7 +9342,7 @@ LABEL_8:
                 v12 = numItems[currIndex_0];
                 v5 = va("MPUI_%s_CAPS", lbWagerGameModeEnum_4[itemTypes[currIndex_0]]);
                 v6 = UI_SafeTranslateString(v5);
-                result.internals.intVal = (int)va("%s ( %d %s )", v6, v12, v14);
+                result.internals.intVal = (int)Ptr32_Encode(va("%s ( %d %s )", v6, v12, v14));
             }
             else
             {
@@ -9355,20 +9355,20 @@ LABEL_8:
                 {
                     v15 = UI_SafeTranslateString("MPUI_MINUTES");
                     v8 = UI_SafeTranslateString("MPUI_HOURS");
-                    result.internals.intVal = (int)va("%s ( %d %s %d %s )", itemName, numHours, v8, numMinutes, v15);
+                    result.internals.intVal = (int)Ptr32_Encode(va("%s ( %d %s %d %s )", itemName, numHours, v8, numMinutes, v15));
                 }
                 else if ( numHours < 1 || numMinutes )
                 {
                     if ( numHours < 1 && numMinutes >= 0 )
                     {
                         v10 = UI_SafeTranslateString("MPUI_MINUTES");
-                        result.internals.intVal = (int)va("%s ( %d %s )", itemName, numMinutes, v10);
+                        result.internals.intVal = (int)Ptr32_Encode(va("%s ( %d %s )", itemName, numMinutes, v10));
                     }
                 }
                 else
                 {
                     v9 = UI_SafeTranslateString("MPUI_HOURS");
-                    result.internals.intVal = (int)va("%s ( %d %s )", itemName, numHours, v9);
+                    result.internals.intVal = (int)Ptr32_Encode(va("%s ( %d %s )", itemName, numHours, v9));
                 }
             }
         }
@@ -9378,7 +9378,7 @@ LABEL_8:
             v11 = numItems[currIndex_0];
             v3 = va("MPUI_%s_CAPS", lbTypeEnum_4[itemTypes[currIndex_0]]);
             v4 = UI_SafeTranslateString(v3);
-            result.internals.intVal = (int)va("%s ( %d %s )", v4, v11, v13);
+            result.internals.intVal = (int)Ptr32_Encode(va("%s ( %d %s )", v4, v11, v13));
         }
     }
     AddOperandToStack(dataStack, &result);
@@ -9403,7 +9403,7 @@ void __cdecl GetCombatRecordMinMaxScore(int localClientNum, itemDef_s *item, Ope
 
     GetOperandList(dataStack, &list);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount == 2 )
     {
         minScore = 0;
@@ -9443,13 +9443,13 @@ void __cdecl GetCombatRecordMinMaxScore(int localClientNum, itemDef_s *item, Ope
             if ( returnMinScore )
             {
                 if ( minScore >= 0 )
-                    result.internals.intVal = (int)va("0");
+                    result.internals.intVal = (int)Ptr32_Encode(va("0"));
                 else
-                    result.internals.intVal = (int)va("%d", minScore);
+                    result.internals.intVal = (int)Ptr32_Encode(va("%d", minScore));
             }
             else if ( maxScore != minScore || maxScore > 0 )
             {
-                result.internals.intVal = (int)va("%d", maxScore);
+                result.internals.intVal = (int)Ptr32_Encode(va("%d", maxScore));
             }
         }
         AddOperandToStack(dataStack, &result);
@@ -9520,7 +9520,7 @@ void __cdecl GetCombatRecordLockedString(int localClientNum, itemDef_s *item, Op
     convArgs.args[0] = va("%s", name);
     v3 = UI_SafeTranslateString("MPUI_COMBAT_RECORD_LOCKED_FOR_FRIEND");
     UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9631,9 +9631,9 @@ void __cdecl GetScoreboardColumnHeader(int localClientNum, itemDef_s *item, Oper
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     columnNumber = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)CG_GetNameForScoreboardColumn(localClientNum, columnNumber);
+    result.internals.intVal = (int)Ptr32_Encode(CG_GetNameForScoreboardColumn(localClientNum, columnNumber));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9657,11 +9657,11 @@ void __cdecl GetWagerGametypeNameFromEnum(int localClientNum, itemDef_s *item, O
     int gametypeIndex; // [esp+10h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperand(dataStack, &source);
     gametypeIndex = GetSourceInt(&source).intVal;
     if ( (unsigned int)gametypeIndex < 4 )
-        result.internals.intVal = (int)lbWagerGameModeEnum_4[gametypeIndex];
+        result.internals.intVal = (int)Ptr32_Encode(lbWagerGameModeEnum_4[gametypeIndex]);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9737,12 +9737,12 @@ void __cdecl GetPersonalBestName(int localClientNum, itemDef_s *item, OperandSta
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     index = GetSourceInt(&source).intVal;
     v5 = index;
     ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     PersonalBestName = LiveStats_GetPersonalBestName(ControllerIndex, v5);
-    result.internals.intVal = (int)CopyTempString(PersonalBestName);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(PersonalBestName));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9757,15 +9757,15 @@ void __cdecl GetPersonalBestPrefix(int localClientNum, itemDef_s *item, OperandS
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     index = GetSourceInt(&source).intVal;
     v4 = index;
     ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     prefix = LiveStats_GetPersonalBestPrefix(ControllerIndex, v4);
     if ( prefix && *prefix )
-        result.internals.intVal = (int)CopyTempString(prefix);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(prefix));
     else
-        result.internals.intVal = (int)"NULL";
+        result.internals.intVal = (int)Ptr32_Encode("NULL");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -9819,14 +9819,14 @@ void __cdecl GetPersonalBestValue(int localClientNum, itemDef_s *item, OperandSt
                 v7 = v9;
             else
                 v7 = 100.0f;
-            result.internals.intVal = (int)va("%.2f %%", v7);
+            result.internals.intVal = (int)Ptr32_Encode(va("%.2f %%", v7));
         }
     }
     else
     {
         result.dataType = VAL_STRING;
         PersonalBestValue = (unsigned int)LiveStats_GetPersonalBestValue(controllerIndex, index);
-        result.internals.intVal = (int)va("%.2f", (double)PersonalBestValue / 1000.0);
+        result.internals.intVal = (int)Ptr32_Encode(va("%.2f", (double)PersonalBestValue / 1000.0));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10030,7 +10030,7 @@ LABEL_12:
     else
     {
         result.dataType = VAL_STRING;
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
         AddOperandToStack(dataStack, &result);
     }
 }
@@ -10053,7 +10053,7 @@ void __cdecl GetStatsMilestoneName(int localClientNum, itemDef_s *item, OperandS
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     memset(outputString, 0, sizeof(outputString));
     index = GetSourceInt(&source).intVal;
@@ -10063,7 +10063,7 @@ void __cdecl GetStatsMilestoneName(int localClientNum, itemDef_s *item, OperandS
         statsMilestoneItemIndex = LiveStats_GetStatsMilestoneItemIndex(controllerIndex, index);
         if ( statsMilestoneItemIndex == -1 )
         {
-            result.internals.intVal = (int)"";
+            result.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &result);
         }
         else
@@ -10098,7 +10098,7 @@ void __cdecl GetStatsMilestoneName(int localClientNum, itemDef_s *item, OperandS
                     0,
                     0);
             }
-            result.internals.intVal = (int)CopyTempString(outputString);
+            result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
             AddOperandToStack(dataStack, &result);
         }
     }
@@ -10351,7 +10351,7 @@ void __cdecl GetCurrentChallengeProgress(int localClientNum, itemDef_s *item, Op
     int targetMinutes; // [esp+40h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     milestoneType = 0;
     if ( GetCurrentIndexOfHighlightedFeeder(localClientNum, item, dataStack, &result, &challengeNum, &milestoneType, 0)
@@ -10365,11 +10365,11 @@ void __cdecl GetCurrentChallengeProgress(int localClientNum, itemDef_s *item, Op
             currTime = va("%id %ih %im", currMinutes / 1440, currMinutes % 1440 / 60, currMinutes % 60);
             targetMinutes = (int)((float)((float)challenge->targetValue / 60.0) + 9.313225746154785e-10);
             targetTime = va("%id %ih %im", targetMinutes / 1440, targetMinutes % 1440 / 60, targetMinutes % 60);
-            result.internals.intVal = (int)va("%s / %s", currTime, targetTime);
+            result.internals.intVal = (int)Ptr32_Encode(va("%s / %s", currTime, targetTime));
             AddOperandToStack(dataStack, &result);
             return;
         }
-        result.internals.intVal = (int)va("%d / %d", challenge->currentValue, challenge->targetValue);
+        result.internals.intVal = (int)Ptr32_Encode(va("%d / %d", challenge->currentValue, challenge->targetValue));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10414,7 +10414,7 @@ void __cdecl GetChallengeProgressString(int localClientNum, itemDef_s *item, Ope
     ConversionArguments convArgs; // [esp+42Ch] [ebp-28h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     memset(outputString, 0, sizeof(outputString));
     memset(&convArgs, 0, sizeof(convArgs));
@@ -10425,7 +10425,7 @@ void __cdecl GetChallengeProgressString(int localClientNum, itemDef_s *item, Ope
     {
         if ( challenge->targetValue == 1 )
         {
-            result.internals.intVal = (int)UI_SafeTranslateString("MPUI_CONTRACT_NOT_COMPLETE");
+            result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("MPUI_CONTRACT_NOT_COMPLETE"));
             AddOperandToStack(dataStack, &result);
             return;
         }
@@ -10439,7 +10439,7 @@ void __cdecl GetChallengeProgressString(int localClientNum, itemDef_s *item, Ope
         convArgs.args[convArgs.argCount++] = v5;
         v6 = UI_SafeTranslateString("STATS_STATSMILESTONE_PROGRESS");
         UI_ReplaceConversions(v6, &convArgs, outputString, 1024);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10456,7 +10456,7 @@ void __cdecl GetLbTypeWithButtons(int localClientNum, itemDef_s *item, OperandSt
     ConversionArguments convArgs; // [esp+418h] [ebp-28h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     StringTable_GetAsset("mp/gametypesTable.csv", (XAssetHeader *)&gameTypesTable);
     if ( !gameTypesTable
         && !Assert_MyHandler(
@@ -10480,7 +10480,7 @@ void __cdecl GetLbTypeWithButtons(int localClientNum, itemDef_s *item, OperandSt
     convArgs.args[1] = &binding[2];
     convArgs.argCount = 2;
     UI_ReplaceConversions((char *)gameTypeName, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -10709,7 +10709,7 @@ void __cdecl GetProgressString(int localClientNum, itemDef_s *item, OperandStack
     int challengeNum; // [esp+418h] [ebp-4h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     memset(outputString, 0, 0x400u);
     milestoneType = 0;
@@ -10727,7 +10727,7 @@ void __cdecl GetProgressString(int localClientNum, itemDef_s *item, OperandStack
             if ( challenge->targetValue )
             {
                 PrepareProgressDescription(milestoneType, outputString, challenge);
-                result.internals.intVal = (int)CopyTempString(outputString);
+                result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
             }
         }
         AddOperandToStack(dataStack, &result);
@@ -10744,7 +10744,7 @@ void __cdecl GetName(int localClientNum, itemDef_s *item, OperandStack *dataStac
     ConversionArguments convArgs; // [esp+214h] [ebp-28h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     memset(outputString, 0, sizeof(outputString));
     memset(challengeType, 0, sizeof(challengeType));
@@ -10765,7 +10765,7 @@ void __cdecl GetName(int localClientNum, itemDef_s *item, OperandStack *dataStac
             challengeNum,
             (statsMilestoneTypes_t)milestoneType,
             challengeType);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
         AddOperandToStack(dataStack, &result);
     }
 }
@@ -10780,7 +10780,7 @@ void __cdecl GetDescription(int localClientNum, itemDef_s *item, OperandStack *d
     ConversionArguments convArgs; // [esp+214h] [ebp-28h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     memset(outputString, 0, sizeof(outputString));
     memset(challengeType, 0, sizeof(challengeType));
@@ -10801,7 +10801,7 @@ void __cdecl GetDescription(int localClientNum, itemDef_s *item, OperandStack *d
             challengeNum,
             (statsMilestoneTypes_t)milestoneType,
             challengeType);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
         AddOperandToStack(dataStack, &result);
     }
 }
@@ -10819,7 +10819,7 @@ void __cdecl GetWeaponName(int localClientNum, itemDef_s *item, OperandStack *da
     const char *feederName; // [esp+7Ch] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     itemName = 0;
     milestoneType = 0;
     currIndex = 0.0f;
@@ -10835,7 +10835,7 @@ void __cdecl GetWeaponName(int localClientNum, itemDef_s *item, OperandStack *da
             if ( LiveStats_GetChallengeInfo(&challenge, (int)currIndex, milestoneType) )
             {
                 itemName = BG_UnlockablesGetItemName(challenge->index);
-                result.internals.intVal = (int)CopyTempString(itemName);
+                result.internals.intVal = (int)Ptr32_Encode(CopyTempString(itemName));
             }
         }
         AddOperandToStack(dataStack, &result);
@@ -10857,7 +10857,7 @@ void __cdecl GetChallengeAttachmentName(int localClientNum, itemDef_s *item, Ope
     itemDef_s *actualItem; // [esp+18h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     itemName = 0;
     currIndex = 0.0f;
     actualItem = Menu_GetMatchingItemByNumber(item->parent, 0, (char*)"stats_milestones_attachments");
@@ -10868,7 +10868,7 @@ void __cdecl GetChallengeAttachmentName(int localClientNum, itemDef_s *item, Ope
             itemName = BG_UnlockablesGetItemName(challenge->index);
         else
             itemName = BG_GetAttachmentDisplayName((eAttachment)challenge->index);
-        result.internals.intVal = (int)CopyTempString(itemName);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(itemName));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10882,7 +10882,7 @@ void __cdecl GetChallengeName(int localClientNum, itemDef_s *item, OperandStack 
     ConversionArguments convArgs; // [esp+114h] [ebp-28h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     memset(outputString, 0, sizeof(outputString));
     memset(&convArgs, 0, sizeof(convArgs));
@@ -10890,7 +10890,7 @@ void __cdecl GetChallengeName(int localClientNum, itemDef_s *item, OperandStack 
     if ( GetCurrentIndexOfHighlightedFeeder(localClientNum, item, dataStack, &result, &challengeNum, &milestoneType, 0) )
     {
         CL_GetFrontEndMilestoneLocalizedName(outputString, 256, challengeNum, (statsMilestoneTypes_t)milestoneType, 0);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10903,14 +10903,14 @@ void __cdecl GetChallengeDescription(int localClientNum, itemDef_s *item, Operan
     int challengeNum; // [esp+110h] [ebp-4h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     challengeNum = 0;
     memset(outputString, 0, sizeof(outputString));
     milestoneType = 0;
     if ( GetCurrentIndexOfHighlightedFeeder(localClientNum, item, dataStack, &result, &challengeNum, &milestoneType, 0) )
     {
         CL_GetFrontEndMilestoneLocalizedDesc(outputString, 256, challengeNum, (statsMilestoneTypes_t)milestoneType, 0);
-        result.internals.intVal = (int)CopyTempString(outputString);
+        result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10920,21 +10920,21 @@ void __cdecl GetLBFilter(int localClientNum, itemDef_s *item, OperandStack *data
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     if ( Dvar_GetInt("lb_filter") )
     {
         if ( Dvar_GetInt("lb_filter") == 1 )
         {
-            result.internals.intVal = (int)UI_SafeTranslateString("MPUI_LB_FRIENDS_ONLY_CAPS");
+            result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("MPUI_LB_FRIENDS_ONLY_CAPS"));
         }
         else if ( Dvar_GetInt("lb_filter") == 2 )
         {
-            result.internals.intVal = (int)UI_SafeTranslateString("MPUI_LB_PLAYERS_IN_LOBBY_CAPS");
+            result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("MPUI_LB_PLAYERS_IN_LOBBY_CAPS"));
         }
     }
     else
     {
-        result.internals.intVal = (int)UI_SafeTranslateString("MPUI_LB_EVERYONE_CAPS");
+        result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString("MPUI_LB_EVERYONE_CAPS"));
     }
     AddOperandToStack(dataStack, &result);
 }
@@ -10948,9 +10948,9 @@ void __cdecl GetLBTypeByDuration(int localClientNum, itemDef_s *item, OperandSta
     int currResetPeriod; // [esp+8h] [ebp-4h]
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     currResetPeriod = Dvar_GetInt("lb_typeByResetPeriod");
-    result.internals.intVal = (int)UI_SafeTranslateString(lbResetPeriodStrings_4[currResetPeriod]);
+    result.internals.intVal = (int)Ptr32_Encode(UI_SafeTranslateString(lbResetPeriodStrings_4[currResetPeriod]));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11105,7 +11105,7 @@ void __cdecl GetFileshareGameType(int localClientNum, itemDef_s *item, OperandSt
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11117,7 +11117,7 @@ void __cdecl GetFileshareGameTypeName(int localClientNum, itemDef_s *item, Opera
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11129,7 +11129,7 @@ void __cdecl GetFileshareGameMap(int localClientNum, itemDef_s *item, OperandSta
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11141,7 +11141,7 @@ void __cdecl GetFileshareGameMapName(int localClientNum, itemDef_s *item, Operan
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11153,7 +11153,7 @@ void __cdecl GetFileshareGameDate(int localClientNum, itemDef_s *item, OperandSt
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11165,7 +11165,7 @@ void __cdecl GetFileshareFileName(int localClientNum, itemDef_s *item, OperandSt
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11181,7 +11181,7 @@ void __cdecl GetCacFactionNameWithButtons(int localClientNum, itemDef_s *item, O
 
     GetOperand(dataStack, &source);
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     factionName = GetSourceString(source);
     binding[0] = 5;
     binding[1] = 0;
@@ -11194,7 +11194,7 @@ void __cdecl GetCacFactionNameWithButtons(int localClientNum, itemDef_s *item, O
     convArgs.args[2] = &binding[2];
     v3 = UI_SafeTranslateString("MPUI_CAC_FACTION_NAME_WITH_BUTTONS");
     UI_ReplaceConversions(v3, &convArgs, outputString, 1024);
-    result.internals.intVal = (int)CopyTempString(outputString);
+    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(outputString));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11206,7 +11206,7 @@ void __cdecl GetFileshareFileSize(int localClientNum, itemDef_s *item, OperandSt
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11218,7 +11218,7 @@ void __cdecl GetFileshareFileId(int localClientNum, itemDef_s *item, OperandStac
     GetOperand(dataStack, &source);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11230,7 +11230,7 @@ void __cdecl GetMySlotInfo(int localClientNum, itemDef_s *item, OperandStack *da
     GetOperandList(dataStack, &list);
     // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11422,7 +11422,7 @@ void __cdecl GetFeederData(int localClientNum, itemDef_s *item, OperandStack *da
                 {
                     Operand tmp;
                     tmp.dataType = VAL_STRING;
-                    tmp.internals.string = (char*)list.operands[1].internals.intVal;
+                    tmp.internals.string = (char*)Ptr32_Decode(list.operands[1].internals.intVal);
                     //v5 = GetSourceString((Operand)__PAIR64__(list.operands[1].internals.intVal, 2));
                     v5 = GetSourceString(tmp);
                     actualItem = Menu_GetMatchingItemByNumber(menu, 0, v5);
@@ -11439,7 +11439,7 @@ void __cdecl GetFeederData(int localClientNum, itemDef_s *item, OperandStack *da
                 if ( stringResult )
                 {
                     result.dataType = VAL_STRING;
-                    result.internals.intVal = (int)CopyTempString(stringResult);
+                    result.internals.intVal = (int)Ptr32_Encode(CopyTempString(stringResult));
                 }
                 else
                 {
@@ -11466,7 +11466,7 @@ void __cdecl GetRank(int localClientNum, itemDef_s *item, OperandStack *dataStac
     controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
     result.dataType = VAL_STRING;
     Rank = LiveStats_GetRank(controllerIndex);
-    result.internals.intVal = (int)CL_GetRankData(Rank, MP_RANKTABLE_FULLRANK);
+    result.internals.intVal = (int)Ptr32_Encode(CL_GetRankData(Rank, MP_RANKTABLE_FULLRANK));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11528,7 +11528,7 @@ void __cdecl TableLookup(int localClientNum, itemDef_s *item, OperandStack *data
             intVal = GetSourceInt(&list.operands[3]).intVal;
             v8 = GetSourceString(list.operands[2]);
             v4.intVal = GetSourceInt(&list.operands[1]).intVal;
-            operandResult.internals.intVal = (int)StringTable_Lookup(tablePtr, v4.intVal, v8, intVal);
+            operandResult.internals.intVal = (int)Ptr32_Encode(StringTable_Lookup(tablePtr, v4.intVal, v8, intVal));
             if ( uiscript_debug )
             {
                 if ( uiscript_debug->current.integer )
@@ -11549,14 +11549,14 @@ void __cdecl TableLookup(int localClientNum, itemDef_s *item, OperandStack *data
                 "UI Expression Error: Expected 4 params to function StringTableLookup, found %i\n",
                 list.operandCount);
             operandResult.dataType = VAL_STRING;
-            operandResult.internals.intVal = (int)"";
+            operandResult.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &operandResult);
         }
     }
     else
     {
         operandResult.dataType = VAL_STRING;
-        operandResult.internals.intVal = (int)"";
+        operandResult.internals.intVal = (int)Ptr32_Encode("");
         AddOperandToStack(dataStack, &operandResult);
     }
 }
@@ -11584,7 +11584,7 @@ void __cdecl StatsTableLookup(int localClientNum, itemDef_s *item, OperandStack 
             intVal = GetSourceInt(&list.operands[2]).intVal;
             SourceString = GetSourceString(list.operands[1]);
             v3.intVal = GetSourceInt(list.operands).intVal;
-            operandResult.internals.intVal = (int)StringTable_Lookup(tablePtr, v3.intVal, SourceString, intVal);
+            operandResult.internals.intVal = (int)Ptr32_Encode(StringTable_Lookup(tablePtr, v3.intVal, SourceString, intVal));
             if ( uiscript_debug )
             {
                 if ( uiscript_debug->current.integer )
@@ -11604,14 +11604,14 @@ void __cdecl StatsTableLookup(int localClientNum, itemDef_s *item, OperandStack 
                 "UI Expression Error: Expected 3 params to function StringTableLookup, found %i\n",
                 list.operandCount);
             operandResult.dataType = VAL_STRING;
-            operandResult.internals.intVal = (int)"";
+            operandResult.internals.intVal = (int)Ptr32_Encode("");
             AddOperandToStack(dataStack, &operandResult);
         }
     }
     else
     {
         operandResult.dataType = VAL_STRING;
-        operandResult.internals.intVal = (int)"";
+        operandResult.internals.intVal = (int)Ptr32_Encode("");
         AddOperandToStack(dataStack, &operandResult);
     }
 }
@@ -11872,7 +11872,7 @@ void __cdecl GetCustomClassName(int localClienTNum, itemDef_s *item, OperandStac
 
     GetOperandList(dataStack, &list);
     operandResult.dataType = VAL_STRING;
-    operandResult.internals.intVal = (int)"";
+    operandResult.internals.intVal = (int)Ptr32_Encode("");
     if ( list.operandCount == 1 )
     {
         classNum = GetSourceInt(list.operands).intVal;
@@ -11891,7 +11891,7 @@ void __cdecl GetCustomClassName(int localClienTNum, itemDef_s *item, OperandStac
             v3 = UI_SafeTranslateString("MPUI_CUSTOM_CLASS_NAME");
             Com_sprintf(g_customGameModeClassDescriptions[classNum - 1].name, 0x10u, "%s %d", v3, classNum);
         }
-        operandResult.internals.intVal = (int)g_customGameModeClassDescriptions[classNum - 1].name;
+        operandResult.internals.intVal = (int)Ptr32_Encode(g_customGameModeClassDescriptions[classNum - 1].name);
         AddOperandToStack(dataStack, &operandResult);
     }
     else
@@ -11982,7 +11982,7 @@ void __cdecl GetMachineID(int localClientNum, itemDef_s *item, OperandStack *dat
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"????????????????????";
+    result.internals.intVal = (int)Ptr32_Encode("????????????????????");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -12293,7 +12293,7 @@ void __cdecl GetServerCounts(int localClientNum, itemDef_s *item, OperandStack *
     result.dataType = VAL_STRING;
     numDisplayServers = sharedUiInfo.serverStatus.numDisplayServers;
     v4 = UI_SafeTranslateString("MENU_SERVER_CAPS");
-    result.internals.intVal = (int)va("%s %d(%d)", v4, numDisplayServers, count);
+    result.internals.intVal = (int)Ptr32_Encode(va("%s %d(%d)", v4, numDisplayServers, count));
     AddOperandToStack(dataStack, &result);
 }
 
@@ -12523,9 +12523,9 @@ void __cdecl LocalizeString(int localClientNum, itemDef_s *item, OperandStack *d
     }
     string[stringLen] = 0;
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)SEH_LocalizeTextMessage(string, "ui string", LOCMSG_NOERR);
+    result.internals.intVal = (int)Ptr32_Encode(SEH_LocalizeTextMessage(string, "ui string", LOCMSG_NOERR));
     if ( !result.internals.intVal )
-        result.internals.intVal = (int)"";
+        result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
 }
 
@@ -12605,7 +12605,7 @@ void __cdecl RPN_FUNC_TOSTRING(int localClientNum, itemDef_s *item, OperandStack
 
     GetOperand(dataStack, &data1);
     operandResult.dataType = VAL_STRING;
-    operandResult.internals.intVal = (int)GetSourceString(data1);
+    operandResult.internals.intVal = (int)Ptr32_Encode(GetSourceString(data1));
     AddOperandToStack(dataStack, &operandResult);
 }
 
@@ -12785,7 +12785,7 @@ void __cdecl RPN_OP_NEGATE(int localClientNum, itemDef_s *item, OperandStack *da
     {
         if ( data1.dataType != VAL_FLOAT )
         {
-            Expression_Error(" trying to negate a string: %s\n", data1.internals.string);
+            Expression_Error(" trying to negate a string: %s\n", (const char *)data1.internals.string);
             return;
         }
         //data1.internals.intVal ^= _mask__NegFloat_;
@@ -12967,7 +12967,7 @@ void __cdecl RPN_OP_ADD(int localClientNum, itemDef_s *item, OperandStack *dataS
             operandResult.dataType = VAL_STRING;
             I_strncpyz(leftSideStr, data1.internals.string, 256);
             Com_sprintf(resultStr, 0x100u, "%s%i", leftSideStr, data2.internals.intVal);
-            operandResult.internals.intVal = (int)CopyTempString(resultStr);
+            operandResult.internals.intVal = (int)Ptr32_Encode(CopyTempString(resultStr));
             break;
         case 4:
             operandResult.dataType = VAL_FLOAT;
@@ -12981,26 +12981,26 @@ void __cdecl RPN_OP_ADD(int localClientNum, itemDef_s *item, OperandStack *dataS
             operandResult.dataType = VAL_STRING;
             I_strncpyz(leftSideStr, data1.internals.string, 256);
             Com_sprintf(resultStr, 0x100u, "%s%f", leftSideStr, data2.internals.floatVal);
-            operandResult.internals.intVal = (int)CopyTempString(resultStr);
+            operandResult.internals.intVal = (int)Ptr32_Encode(CopyTempString(resultStr));
             break;
         case 8:
             operandResult.dataType = VAL_STRING;
             I_strncpyz(rightSideStr, data2.internals.string, 256);
             Com_sprintf(resultStr, 0x100u, "%i%s", data1.internals.intVal, rightSideStr);
-            operandResult.internals.intVal = (int)CopyTempString(resultStr);
+            operandResult.internals.intVal = (int)Ptr32_Encode(CopyTempString(resultStr));
             break;
         case 9:
             operandResult.dataType = VAL_STRING;
             I_strncpyz(rightSideStr, data2.internals.string, 256);
             Com_sprintf(resultStr, 0x100u, "%f%s", data1.internals.floatVal, rightSideStr);
-            operandResult.internals.intVal = (int)CopyTempString(resultStr);
+            operandResult.internals.intVal = (int)Ptr32_Encode(CopyTempString(resultStr));
             break;
         case 0xA:
             operandResult.dataType = VAL_STRING;
             I_strncpyz(leftSideStr, data1.internals.string, 256);
             I_strncpyz(rightSideStr, data2.internals.string, 256);
             Com_sprintf(resultStr, 0x100u, "%s%s", leftSideStr, rightSideStr);
-            operandResult.internals.intVal = (int)CopyTempString(resultStr);
+            operandResult.internals.intVal = (int)Ptr32_Encode(CopyTempString(resultStr));
             break;
         default:
             break;
@@ -13234,12 +13234,12 @@ void __cdecl RPN_OP_AND(int localClientNum, itemDef_s *item, OperandStack *dataS
     if ( data1.dataType == VAL_STRING )
     {
         data1.dataType = VAL_INT;
-        data1.internals.intVal = *(char *)data1.internals.intVal;
+        data1.internals.intVal = *(char *)Ptr32_Decode(data1.internals.intVal);
     }
     if ( data2.dataType == VAL_STRING )
     {
         data2.dataType = VAL_INT;
-        data2.internals.intVal = *(char *)data2.internals.intVal;
+        data2.internals.intVal = *(char *)Ptr32_Decode(data2.internals.intVal);
     }
     switch ( data1.dataType | (4 * data2.dataType) )
     {
@@ -13283,12 +13283,12 @@ void __cdecl RPN_OP_OR(int localClientNum, itemDef_s *item, OperandStack *dataSt
     if ( data1.dataType == VAL_STRING )
     {
         data1.dataType = VAL_INT;
-        data1.internals.intVal = *(char *)data1.internals.intVal;
+        data1.internals.intVal = *(char *)Ptr32_Decode(data1.internals.intVal);
     }
     if ( data2.dataType == VAL_STRING )
     {
         data2.dataType = VAL_INT;
-        data2.internals.intVal = *(char *)data2.internals.intVal;
+        data2.internals.intVal = *(char *)Ptr32_Decode(data2.internals.intVal);
     }
     switch ( data1.dataType | (4 * data2.dataType) )
     {
@@ -13508,13 +13508,13 @@ void __cdecl Add64(int localClientNum, itemDef_s *item, OperandStack *dataStack)
     OperandList list; // [esp+18h] [ebp-58h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperandList(dataStack, &list);
     if ( list.operandCount == 2 )
     {
         op1 = I_atoi64(list.operands[0].internals.string);
         op2 = I_atoi64(list.operands[1].internals.string);
-        result.internals.intVal = (int)va("%llu", op2 + op1);
+        result.internals.intVal = (int)Ptr32_Encode(va("%llu", op2 + op1));
     }
     else
     {
@@ -13531,13 +13531,13 @@ void __cdecl Sub64(int localClientNum, itemDef_s *item, OperandStack *dataStack)
     OperandList list; // [esp+18h] [ebp-58h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperandList(dataStack, &list);
     if ( list.operandCount == 2 )
     {
         op1 = I_atoi64(list.operands[0].internals.string);
         op2 = I_atoi64(list.operands[1].internals.string);
-        result.internals.intVal = (int)va("%llu", op1 - op2);
+        result.internals.intVal = (int)Ptr32_Encode(va("%llu", op1 - op2));
     }
     else
     {
@@ -13554,14 +13554,14 @@ void __cdecl Div64(int localClientNum, itemDef_s *item, OperandStack *dataStack)
     OperandList list; // [esp+18h] [ebp-58h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperandList(dataStack, &list);
     if ( list.operandCount == 2 )
     {
         op1 = I_atoi64(list.operands[0].internals.string);
         op2 = I_atoi64(list.operands[1].internals.string);
         if ( op2 )
-            result.internals.intVal = (int)va("%llu", op1 / op2);
+            result.internals.intVal = (int)Ptr32_Encode(va("%llu", op1 / op2));
     }
     else
     {
@@ -13578,13 +13578,13 @@ void __cdecl Mul64(int localClientNum, itemDef_s *item, OperandStack *dataStack)
     OperandList list; // [esp+18h] [ebp-58h] BYREF
 
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
+    result.internals.intVal = (int)Ptr32_Encode("");
     GetOperandList(dataStack, &list);
     if ( list.operandCount == 2 )
     {
         op1 = I_atoi64(list.operands[0].internals.string);
         v3 = op1 * I_atoi64(list.operands[1].internals.string);
-        result.internals.intVal = (int)va("%llu", v3);
+        result.internals.intVal = (int)Ptr32_Encode(va("%llu", v3));
     }
     else
     {
@@ -13633,7 +13633,7 @@ char *__cdecl GetExpressionResultString(int localClientNum, itemDef_s *item, Exp
                     __debugbreak();
                 return (char *)"";
             }
-            len = Com_sprintf(resultString_2, 0x100u, "%s", result.internals.string);
+            len = Com_sprintf(resultString_2, 0x100u, "%s", (const char *)result.internals.string);
         }
     }
     else

@@ -473,6 +473,6 @@ void __cdecl SND_AliasGetFileName(const snd_alias_t *alias, char *filename, int 
     if ( alias->soundFile->type == 1 )
         I_strncpyz(filename, alias->soundFile->u.loadSnd->name, size);
     else
-        Com_sprintf(filename, size, "%s", alias->soundFile->u.loadSnd->name);
+        Com_sprintf(filename, size, "%s", (const char *)alias->soundFile->u.loadSnd->name);
 }
 

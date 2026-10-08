@@ -798,7 +798,7 @@ char *__cdecl SV_AllocateClientMemory_SizeRequired(int maxLocalClients, int maxC
     else
         v3 = 2;
 
-    return (char *)(0x118D00 * maxClients
+    return (char *)Ptr32_Decode(0x118D00 * maxClients
         + 0x1A00 * maxClients * maxClients
         + 0x4880
         + (maxClients << 7)

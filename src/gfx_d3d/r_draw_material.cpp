@@ -434,7 +434,7 @@ int __cdecl R_SetMaterial(GfxCmdBufContext context, GfxDrawSurf drawSurf, unsign
     if ( r_logFile->current.integer )
     {
         v4 = RB_LogTechniqueType(techType);
-        v5 = va("R_SetMaterial( %s, %s, %s )\n", material->info.name, technique->name, v4);
+        v5 = va("R_SetMaterial( %s, %s, %s )\n", (const char *)material->info.name, (const char *)technique->name, v4);
         RB_LogPrint(v5);
     }
     if ( R_GfxDrawSurf_GetFade(&drawSurf) )
@@ -485,7 +485,7 @@ int __cdecl R_TrySetMaterialWithFunc(
         v5 = RB_LogTechniqueType(techAssigned);
     R_WarnOncePerFrame(
         R_WARN_MISSING_TECHNIQUE,
-        rgp.sortedMaterials[drawSurf.fields.materialSortedIndex]->info.name,
+        (const char *)rgp.sortedMaterials[drawSurf.fields.materialSortedIndex]->info.name,
         techName,
         *techType,
         v5,

@@ -72,11 +72,11 @@ GfxLightDef *__cdecl R_RegisterLightDef_LoadObj(const char *name)
     {
         Com_Printf(8, "Loaded light defs:\n");
         for ( defIndexa = 0; defIndexa < lightGlob.defCount; ++defIndexa )
-            Com_Printf(8, "    %s\n", lightGlob.defs[defIndexa]->name);
+            Com_Printf(8, "    %s\n", (const char *)lightGlob.defs[defIndexa]->name);
         Com_Error(
             ERR_DROP,
             "Can't load light def %s; %i unique light defs already loaded",
-            lightGlob.defs[defIndex]->name,
+            (const char *)lightGlob.defs[defIndex]->name,
             lightGlob.defCount);
     }
     defa = R_LoadLightDef(name);
@@ -535,7 +535,7 @@ int __cdecl R_AllowBspSpotLightShadows(int surfIndex, void *__formal)
 
 int __cdecl R_AllowBspSpotLight(int surfIndex, void *bspLightCallbackAsVoid)
 {
-    if (*(_BYTE *)(*(_DWORD *)bspLightCallbackAsVoid + surfIndex))
+    if (*(_BYTE *)Ptr32_Decode(*(_DWORD *)bspLightCallbackAsVoid + surfIndex))
         return BoxInPlanes(
             scene.dynamicSpotLightPlanes,
             6u,

@@ -957,7 +957,7 @@ void __cdecl RB_StretchPicCmd(GfxRenderCommandExecState *execState)
     cmd = (const GfxCmdStretchPic *)execState->cmd;
 
     if ( **((unsigned int **)execState->cmd + 1) )
-        v1 = va("\"%s\"", cmd->material->info.name);
+        v1 = va("\"%s\"", (const char *)cmd->material->info.name);
     else
         v1 = va("\"%s\"", "noname");
 
@@ -4884,7 +4884,7 @@ void __cdecl RB_ExecuteRenderCommandsLoop(const void *cmds, int *ui3dTextureWind
         v3 = -1;
     while (1)
     {
-        if (((int)execState.cmd & 3) != 0
+        if (((int)Ptr32_Encode(execState.cmd) & 3) != 0
             && !Assert_MyHandler(
                 "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\rb_backend.cpp",
                 5999,
@@ -5259,7 +5259,7 @@ void     RB_RenderThread(unsigned int threadContext)
 
         if ( Sys_WaitBackendEvent(1) )
         {
-            data = (GfxBackEndData *)Sys_RendererSleep();
+            data = (GfxBackEndData *)Ptr32_Decode(Sys_RendererSleep());
             if (data)
             {
                 RB_UpdateDynamicBuffers((GfxBackEndData*)data);

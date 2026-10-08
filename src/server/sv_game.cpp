@@ -423,7 +423,7 @@ void __cdecl SV_ResetSkeletonCache()
 {
     if (!++sv.skelTimeStamp)
         sv.skelTimeStamp = 1;
-    g_sv_skel_memory_start = (char *)((unsigned int)&g_sv_skel_memory[15] & 0xFFFFFFF0);
+    g_sv_skel_memory_start = (char *)Ptr32_Decode((unsigned int)Ptr32_Encode(&g_sv_skel_memory[15]) & 0xFFFFFFF0);
     sv.skelMemPos = 0;
 }
 

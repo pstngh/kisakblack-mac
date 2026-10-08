@@ -49,18 +49,18 @@ unsigned int __cdecl Scr_GetBuiltin(scriptInstance_t inst, sval_u func_name)
     sval_u func_namea; // [esp+Ch] [ebp+Ch]
     sval_u func_nameb; // [esp+Ch] [ebp+Ch]
 
-    if ( *(_BYTE *)func_name.stringValue != 28 )
+    if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) != 28 )
         return 0;
-    func_namea = *(sval_u *)(func_name.stringValue + 4);
-    if ( *(_BYTE *)func_namea.stringValue != 20 )
+    func_namea = *(sval_u *)Ptr32_Decode(func_name.stringValue + 4);
+    if ( *(_BYTE *)Ptr32_Decode(func_namea.stringValue) != 20 )
         return 0;
-    func_nameb = *(sval_u *)(func_namea.stringValue + 4);
-    if ( *(_BYTE *)func_nameb.stringValue != 22 )
+    func_nameb = *(sval_u *)Ptr32_Decode(func_namea.stringValue + 4);
+    if ( *(_BYTE *)Ptr32_Decode(func_nameb.stringValue) != 22 )
         return 0;
     if ( gScrCompilePub[inst].developer_statement == 3
-        || !FindVariable(inst, gScrCompileGlob[inst].filePosId, *(unsigned int *)(func_nameb.stringValue + 4)) )
+        || !FindVariable(inst, gScrCompileGlob[inst].filePosId, *(unsigned int *)Ptr32_Decode(func_nameb.stringValue + 4)) )
     {
-        return *(unsigned int *)(func_nameb.stringValue + 4);
+        return *(unsigned int *)Ptr32_Decode(func_nameb.stringValue + 4);
     }
     return 0;
 }
@@ -122,7 +122,7 @@ void __cdecl ScriptCompile(
             "MAX_PRECACHE_ENTRIES exceeded.\nThis means that the script recursion is too deep.\nPlease see a coder.");
     gScrCompileGlob[inst].precachescriptList = precachescriptList;
     EmitIncludeList(inst, *val.node);
-    EmitThreadList(inst, *(sval_u *)(val.stringValue + 4));
+    EmitThreadList(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4));
     gScrCompilePub[inst].programLen = TempMallocAlignStrict(0) - gScrVarPub[inst].programBuffer;
     Scr_ShutdownAllocNode(inst);
     Hunk_ClearTempMemoryHigh();
@@ -262,16 +262,16 @@ void __cdecl LinkThread(scriptInstance_t inst, unsigned int threadCountId, Varia
                 }
                 if (type == 7)
                 {
-                    CompileError2(inst, (char *)value->next, "normal script cannot reference a function in a /# ... #/ comment");
+                    CompileError2(inst, (char *)Ptr32_Decode(value->next), "normal script cannot reference a function in a /# ... #/ comment");
                     return;
                 }
             }
-            if (!pos->type || !allowFarCall && *(_DWORD *)value->next == 1)
+            if (!pos->type || !allowFarCall && *(_DWORD *)Ptr32_Decode(value->next) == 1)
             {
-                CompileError2(inst, (char *)value->next, "unknown function");
+                CompileError2(inst, (char *)Ptr32_Decode(value->next), "unknown function");
                 return;
             }
-            *(_DWORD *)value->next = pos->u.intValue;
+            *(_DWORD *)Ptr32_Decode(value->next) = pos->u.intValue;
             RemoveVariable(inst, threadCountId, i + 1);
         }
         RemoveVariable(inst, threadCountId, 0);
@@ -380,7 +380,7 @@ void __cdecl EmitThreadList(scriptInstance_t inst, sval_u val)
     sval_u *nodea; // [esp+0h] [ebp-4h]
 
     gScrCompileGlob[inst].in_developer_thread = 0;
-    for ( node = *(sval_u **)(*(unsigned int *)val.stringValue + 4); node; node = node[1].node )
+    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
         SpecifyThread(inst, *node);
     if ( gScrCompileGlob[inst].in_developer_thread )
         CompileError(inst, gScrCompileGlob[inst].developer_thread_sourcePos, "/# has no matching #/");
@@ -396,7 +396,7 @@ void __cdecl EmitThreadList(scriptInstance_t inst, sval_u val)
     {
         __debugbreak();
     }
-    for ( nodea = *(sval_u **)(*(unsigned int *)val.stringValue + 4); nodea; nodea = nodea[1].node )
+    for ( nodea = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); nodea; nodea = nodea[1].node )
         EmitThread(inst, *nodea);
     if ( gScrCompileGlob[inst].in_developer_thread
         && !Assert_MyHandler(
@@ -418,14 +418,14 @@ void __cdecl SpecifyThread(scriptInstance_t inst, sval_u val)
     int v5; // [esp-4h] [ebp-8h]
     char v6; // [esp+0h] [ebp-4h]
 
-    v6 = *(_BYTE *)val.stringValue;
-    if ( *(_BYTE *)val.stringValue == ENUM_thread )
+    v6 = *(_BYTE *)Ptr32_Decode(val.stringValue);
+    if ( *(_BYTE *)Ptr32_Decode(val.stringValue) == ENUM_thread )
     {
         if ( !gScrCompileGlob[inst].in_developer_thread || gScrVarPub[inst].developer_script )
         {
             v5 = gScrCompileGlob[inst].in_developer_thread ? 12 : 7;
-            v4 = *(unsigned int *)(val.stringValue + 16);
-            v3 = *(unsigned int *)(val.stringValue + 4);
+            v4 = *(unsigned int *)Ptr32_Decode(val.stringValue + 16);
+            v3 = *(unsigned int *)Ptr32_Decode(val.stringValue + 4);
             Variable = GetVariable(inst, gScrCompileGlob[inst].filePosId, v3);
             SpecifyThreadPosition(inst, Variable, v3, v4, v5);
         }
@@ -434,12 +434,12 @@ void __cdecl SpecifyThread(scriptInstance_t inst, sval_u val)
     {
         if ( gScrCompileGlob[inst].in_developer_thread )
         {
-            CompileError(inst, *(unsigned int *)(val.stringValue + 4), "cannot recurse /#");
+            CompileError(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 4), "cannot recurse /#");
         }
         else
         {
             gScrCompileGlob[inst].in_developer_thread = 1;
-            gScrCompileGlob[inst].developer_thread_sourcePos = *(unsigned int *)(val.stringValue + 4);
+            gScrCompileGlob[inst].developer_thread_sourcePos = *(unsigned int *)Ptr32_Decode(val.stringValue + 4);
         }
     }
     else if ( v6 == ENUM_end_developer_thread )
@@ -447,7 +447,7 @@ void __cdecl SpecifyThread(scriptInstance_t inst, sval_u val)
         if ( gScrCompileGlob[inst].in_developer_thread )
             gScrCompileGlob[inst].in_developer_thread = 0;
         else
-            CompileError(inst, *(unsigned int *)(val.stringValue + 4), "#/ has no matching /#");
+            CompileError(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 4), "#/ has no matching /#");
     }
 }
 
@@ -472,18 +472,18 @@ void __cdecl EmitThread(scriptInstance_t inst, sval_u val)
     char *v2; // eax
     unsigned int v3; // [esp-4h] [ebp-8h]
 
-    switch ( *(_BYTE *)val.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(val.stringValue) )
     {
         case ENUM_thread:
             Scr_CalcLocalVarsThread(
                 inst,
-                *(sval_u *)(val.stringValue + 8),
-                *(sval_u *)(val.stringValue + 12),
-                (sval_u *)(val.stringValue + 24));
+                *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                (sval_u *)Ptr32_Decode(val.stringValue + 24));
             if ( gScrCompileGlob[inst].in_developer_thread )
-                EmitDeveloperThread(inst, val, (sval_u *)(val.stringValue + 24));
+                EmitDeveloperThread(inst, val, (sval_u *)Ptr32_Decode(val.stringValue + 24));
             else
-                EmitNormalThread(inst, val, (sval_u *)(val.stringValue + 24));
+                EmitNormalThread(inst, val, (sval_u *)Ptr32_Decode(val.stringValue + 24));
             break;
         case ENUM_begin_developer_thread:
             if ( gScrCompileGlob[inst].in_developer_thread
@@ -514,14 +514,14 @@ void __cdecl EmitThread(scriptInstance_t inst, sval_u val)
         case ENUM_usingtree:
             if ( gScrCompileGlob[inst].in_developer_thread )
             {
-                CompileError(inst, *(unsigned int *)(val.stringValue + 8), "cannot put #using_animtree inside /# ... #/ comment");
+                CompileError(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 8), "cannot put #using_animtree inside /# ... #/ comment");
             }
             else
             {
-                v3 = *(unsigned int *)(val.stringValue + 12);
-                v2 = SL_ConvertToString(*(unsigned int *)(val.stringValue + 4), inst);
+                v3 = *(unsigned int *)Ptr32_Decode(val.stringValue + 12);
+                v2 = SL_ConvertToString(*(unsigned int *)Ptr32_Decode(val.stringValue + 4), inst);
                 Scr_UsingTree(inst, v2, v3);
-                Scr_CompileRemoveRefToString(inst, *(unsigned int *)(val.stringValue + 4));
+                Scr_CompileRemoveRefToString(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 4));
             }
             break;
         default:
@@ -551,11 +551,11 @@ void __cdecl Scr_CalcLocalVarsThread(scriptInstance_t inst, sval_u exprlist, sva
 
     gScrCompileGlob[inst].forceNotCreate = 0;
     stmttblock->stringValue = Hunk_AllocateTempMemoryHigh(536, "Scr_CalcLocalVarsThread");
-    *(unsigned int *)stmttblock->stringValue = 0;
-    *(unsigned int *)(stmttblock->stringValue + 4) = 0;
-    *(unsigned int *)(stmttblock->stringValue + 12) = 0;
-    *(unsigned int *)(stmttblock->stringValue + 8) = 0;
-    v4 = (unsigned int *)(stmttblock->stringValue + 16);
+    *(unsigned int *)Ptr32_Decode(stmttblock->stringValue) = 0;
+    *(unsigned int *)Ptr32_Decode(stmttblock->stringValue + 4) = 0;
+    *(unsigned int *)Ptr32_Decode(stmttblock->stringValue + 12) = 0;
+    *(unsigned int *)Ptr32_Decode(stmttblock->stringValue + 8) = 0;
+    v4 = (unsigned int *)Ptr32_Decode(stmttblock->stringValue + 16);
     *v4 = 0;
     v4[1] = 0;
     Scr_CalcLocalVarsFormalParameterList(exprlist, stmttblock->block);
@@ -566,16 +566,16 @@ void __cdecl Scr_CalcLocalVarsStatementList(scriptInstance_t inst, sval_u val, s
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    for ( node = *(sval_u **)(*(unsigned int *)val.stringValue + 4); node; node = node[1].node )
+    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
         Scr_CalcLocalVarsStatement(inst, *node, block);
 }
 
 void __cdecl Scr_CalcLocalVarsStatement(scriptInstance_t inst, sval_u val, scr_block_s *block)
 {
-    switch ( *(_BYTE *)val.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(val.stringValue) )
     {
         case 2:
-            Scr_CalcLocalVarsAssignmentStatement(*(sval_u *)(val.stringValue + 4), *(sval_u *)(val.stringValue + 8), block);
+            Scr_CalcLocalVarsAssignmentStatement(*(sval_u *)Ptr32_Decode(val.stringValue + 4), *(sval_u *)Ptr32_Decode(val.stringValue + 8), block);
             break;
         case 0x1D:
         case 0x1E:
@@ -583,56 +583,56 @@ void __cdecl Scr_CalcLocalVarsStatement(scriptInstance_t inst, sval_u val, scr_b
                 block->abortLevel = 3;
             break;
         case 0x27:
-            Scr_CalcLocalVarsIfStatement(inst, *(sval_u *)(val.stringValue + 8), block, (sval_u *)(val.stringValue + 16));
+            Scr_CalcLocalVarsIfStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 8), block, (sval_u *)Ptr32_Decode(val.stringValue + 16));
             break;
         case 0x28:
             Scr_CalcLocalVarsIfElseStatement(
                 inst,
-                *(sval_u *)(val.stringValue + 8),
-                *(sval_u *)(val.stringValue + 12),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 12),
                 block,
-                (sval_u *)(val.stringValue + 24),
-                (sval_u *)(val.stringValue + 28));
+                (sval_u *)Ptr32_Decode(val.stringValue + 24),
+                (sval_u *)Ptr32_Decode(val.stringValue + 28));
             break;
         case 0x29:
             Scr_CalcLocalVarsWhileStatement(
                 inst,
-                *(sval_u *)(val.stringValue + 4),
-                *(sval_u *)(val.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 8),
                 block,
-                (sval_u *)(val.stringValue + 20));
+                (sval_u *)Ptr32_Decode(val.stringValue + 20));
             break;
         case 0x2A:
             Scr_CalcLocalVarsForStatement(
                 inst,
-                *(sval_u *)(val.stringValue + 4),
-                *(sval_u *)(val.stringValue + 8),
-                *(sval_u *)(val.stringValue + 12),
-                *(sval_u *)(val.stringValue + 16),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                 block,
-                (sval_u *)(val.stringValue + 28),
-                (sval_u *)(val.stringValue + 32));
+                (sval_u *)Ptr32_Decode(val.stringValue + 28),
+                (sval_u *)Ptr32_Decode(val.stringValue + 32));
             break;
         case 0x2B:
         case 0x2C:
         case 0x2D:
-            Scr_CalcLocalVarsIncStatement(*(sval_u *)(val.stringValue + 4), block);
+            Scr_CalcLocalVarsIncStatement(*(sval_u *)Ptr32_Decode(val.stringValue + 4), block);
             break;
         case 0x2E:
-            Scr_CalcLocalVarsStatementList(inst, *(sval_u *)(val.stringValue + 4), block);
+            Scr_CalcLocalVarsStatementList(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), block);
             break;
         case 0x2F:
             Scr_CalcLocalVarsDeveloperStatementList(
                 inst,
-                *(sval_u *)(val.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(val.stringValue + 4),
                 block,
-                (sval_u *)(val.stringValue + 12));
+                (sval_u *)Ptr32_Decode(val.stringValue + 12));
             break;
         case 0x39:
-            Scr_CalcLocalVarsWaittillStatement(*(sval_u *)(val.stringValue + 8), block);
+            Scr_CalcLocalVarsWaittillStatement(*(sval_u *)Ptr32_Decode(val.stringValue + 8), block);
             break;
         case 0x3E:
-            Scr_CalcLocalVarsSwitchStatement(inst, *(sval_u *)(val.stringValue + 8), block);
+            Scr_CalcLocalVarsSwitchStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 8), block);
             break;
         case 0x41:
             Scr_AddBreakBlock(inst, block);
@@ -656,13 +656,13 @@ void __cdecl Scr_CalcLocalVarsIncStatement(sval_u expr, scr_block_s *block)
 
 void __cdecl Scr_CalcLocalVarsVariableExpressionRef(sval_u expr, scr_block_s *block)
 {
-    if ( *(_BYTE *)expr.stringValue == 5 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 5 )
     {
-        Scr_CalcLocalVarsSafeSetVariableField(*(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), block);
+        Scr_CalcLocalVarsSafeSetVariableField(*(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), block);
     }
-    else if ( *(_BYTE *)expr.stringValue == 15 )
+    else if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 15 )
     {
-        Scr_CalcLocalVarsArrayVariableRef(*(sval_u *)(expr.stringValue + 4), block);
+        Scr_CalcLocalVarsArrayVariableRef(*(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
     }
 }
 
@@ -696,8 +696,8 @@ void __cdecl Scr_CalcLocalVarsArrayVariableRef(sval_u expr, scr_block_s *block)
 
 void __cdecl Scr_CalcLocalVarsArrayPrimitiveExpressionRef(sval_u expr, scr_block_s *block)
 {
-    if ( *(_BYTE *)expr.stringValue == 19 )
-        Scr_CalcLocalVarsVariableExpressionRef(*(sval_u *)(expr.stringValue + 4), block);
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 19 )
+        Scr_CalcLocalVarsVariableExpressionRef(*(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
 }
 
 void __cdecl Scr_CalcLocalVarsAssignmentStatement(sval_u lhs, sval_u rhs, scr_block_s *block)
@@ -715,7 +715,7 @@ void __cdecl Scr_CalcLocalVarsIfStatement(scriptInstance_t inst, sval_u stmt, sc
 void __cdecl Scr_CopyBlock(scr_block_s *from, scr_block_s **to)
 {
     if ( !*to )
-        *to = (scr_block_s *)Hunk_AllocateTempMemoryHigh(536, "Scr_CopyBlock");
+        *to = (scr_block_s *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(536, "Scr_CopyBlock"));
     memcpy(*to, from, sizeof(scr_block_s));
     (*to)->localVarsPublicCount = 0;
 }
@@ -797,19 +797,19 @@ void __cdecl Scr_CalcLocalVarsIfElseStatement(
     abortLevel = 3;
     Scr_CopyBlock(block, (scr_block_s **)ifStatBlock);
     Scr_CalcLocalVarsStatement(inst, stmt1, ifStatBlock->block);
-    if ( *(int *)ifStatBlock->stringValue <= 3 )
+    if ( *(int *)Ptr32_Decode(ifStatBlock->stringValue) <= 3 )
     {
-        abortLevel = *(unsigned int *)ifStatBlock->stringValue;
+        abortLevel = *(unsigned int *)Ptr32_Decode(ifStatBlock->stringValue);
         if ( !abortLevel )
-            childBlocks[childCount++] = (scr_block_s *)ifStatBlock->stringValue;
+            childBlocks[childCount++] = (scr_block_s *)Ptr32_Decode(ifStatBlock->stringValue);
     }
     Scr_CopyBlock(block, (scr_block_s **)elseStatBlock);
     Scr_CalcLocalVarsStatement(inst, stmt2, elseStatBlock->block);
-    if ( *(unsigned int *)elseStatBlock->stringValue <= abortLevel )
+    if ( *(unsigned int *)Ptr32_Decode(elseStatBlock->stringValue) <= abortLevel )
     {
-        abortLevel = *(unsigned int *)elseStatBlock->stringValue;
+        abortLevel = *(unsigned int *)Ptr32_Decode(elseStatBlock->stringValue);
         if ( !abortLevel )
-            childBlocks[childCount++] = (scr_block_s *)elseStatBlock->stringValue;
+            childBlocks[childCount++] = (scr_block_s *)Ptr32_Decode(elseStatBlock->stringValue);
     }
     if ( !block->abortLevel )
         block->abortLevel = abortLevel;
@@ -943,15 +943,15 @@ void __cdecl Scr_CalcLocalVarsWhileStatement(
 
 char __cdecl EvalExpression(scriptInstance_t inst, sval_u expr, VariableCompileValue *constValue)
 {
-    if ( *(_BYTE *)expr.stringValue == 8 )
-        return EvalPrimitiveExpression(inst, *(sval_u *)(expr.stringValue + 4), constValue);
-    if ( *(_BYTE *)expr.stringValue == 51 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 8 )
+        return EvalPrimitiveExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), constValue);
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 51 )
         return EvalBinaryOperatorExpression(
                          inst,
-                         *(sval_u *)(expr.stringValue + 4),
-                         *(sval_u *)(expr.stringValue + 8),
-                         *(sval_u *)(expr.stringValue + 12),
-                         *(sval_u *)(expr.stringValue + 16),
+                         *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                         *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+                         *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+                         *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
                          constValue);
     return 0;
 }
@@ -960,14 +960,14 @@ char __cdecl EvalPrimitiveExpression(scriptInstance_t inst, sval_u expr, Variabl
 {
     char result; // al
 
-    switch ( *(_BYTE *)expr.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(expr.stringValue) )
     {
         case ENUM_integer:
-            EvalInteger(*(unsigned int *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), constValue);
+            EvalInteger(*(unsigned int *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), constValue);
             result = 1;
             break;
         case ENUM_float:
-            EvalFloat(*(float *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), constValue);
+            EvalFloat(*(float *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), constValue);
             result = 1;
             break;
         case ENUM_minus_integer:
@@ -977,34 +977,34 @@ char __cdecl EvalPrimitiveExpression(scriptInstance_t inst, sval_u expr, Variabl
             break;
         case 0xC:
             //EvalFloat(COERCE_FLOAT(*(unsigned int *)(expr.stringValue + 4) ^ _mask__NegFloat_), *(sval_u *)(expr.stringValue + 8),constValue);
-            EvalFloat(-expr.node[1].floatValue, *(sval_u *)(expr.stringValue + 8),constValue);
+            EvalFloat(-expr.node[1].floatValue, *(sval_u *)Ptr32_Decode(expr.stringValue + 8),constValue);
             result = 1;
             break;
         case 0xD:
-            EvalString(*(unsigned int *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), constValue);
+            EvalString(*(unsigned int *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), constValue);
             result = 1;
             break;
         case 0xE:
-            EvalIString(*(unsigned int *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), constValue);
+            EvalIString(*(unsigned int *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), constValue);
             result = 1;
             break;
         case 0x21:
-            EvalUndefined(*(sval_u *)(expr.stringValue + 4), constValue);
+            EvalUndefined(*(sval_u *)Ptr32_Decode(expr.stringValue + 4), constValue);
             result = 1;
             break;
         case 0x30:
             result = EvalPrimitiveExpressionList(
                                  inst,
-                                 *(sval_u *)(expr.stringValue + 4),
-                                 *(sval_u *)(expr.stringValue + 8),
+                                 *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                                 *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
                                  constValue);
             break;
         case 0x4A:
-            EvalInteger(0, *(sval_u *)(expr.stringValue + 4), constValue);
+            EvalInteger(0, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), constValue);
             result = 1;
             break;
         case 0x4B:
-            EvalInteger(1, *(sval_u *)(expr.stringValue + 4), constValue);
+            EvalInteger(1, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), constValue);
             result = 1;
             break;
         default:
@@ -1160,7 +1160,7 @@ void __cdecl Scr_CreateVector(scriptInstance_t inst, VariableCompileValue *const
         }
     }
     value->type = 4;
-    value->u.intValue = (int)Scr_AllocVector(inst, vec);
+    value->u.intValue = (int)Ptr32_Encode(Scr_AllocVector(inst, vec));
 }
 
 char __cdecl EvalBinaryOperatorExpression(
@@ -1219,10 +1219,10 @@ void __cdecl Scr_CalcLocalVarsForStatement(
     scr_block_s **oldContinueChildBlocks; // [esp+3Ch] [ebp-4h]
 
     Scr_CalcLocalVarsStatement(inst, stmt1, block);
-    if (*(_BYTE *)expr.stringValue == 67)
+    if (*(_BYTE *)Ptr32_Decode(expr.stringValue) == 67)
     {
         constConditional = 0;
-        if (EvalExpression(inst, *(sval_u *)(expr.stringValue + 4), &constValue))
+        if (EvalExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), &constValue))
         {
             if (constValue.value.type == 6 || constValue.value.type == 5)
             {
@@ -1278,7 +1278,7 @@ void __cdecl Scr_CalcLocalVarsWaittillStatement(sval_u exprlist, scr_block_s *bl
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    node = *(sval_u **)(*(unsigned int *)exprlist.stringValue + 4);
+    node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !node
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3721, 0, "%s", "node") )
     {
@@ -1294,7 +1294,7 @@ void __cdecl Scr_CalcLocalVarsFormalParameterListInternal(sval_u *node, scr_bloc
         node = node[1].node;
         if ( !node )
             break;
-        Scr_CalcLocalVarsSafeSetVariableField(*node->node, *(sval_u *)(node->stringValue + 4), block);
+        Scr_CalcLocalVarsSafeSetVariableField(*node->node, *(sval_u *)Ptr32_Decode(node->stringValue + 4), block);
     }
 }
 
@@ -1327,19 +1327,19 @@ void __cdecl Scr_CalcLocalVarsSwitchStatement(scriptInstance_t inst, sval_u stmt
     currentBlock = 0;
     hasDefault = 0;
     childBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsSwitchStatement");
-    for (node = *(sval_u **)(*(_DWORD *)stmtlist.stringValue + 4); node; node = node[1].node)
+    for (node = *(sval_u **)(*(_DWORD *)Ptr32_Decode(stmtlist.stringValue) + 4); node; node = node[1].node)
     {
-        if (*(_BYTE *)node->stringValue == 63 || *(_BYTE *)node->stringValue == 64)
+        if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63 || *(_BYTE *)Ptr32_Decode(node->stringValue) == 64)
         {
             currentBlock = 0;
             Scr_CopyBlock(block, &currentBlock);
-            if (*(_BYTE *)node->stringValue == 63)
+            if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63)
             {
-                *(_DWORD *)(node->stringValue + 12) = (DWORD)currentBlock;
+                *(_DWORD *)Ptr32_Decode(node->stringValue + 12) = (DWORD)Ptr32_Encode(currentBlock);
             }
             else
             {
-                *(_DWORD *)(node->stringValue + 8) = (DWORD)currentBlock;
+                *(_DWORD *)Ptr32_Decode(node->stringValue + 8) = (DWORD)Ptr32_Encode(currentBlock);
                 hasDefault = 1;
             }
         }
@@ -1401,9 +1401,9 @@ void __cdecl EmitNormalThread(scriptInstance_t inst, sval_u val, sval_u *stmttbl
     unsigned int posId; // [esp+0h] [ebp-4h]
 
     InitThread(inst, 0);
-    posId = FindVariable(inst, gScrCompileGlob[inst].filePosId, *(unsigned int *)(val.stringValue + 4));
+    posId = FindVariable(inst, gScrCompileGlob[inst].filePosId, *(unsigned int *)Ptr32_Decode(val.stringValue + 4));
     SetThreadPosition(inst, posId);
-    EmitThreadInternal(inst, val, *(sval_u *)(val.stringValue + 16), *(sval_u *)(val.stringValue + 20), stmttblock->block);
+    EmitThreadInternal(inst, val, *(sval_u *)Ptr32_Decode(val.stringValue + 16), *(sval_u *)Ptr32_Decode(val.stringValue + 20), stmttblock->block);
 }
 
 void __cdecl SetThreadPosition(scriptInstance_t inst, unsigned int posId)
@@ -1411,7 +1411,7 @@ void __cdecl SetThreadPosition(scriptInstance_t inst, unsigned int posId)
     char *v2; // esi
 
     v2 = TempMallocAlignStrict(0);
-    GetVariableValueAddress(inst, posId)->next = (unsigned int)v2;
+    GetVariableValueAddress(inst, posId)->next = (unsigned int)Ptr32_Encode(v2);
 }
 
 void __cdecl EmitThreadInternal(
@@ -1425,9 +1425,9 @@ void __cdecl EmitThreadInternal(
     gScrCompileGlob[inst].cumulOffset = 0;
     gScrCompileGlob[inst].maxOffset = 0;
     gScrCompileGlob[inst].maxCallOffset = 0;
-    CompileTransferRefToString(inst, *(unsigned int *)(val.stringValue + 4), 2u);
-    EmitFormalParameterList(inst, *(sval_u *)(val.stringValue + 8), sourcePos, block);
-    EmitStatementList(inst, *(sval_u *)(val.stringValue + 12), 1, endSourcePos.stringValue, block);
+    CompileTransferRefToString(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 4), 2u);
+    EmitFormalParameterList(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 8), sourcePos, block);
+    EmitStatementList(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 12), 1, endSourcePos.stringValue, block);
     EmitEnd(inst);
     AddOpcodePos(inst, endSourcePos.stringValue, 1);
     AddOpcodePos(inst, 0xFFFFFFFE, 0);
@@ -1777,13 +1777,13 @@ void __cdecl EmitGetInteger(scriptInstance_t inst, int value, sval_u sourcePos)
     }
     EmitOpcode(inst, 8u, 1, 0);
     AddOpcodePos(inst, sourcePos.stringValue, 1);
-    EmitCodepos(inst, (const char *)value);
+    EmitCodepos(inst, (const char *)Ptr32_Decode(value));
 }
 
 void __cdecl EmitCodepos(scriptInstance_t inst, const char *pos)
 {
     gScrCompileGlob[inst].codePos = (unsigned __int8 *)TempMallocAlignStrict(4);
-    *(unsigned int *)gScrCompileGlob[inst].codePos = (unsigned int)pos;
+    *(unsigned int *)gScrCompileGlob[inst].codePos = (unsigned int)Ptr32_Encode(pos);
 }
 
 void __cdecl EmitGetFloat(scriptInstance_t inst, float value, sval_u sourcePos)
@@ -1842,7 +1842,7 @@ void __cdecl EmitStatementList(
     sval_u *node; // [esp+4h] [ebp-8h]
     sval_u *nextNode; // [esp+8h] [ebp-4h]
 
-    for ( node = *(sval_u **)(*(unsigned int *)val.stringValue + 4); node; node = nextNode )
+    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = nextNode )
     {
         nextNode = node[1].node;
         if ( lastStatement && Scr_IsLastStatement(inst, nextNode) )
@@ -1862,7 +1862,7 @@ char __cdecl Scr_IsLastStatement(scriptInstance_t inst, sval_u *node)
 
     while ( node )
     {
-        if ( *(_BYTE *)node->stringValue != 47 )
+        if ( *(_BYTE *)Ptr32_Decode(node->stringValue) != 47 )
             return 0;
         node = node[1].node;
     }
@@ -1878,7 +1878,7 @@ void __cdecl EmitStatement(
 {
     if ( gScrCompilePub[inst].developer_statement == 3 )
     {
-        switch ( *(_BYTE *)val.stringValue )
+        switch ( *(_BYTE *)Ptr32_Decode(val.stringValue) )
         {
             case 2:
             case 0x1B:
@@ -1896,177 +1896,177 @@ void __cdecl EmitStatement(
     else
     {
 LABEL_3:
-        switch ( *(_BYTE *)val.stringValue )
+        switch ( *(_BYTE *)Ptr32_Decode(val.stringValue) )
         {
             case 2:
                 EmitAssignmentStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block);
                 break;
             case 0x1B:
-                EmitCallExpressionStatement(inst, *(sval_u *)(val.stringValue + 4), block);
+                EmitCallExpressionStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), block);
                 break;
             case 0x1D:
-                EmitReturnStatement(inst, *(sval_u *)(val.stringValue + 4), *(sval_u *)(val.stringValue + 8), block);
+                EmitReturnStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), *(sval_u *)Ptr32_Decode(val.stringValue + 8), block);
                 break;
             case 0x1E:
-                EmitEndStatement(inst, *(sval_u *)(val.stringValue + 4), block);
+                EmitEndStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), block);
                 break;
             case 0x1F:
                 EmitWaitStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
                     block);
                 break;
             case 0x27:
                 EmitIfStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
                     lastStatement,
                     endSourcePos,
                     block,
-                    (sval_u *)(val.stringValue + 16));
+                    (sval_u *)Ptr32_Decode(val.stringValue + 16));
                 break;
             case 0x28:
                 EmitIfElseStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
-                    *(sval_u *)(val.stringValue + 20),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 20),
                     lastStatement,
                     endSourcePos,
                     block,
-                    (sval_u *)(val.stringValue + 24),
-                    (sval_u *)(val.stringValue + 28));
+                    (sval_u *)Ptr32_Decode(val.stringValue + 24),
+                    (sval_u *)Ptr32_Decode(val.stringValue + 28));
                 break;
             case 0x29:
                 EmitWhileStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block,
-                    (sval_u *)(val.stringValue + 20));
+                    (sval_u *)Ptr32_Decode(val.stringValue + 20));
                 break;
             case 0x2A:
                 EmitForStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
-                    *(sval_u *)(val.stringValue + 20),
-                    *(sval_u *)(val.stringValue + 24),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 20),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 24),
                     block,
-                    (sval_u *)(val.stringValue + 28),
-                    (sval_u *)(val.stringValue + 32));
+                    (sval_u *)Ptr32_Decode(val.stringValue + 28),
+                    (sval_u *)Ptr32_Decode(val.stringValue + 32));
                 break;
             case 0x2B:
-                EmitIncStatement(inst, *(sval_u *)(val.stringValue + 4), *(sval_u *)(val.stringValue + 8), block);
+                EmitIncStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), *(sval_u *)Ptr32_Decode(val.stringValue + 8), block);
                 break;
             case 0x2C:
-                EmitDecStatement(inst, *(sval_u *)(val.stringValue + 4), *(sval_u *)(val.stringValue + 8), block);
+                EmitDecStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), *(sval_u *)Ptr32_Decode(val.stringValue + 8), block);
                 break;
             case 0x2D:
                 EmitBinaryEqualsOperatorExpression(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block);
                 break;
             case 0x2E:
-                EmitStatementList(inst, *(sval_u *)(val.stringValue + 4), lastStatement, endSourcePos, block);
+                EmitStatementList(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), lastStatement, endSourcePos, block);
                 break;
             case 0x2F:
                 EmitDeveloperStatementList(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
                     block,
-                    (sval_u *)(val.stringValue + 12));
+                    (sval_u *)Ptr32_Decode(val.stringValue + 12));
                 break;
             case 0x39:
                 EmitWaittillStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block);
                 break;
             case 0x3A:
                 EmitWaittillmatchStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block);
                 break;
             case 0x3B:
-                EmitWaittillFrameEnd(inst, *(sval_u *)(val.stringValue + 4));
+                EmitWaittillFrameEnd(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4));
                 break;
             case 0x3C:
                 EmitNotifyStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block);
                 break;
             case 0x3D:
                 EmitEndOnStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
-                    *(sval_u *)(val.stringValue + 16),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 16),
                     block);
                 break;
             case 0x3E:
                 EmitSwitchStatement(
                     inst,
-                    *(sval_u *)(val.stringValue + 4),
-                    *(sval_u *)(val.stringValue + 8),
-                    *(sval_u *)(val.stringValue + 12),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 4),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 8),
+                    *(sval_u *)Ptr32_Decode(val.stringValue + 12),
                     lastStatement,
                     endSourcePos,
                     block);
                 break;
             case 0x3F:
-                CompileError(inst, *(unsigned int *)(val.stringValue + 8), "illegal case statement");
+                CompileError(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 8), "illegal case statement");
                 break;
             case 0x40:
-                CompileError(inst, *(unsigned int *)(val.stringValue + 4), "illegal default statement");
+                CompileError(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 4), "illegal default statement");
                 break;
             case 0x41:
-                EmitBreakStatement(inst, *(sval_u *)(val.stringValue + 4), block);
+                EmitBreakStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), block);
                 break;
             case 0x42:
-                EmitContinueStatement(inst, *(sval_u *)(val.stringValue + 4), block);
+                EmitContinueStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), block);
                 break;
             case 0x4E:
-                EmitBreakpointStatement(inst, *(sval_u *)(val.stringValue + 4));
+                EmitBreakpointStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4));
                 break;
             case 0x4F:
-                EmitProfBeginStatement(inst, *(sval_u *)(val.stringValue + 4), *(sval_u *)(val.stringValue + 8));
+                EmitProfBeginStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), *(sval_u *)Ptr32_Decode(val.stringValue + 8));
                 break;
             case 0x50:
-                EmitProfEndStatement(inst, *(sval_u *)(val.stringValue + 4), *(sval_u *)(val.stringValue + 8));
+                EmitProfEndStatement(inst, *(sval_u *)Ptr32_Decode(val.stringValue + 4), *(sval_u *)Ptr32_Decode(val.stringValue + 8));
                 break;
             default:
                 return;
@@ -2132,39 +2132,39 @@ void __cdecl EmitAssignmentPos(scriptInstance_t inst)
 
 void __cdecl EmitVariableExpression(scriptInstance_t inst, sval_u expr, scr_block_s *block)
 {
-    switch ( *(_BYTE *)expr.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(expr.stringValue) )
     {
         case 5:
-            EmitLocalVariable(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), block);
+            EmitLocalVariable(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), block);
             break;
         case 0xF:
             EmitArrayVariable(
                 inst,
-                *(sval_u *)(expr.stringValue + 4),
-                *(sval_u *)(expr.stringValue + 8),
-                *(sval_u *)(expr.stringValue + 12),
-                *(sval_u *)(expr.stringValue + 16),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
                 block);
             break;
         case 0x11:
             EmitFieldVariable(
                 inst,
-                *(sval_u *)(expr.stringValue + 4),
-                *(sval_u *)(expr.stringValue + 8),
-                *(sval_u *)(expr.stringValue + 12),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
                 block);
             break;
         case 0x37:
             if ( gScrCompilePub[inst].script_loading )
-                CompileError(inst, *(unsigned int *)(expr.stringValue + 8), "self field can only be used in the script debugger");
+                CompileError(inst, *(unsigned int *)Ptr32_Decode(expr.stringValue + 8), "self field can only be used in the script debugger");
             else
                 CompileError(
                     inst,
-                    *(unsigned int *)(expr.stringValue + 8),
+                    *(unsigned int *)Ptr32_Decode(expr.stringValue + 8),
                     "self field in assignment expression not currently supported");
             break;
         case 0x52:
-            EmitObject(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8));
+            EmitObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8));
             break;
         default:
             return;
@@ -2367,10 +2367,10 @@ LABEL_17:
         CompileError(inst, sourcePos.stringValue, "argument expressions not supported in statements");
         return;
     }
-    classnum = (const char *)Scr_GetClassnumForCharId(inst, *s);
-    if ( (int)classnum < 0 )
+    classnum = (const char *)Ptr32_Decode(Scr_GetClassnumForCharId(inst, *s));
+    if ( (int)Ptr32_Encode(classnum) < 0 )
         goto LABEL_17;
-    entnum = (const char *)atoi(s + 1);
+    entnum = (const char *)Ptr32_Decode(atoi(s + 1));
     if ( !entnum && s[1] != 48 )
         goto LABEL_17;
     EmitOpcode(inst, 0x81u, 1, 0);
@@ -2414,66 +2414,66 @@ char __cdecl EmitOrEvalPrimitiveExpression(
 {
     char result; // al
 
-    switch ( *(_BYTE *)expr.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(expr.stringValue) )
     {
         case 0x13:
-            EmitVariableExpression(inst, *(sval_u *)(expr.stringValue + 4), block);
+            EmitVariableExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
             result = 0;
             break;
         case 0x14:
-            EmitGetFunction(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8));
+            EmitGetFunction(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8));
             result = 0;
             break;
         case 0x15:
-            EmitCallExpression(inst, *(sval_u *)(expr.stringValue + 4), 0, block);
+            EmitCallExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), 0, block);
             result = 0;
             break;
         case 0x22:
-            EmitSelf(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitSelf(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             result = 0;
             break;
         case 0x24:
-            EmitLevel(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitLevel(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             result = 0;
             break;
         case 0x25:
-            EmitGame(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitGame(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             result = 0;
             break;
         case 0x26:
-            EmitAnim(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitAnim(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             result = 0;
             break;
         case 0x30:
             result = EmitOrEvalPrimitiveExpressionList(
                                  inst,
-                                 *(sval_u *)(expr.stringValue + 4),
-                                 *(sval_u *)(expr.stringValue + 8),
+                                 *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                                 *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
                                  constValue,
                                  block);
             break;
         case 0x36:
-            EmitSize(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), block);
+            EmitSize(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), block);
             result = 0;
             break;
         case 0x44:
-            EmitEmptyArray(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitEmptyArray(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             result = 0;
             break;
         case 0x45:
-            EmitAnimation(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8));
+            EmitAnimation(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8));
             result = 0;
             break;
         case 0x4C:
-            EmitAnimTree(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitAnimTree(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             result = 0;
             break;
         case 0x4D:
             EmitBreakOn(
                 inst,
-                *(sval_u *)(expr.stringValue + 4),
-                *(sval_u *)(expr.stringValue + 8),
-                *(sval_u *)(expr.stringValue + 12));
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 12));
             result = 0;
             break;
         default:
@@ -2571,23 +2571,23 @@ void __cdecl EmitFunction(scriptInstance_t inst, sval_u func, sval_u sourcePos)
     }
     if (gScrCompilePub[inst].developer_statement == 2)
     {
-        Scr_CompileRemoveRefToString(inst, *(_DWORD *)(func.stringValue + 4));
-        if (*(_BYTE *)func.stringValue == ENUM_far_function)
+        Scr_CompileRemoveRefToString(inst, *(_DWORD *)Ptr32_Decode(func.stringValue + 4));
+        if (*(_BYTE *)Ptr32_Decode(func.stringValue) == ENUM_far_function)
         {
-            Scr_CompileRemoveRefToString(inst, *(_DWORD *)(func.stringValue + 8));
+            Scr_CompileRemoveRefToString(inst, *(_DWORD *)Ptr32_Decode(func.stringValue + 8));
             --gScrCompilePub[inst].far_function_count;
         }
         return;
     }
 
-    if (*(_BYTE *)func.stringValue == ENUM_local_function)
+    if (*(_BYTE *)Ptr32_Decode(func.stringValue) == ENUM_local_function)
     {
         scope = 0;
         fileCountId = gScrCompileGlob[inst].fileCountId;
-        threadName = *(_DWORD *)(func.stringValue + 4);
+        threadName = *(_DWORD *)Ptr32_Decode(func.stringValue + 4);
         CompileTransferRefToString(inst, threadName, 2u);
     EMIT:
-        EmitCodepos(inst, (const char *)scope);
+        EmitCodepos(inst, (const char *)Ptr32_Decode(scope));
         Variable = GetVariable(inst, fileCountId, threadName);
         threadCountId = GetObject(inst, Variable);
         if (!threadCountId
@@ -2623,7 +2623,7 @@ void __cdecl EmitFunction(scriptInstance_t inst, sval_u func, sval_u sourcePos)
         }
 
         valueId = GetNewVariable(inst, threadCountId, count.u.intValue + 1);
-        value.u.intValue = (int)gScrCompileGlob[inst].codePos;
+        value.u.intValue = (int)Ptr32_Encode(gScrCompileGlob[inst].codePos);
         if (gScrCompilePub[inst].developer_statement)
         {
             if (!gScrVarPub[inst].developer_script
@@ -2648,7 +2648,7 @@ void __cdecl EmitFunction(scriptInstance_t inst, sval_u func, sval_u sourcePos)
         AddOpcodePos(inst, sourcePos.stringValue, 0);
         return;
     }
-    if (*(_BYTE *)func.stringValue != 23
+    if (*(_BYTE *)Ptr32_Decode(func.stringValue) != 23
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
             1562,
@@ -2659,14 +2659,14 @@ void __cdecl EmitFunction(scriptInstance_t inst, sval_u func, sval_u sourcePos)
         __debugbreak();
     }
     scope = FUNC_SCOPE_FAR;
-    v3 = SL_ConvertToString(*(_DWORD *)(func.stringValue + 4), inst);
+    v3 = SL_ConvertToString(*(_DWORD *)Ptr32_Decode(func.stringValue + 4), inst);
     filename = Scr_CreateCanonicalFilename(inst, v3);
-    Scr_CompileRemoveRefToString(inst, *(_DWORD *)(func.stringValue + 4));
+    Scr_CompileRemoveRefToString(inst, *(_DWORD *)Ptr32_Decode(func.stringValue + 4));
     v4 = FindVariable(inst, gScrCompilePub[inst].loadedscripts, filename);
     value = Scr_EvalVariable(inst, v4);
     bExists = value.type != 0;
     AddFilePrecache(inst, filename, sourcePos.stringValue, 0, &filePosId, &fileCountId);
-    threadName = *(_DWORD *)(func.stringValue + 8);
+    threadName = *(_DWORD *)Ptr32_Decode(func.stringValue + 8);
     CompileTransferRefToString(inst, threadName, 2u);
     if (!bExists)
         goto EMIT;
@@ -2779,18 +2779,18 @@ void __cdecl AddFilePrecache(
 
 void __cdecl EmitCallExpression(scriptInstance_t inst, sval_u expr, bool bStatement, scr_block_s *block)
 {
-    if ( *(_BYTE *)expr.stringValue == 25 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 25 )
     {
-        EmitCall(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), bStatement, block);
+        EmitCall(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), bStatement, block);
     }
-    else if ( *(_BYTE *)expr.stringValue == 26 )
+    else if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 26 )
     {
         EmitMethod(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
-            *(sval_u *)(expr.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
             bStatement,
             block);
     }
@@ -2814,7 +2814,7 @@ void __cdecl EmitCall(scriptInstance_t inst, sval_u func_name, sval_u params, bo
     if ( !name )
         goto script_function;
     pName = SL_ConvertToString(name, inst);
-    sourcePos = *(sval_u *)(func_name.stringValue + 8);
+    sourcePos = *(sval_u *)Ptr32_Decode(func_name.stringValue + 8);
     if ( gScrCompilePub[inst].developer_statement == 3 )
     {
         type = 0;
@@ -2835,7 +2835,7 @@ void __cdecl EmitCall(scriptInstance_t inst, sval_u func_name, sval_u params, bo
             func = GetFunction(inst, &pName, &type);
             funcId = GetNewVariable(inst, gScrCompilePub[inst].builtinFunc, name);
             value.type = Scr_GetCacheType(type);
-            value.u.intValue = (int)func;
+            value.u.intValue = (int)Ptr32_Encode(func);
             SetVariableValue(inst, funcId, &value);
         }
     }
@@ -2855,7 +2855,7 @@ void __cdecl EmitCall(scriptInstance_t inst, sval_u func_name, sval_u params, bo
             {
                 Scr_CompileRemoveRefToString(inst, name);
                 EmitCallBuiltinOpcode(inst, param_count, sourcePos);
-                v5 = AddFunction(inst, (int)func);
+                v5 = AddFunction(inst, (int)Ptr32_Encode(func));
                 EmitShort(inst, v5);
                 AddExpressionListOpcodePos(inst, params);
                 if ( bStatement )
@@ -2874,7 +2874,7 @@ void __cdecl EmitCall(scriptInstance_t inst, sval_u func_name, sval_u params, bo
 script_function:
         if ( gScrCompilePub[inst].developer_statement == 3 )
         {
-            CompileError(inst, *(unsigned int *)(func_name.stringValue + 8), "unknown builtin function");
+            CompileError(inst, *(unsigned int *)Ptr32_Decode(func_name.stringValue + 8), "unknown builtin function");
         }
         else
         {
@@ -2914,7 +2914,7 @@ void __cdecl AddExpressionListOpcodePos(scriptInstance_t inst, sval_u exprlist)
     if (gScrVarPub[inst].developer)
     {
         for (node = *(sval_u **)exprlist.stringValue; node; node = node[1].node)
-            AddOpcodePos(inst, *(_DWORD *)(node->stringValue + 4), 0);
+            AddOpcodePos(inst, *(_DWORD *)Ptr32_Decode(node->stringValue + 4), 0);
     }
 }
 int __cdecl AddFunction(scriptInstance_t inst, int func)
@@ -2945,7 +2945,7 @@ int __cdecl AddFunction(scriptInstance_t inst, int func)
 
 void __cdecl EmitPreFunctionCall(scriptInstance_t inst, sval_u func_name)
 {
-    if ( *(_BYTE *)func_name.stringValue == 28 )
+    if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 28 )
         EmitOpcode(inst, 0x4Eu, 1, 0);
 }
 
@@ -2956,25 +2956,25 @@ void __cdecl EmitPostFunctionCall(
                 bool bMethod,
                 scr_block_s *block)
 {
-    if ( *(_BYTE *)func_name.stringValue == 28 )
+    if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 28 )
     {
         EmitPostScriptFunctionCall(
             inst,
-            *(sval_u *)(func_name.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 4),
             param_count,
             bMethod,
-            *(sval_u *)(func_name.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 8),
             block);
     }
-    else if ( *(_BYTE *)func_name.stringValue == 32 )
+    else if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 32 )
     {
         EmitPostScriptThreadCall(
             inst,
-            *(sval_u *)(func_name.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 4),
             param_count,
             bMethod,
-            *(sval_u *)(func_name.stringValue + 8),
-            *(sval_u *)(func_name.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 12),
             block);
     }
 }
@@ -2987,19 +2987,19 @@ void __cdecl EmitPostScriptFunctionCall(
                 sval_u nameSourcePos,
                 scr_block_s *block)
 {
-    if ( *(_BYTE *)func_name.stringValue == 20 )
+    if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 20 )
     {
-        EmitPostScriptFunction(inst, *(sval_u *)(func_name.stringValue + 4), param_count, bMethod, nameSourcePos);
+        EmitPostScriptFunction(inst, *(sval_u *)Ptr32_Decode(func_name.stringValue + 4), param_count, bMethod, nameSourcePos);
     }
-    else if ( *(_BYTE *)func_name.stringValue == 24 )
+    else if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 24 )
     {
         EmitPostScriptFunctionPointer(
             inst,
-            *(sval_u *)(func_name.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 4),
             param_count,
             bMethod,
             nameSourcePos,
-            *(sval_u *)(func_name.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 8),
             block);
     }
 }
@@ -3046,18 +3046,18 @@ void __cdecl EmitPostScriptThreadCall(
                 sval_u nameSourcePos,
                 scr_block_s *block)
 {
-    if ( *(_BYTE *)func_name.stringValue == 20 )
+    if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 20 )
     {
-        EmitPostScriptThread(inst, *(sval_u *)(func_name.stringValue + 4), param_count, bMethod, nameSourcePos);
+        EmitPostScriptThread(inst, *(sval_u *)Ptr32_Decode(func_name.stringValue + 4), param_count, bMethod, nameSourcePos);
     }
-    else if ( *(_BYTE *)func_name.stringValue == 24 )
+    else if ( *(_BYTE *)Ptr32_Decode(func_name.stringValue) == 24 )
     {
         EmitPostScriptThreadPointer(
             inst,
-            *(sval_u *)(func_name.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 4),
             param_count,
             bMethod,
-            *(sval_u *)(func_name.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(func_name.stringValue + 8),
             block);
     }
     AddOpcodePos(inst, sourcePos.stringValue, 0);
@@ -3071,7 +3071,7 @@ void __cdecl EmitPostScriptThread(scriptInstance_t inst, sval_u func, int param_
         EmitOpcode(inst, 0x54u, 1 - param_count, 2);
     AddOpcodePos(inst, sourcePos.stringValue, 3);
     EmitFunction(inst, func, sourcePos);
-    EmitCodepos(inst, (const char *)param_count);
+    EmitCodepos(inst, (const char *)Ptr32_Decode(param_count));
 }
 
 void __cdecl EmitPostScriptThreadPointer(
@@ -3088,7 +3088,7 @@ void __cdecl EmitPostScriptThreadPointer(
     else
         EmitOpcode(inst, 0x55u, -param_count, 2);
     AddOpcodePos(inst, sourcePos.stringValue, 1);
-    EmitCodepos(inst, (const char *)param_count);
+    EmitCodepos(inst, (const char *)Ptr32_Decode(param_count));
 }
 
 void __cdecl Scr_BeginDevScript(scriptInstance_t inst, int *type, char **savedPos)
@@ -3209,7 +3209,7 @@ void __cdecl EmitMethod(
     if ( !name )
         goto script_method;
     pName = SL_ConvertToString(name, inst);
-    sourcePos = *(sval_u *)(func_name.stringValue + 8);
+    sourcePos = *(sval_u *)Ptr32_Decode(func_name.stringValue + 8);
     if ( gScrCompilePub[inst].developer_statement == 3 )
     {
         type = 0;
@@ -3230,7 +3230,7 @@ void __cdecl EmitMethod(
             meth = GetMethod(inst, &pName, &type);
             methId = GetNewVariable(inst, gScrCompilePub[inst].builtinMeth, name);
             value.type = Scr_GetCacheType(type);
-            value.u.intValue = (int)meth;
+            value.u.intValue = (int)Ptr32_Encode(meth);
             SetVariableValue(inst, methId, &value);
         }
     }
@@ -3251,7 +3251,7 @@ void __cdecl EmitMethod(
             {
                 Scr_CompileRemoveRefToString(inst, name);
                 EmitCallBuiltinMethodOpcode(inst, param_count, sourcePos);
-                v7 = AddFunction(inst, (int)meth);
+                v7 = AddFunction(inst, (int)Ptr32_Encode(meth));
                 EmitShort(inst, v7);
                 AddOpcodePos(inst, methodSourcePos.stringValue, 0);
                 AddExpressionListOpcodePos(inst, params);
@@ -3272,7 +3272,7 @@ void __cdecl EmitMethod(
 script_method:
         if ( gScrCompilePub[inst].developer_statement == 3 )
         {
-            CompileError(inst, *(unsigned int *)(func_name.stringValue + 8), "unknown builtin method");
+            CompileError(inst, *(unsigned int *)Ptr32_Decode(func_name.stringValue + 8), "unknown builtin method");
         }
         else
         {
@@ -3403,7 +3403,7 @@ char __cdecl EmitOrEvalExpression(
     char v4; // al
     char result; // [esp+7h] [ebp-1h]
 
-    switch (*(_BYTE *)expr.stringValue)
+    switch (*(_BYTE *)Ptr32_Decode(expr.stringValue))
     {
     case 7:
         if (gScrCompileGlob[inst].bConstRefCount
@@ -3417,7 +3417,7 @@ char __cdecl EmitOrEvalExpression(
             __debugbreak();
         }
         gScrCompileGlob[inst].bConstRefCount = 1;
-        result = EmitOrEvalExpression(inst, *(sval_u *)(expr.stringValue + 4), constValue, block);
+        result = EmitOrEvalExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), constValue, block);
         if (!gScrCompileGlob[inst].bConstRefCount
             && !Assert_MyHandler(
                 "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
@@ -3432,46 +3432,46 @@ char __cdecl EmitOrEvalExpression(
         v4 = result;
         break;
     case 8:
-        v4 = EmitOrEvalPrimitiveExpression(inst, *(sval_u *)(expr.stringValue + 4), constValue, block);
+        v4 = EmitOrEvalPrimitiveExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), constValue, block);
         break;
     case 0x31:
         EmitBoolOrExpression(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
-            *(sval_u *)(expr.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
             block);
         v4 = 0;
         break;
     case 0x32:
         EmitBoolAndExpression(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
-            *(sval_u *)(expr.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
             block);
         v4 = 0;
         break;
     case 0x33:
         v4 = EmitOrEvalBinaryOperatorExpression(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
-            *(sval_u *)(expr.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
             constValue,
             block);
         break;
     case 0x34:
-        EmitExpression(inst, *(sval_u *)(expr.stringValue + 4), block);
-        EmitBoolNot(inst, *(sval_u *)(expr.stringValue + 8));
+        EmitExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
+        EmitBoolNot(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 8));
         v4 = 0;
         break;
     case 0x35:
-        EmitExpression(inst, *(sval_u *)(expr.stringValue + 4), block);
-        EmitBoolComplement(inst, *(sval_u *)(expr.stringValue + 8));
+        EmitExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
+        EmitBoolComplement(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 8));
         v4 = 0;
         break;
     default:
@@ -3514,7 +3514,7 @@ void __cdecl EmitBoolOrExpression(
     EmitExpression(inst, expr2, block);
     EmitCastBool(inst, expr2sourcePos);
     offset = (char *)(TempMallocAlignStrict(0) - nextPos);
-    if ( (unsigned int)offset >= 0x10000
+    if ( (unsigned int)Ptr32_Encode(offset) >= 0x10000
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     2564,
@@ -3524,7 +3524,7 @@ void __cdecl EmitBoolOrExpression(
     {
         __debugbreak();
     }
-    *(_WORD *)pos = (_WORD)offset;
+    *(_WORD *)pos = (_WORD)Ptr32_Encode(offset);
 }
 
 void __cdecl EmitCastBool(scriptInstance_t inst, sval_u sourcePos)
@@ -3554,7 +3554,7 @@ void __cdecl EmitBoolAndExpression(
     EmitExpression(inst, expr2, block);
     EmitCastBool(inst, expr2sourcePos);
     offset = (char *)(TempMallocAlignStrict(0) - nextPos);
-    if ( (unsigned int)offset >= 0x10000
+    if ( (unsigned int)Ptr32_Encode(offset) >= 0x10000
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     2584,
@@ -3564,7 +3564,7 @@ void __cdecl EmitBoolAndExpression(
     {
         __debugbreak();
     }
-    *(_WORD *)pos = (_WORD)offset;
+    *(_WORD *)pos = (_WORD)Ptr32_Encode(offset);
 }
 
 char __cdecl EmitOrEvalBinaryOperatorExpression(
@@ -3631,7 +3631,7 @@ void __cdecl EmitExpression(scriptInstance_t inst, sval_u expr, scr_block_s *blo
 
 void __cdecl EmitVariableExpressionRef(scriptInstance_t inst, sval_u expr, scr_block_s *block)
 {
-    switch (*(_BYTE *)expr.stringValue)
+    switch (*(_BYTE *)Ptr32_Decode(expr.stringValue))
     {
     case 4:
         if (gScrCompileGlob[inst].bConstRefCount
@@ -3645,7 +3645,7 @@ void __cdecl EmitVariableExpressionRef(scriptInstance_t inst, sval_u expr, scr_b
             __debugbreak();
         }
         gScrCompileGlob[inst].bConstRefCount = 1;
-        EmitVariableExpressionRef(inst, *(sval_u *)(expr.stringValue + 4), block);
+        EmitVariableExpressionRef(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
         if (!gScrCompileGlob[inst].bConstRefCount
             && !Assert_MyHandler(
                 "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
@@ -3659,23 +3659,23 @@ void __cdecl EmitVariableExpressionRef(scriptInstance_t inst, sval_u expr, scr_b
         gScrCompileGlob[inst].bConstRefCount = 0;
         break;
     case 5:
-        EmitLocalVariableRef(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), block);
+        EmitLocalVariableRef(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), block);
         break;
     case 0xF:
         EmitArrayVariableRef(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
-            *(sval_u *)(expr.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
             block);
         break;
     case 0x11:
         EmitFieldVariableRef(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
             block);
         break;
     case 0x37:
@@ -3683,10 +3683,10 @@ void __cdecl EmitVariableExpressionRef(scriptInstance_t inst, sval_u expr, scr_b
         if (gScrCompilePub[inst].script_loading)
             CompileError(
                 inst,
-                *(_DWORD *)(expr.stringValue + 8),
+                *(_DWORD *)Ptr32_Decode(expr.stringValue + 8),
                 "$ and self field can only be used in the script debugger");
         else
-            CompileError(inst, *(_DWORD *)(expr.stringValue + 8), "not an lvalue");
+            CompileError(inst, *(_DWORD *)Ptr32_Decode(expr.stringValue + 8), "not an lvalue");
         break;
     default:
         return;
@@ -3747,13 +3747,13 @@ void __cdecl EmitEvalArrayRef(scriptInstance_t inst, sval_u sourcePos, sval_u in
 
 void __cdecl EmitArrayPrimitiveExpressionRef(scriptInstance_t inst, sval_u expr, sval_u sourcePos, scr_block_s *block)
 {
-    if ( *(_BYTE *)expr.stringValue == 19 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 19 )
     {
-        EmitVariableExpressionRef(inst, *(sval_u *)(expr.stringValue + 4), block);
+        EmitVariableExpressionRef(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
     }
-    else if ( *(_BYTE *)expr.stringValue == 37 )
+    else if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 37 )
     {
-        EmitGameRef(inst, *(sval_u *)(expr.stringValue + 4));
+        EmitGameRef(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
     }
     else
     {
@@ -3774,26 +3774,26 @@ void __cdecl EmitPrimitiveExpressionFieldObject(
                 sval_u sourcePos,
                 scr_block_s *block)
 {
-    switch ( *(_BYTE *)expr.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(expr.stringValue) )
     {
         case 0x13:
-            EmitVariableExpression(inst, *(sval_u *)(expr.stringValue + 4), block);
-            EmitCastFieldObject(inst, *(sval_u *)(expr.stringValue + 8));
+            EmitVariableExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
+            EmitCastFieldObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 8));
             break;
         case 0x15:
-            EmitCallExpressionFieldObject(inst, *(sval_u *)(expr.stringValue + 4), block);
+            EmitCallExpressionFieldObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), block);
             break;
         case 0x22:
-            EmitSelfObject(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitSelfObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             break;
         case 0x24:
-            EmitLevelObject(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitLevelObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             break;
         case 0x26:
-            EmitAnimObject(inst, *(sval_u *)(expr.stringValue + 4));
+            EmitAnimObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4));
             break;
         case 0x30:
-            EmitExpressionListFieldObject(inst, *(sval_u *)(expr.stringValue + 4), sourcePos, block);
+            EmitExpressionListFieldObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), sourcePos, block);
             break;
         default:
             CompileError(inst, sourcePos.stringValue, "not an object");
@@ -3831,22 +3831,22 @@ void __cdecl EmitCastFieldObject(scriptInstance_t inst, sval_u sourcePos)
 
 void __cdecl EmitCallExpressionFieldObject(scriptInstance_t inst, sval_u expr, scr_block_s *block)
 {
-    if ( *(_BYTE *)expr.stringValue == 25 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 25 )
     {
-        EmitCall(inst, *(sval_u *)(expr.stringValue + 4), *(sval_u *)(expr.stringValue + 8), 0, block);
-        EmitCastFieldObject(inst, *(sval_u *)(expr.stringValue + 12));
+        EmitCall(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), *(sval_u *)Ptr32_Decode(expr.stringValue + 8), 0, block);
+        EmitCastFieldObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 12));
     }
-    else if ( *(_BYTE *)expr.stringValue == 26 )
+    else if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 26 )
     {
         EmitMethod(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
-            *(sval_u *)(expr.stringValue + 12),
-            *(sval_u *)(expr.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
             0,
             block);
-        EmitCastFieldObject(inst, *(sval_u *)(expr.stringValue + 20));
+        EmitCastFieldObject(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 20));
     }
 }
 
@@ -3860,27 +3860,27 @@ void __cdecl EmitExpressionListFieldObject(
 
     node = GetSingleParameter(exprlist);
     if ( node )
-        EmitExpressionFieldObject(inst, *node->node, *(sval_u *)(node->stringValue + 4), block);
+        EmitExpressionFieldObject(inst, *node->node, *(sval_u *)Ptr32_Decode(node->stringValue + 4), block);
     else
         CompileError(inst, sourcePos.stringValue, "not an object");
 }
 
 sval_u *__cdecl GetSingleParameter(sval_u exprlist)
 {
-    if ( !*(unsigned int *)exprlist.stringValue )
+    if ( !*(unsigned int *)Ptr32_Decode(exprlist.stringValue) )
         return 0;
-    if ( *(unsigned int *)(*(unsigned int *)exprlist.stringValue + 4) )
+    if ( *(unsigned int *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4) )
         return 0;
     return *(sval_u **)exprlist.stringValue;
 }
 
 void __cdecl EmitExpressionFieldObject(scriptInstance_t inst, sval_u expr, sval_u sourcePos, scr_block_s *block)
 {
-    if ( *(_BYTE *)expr.stringValue == 8 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 8 )
         EmitPrimitiveExpressionFieldObject(
             inst,
-            *(sval_u *)(expr.stringValue + 4),
-            *(sval_u *)(expr.stringValue + 8),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+            *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
             block);
     else
         CompileError(inst, sourcePos.stringValue, "not an object");
@@ -3904,35 +3904,35 @@ void __cdecl EmitAssignmentStatement(
 
 bool __cdecl IsUndefinedExpression(sval_u expr)
 {
-    return *(_BYTE *)expr.stringValue == 8 && IsUndefinedPrimitiveExpression(*(sval_u *)(expr.stringValue + 4));
+    return *(_BYTE *)Ptr32_Decode(expr.stringValue) == 8 && IsUndefinedPrimitiveExpression(*(sval_u *)Ptr32_Decode(expr.stringValue + 4));
 }
 
 bool __cdecl IsUndefinedPrimitiveExpression(sval_u expr)
 {
-    return *(_BYTE *)expr.stringValue == 33;
+    return *(_BYTE *)Ptr32_Decode(expr.stringValue) == 33;
 }
 
 char __cdecl EmitClearVariableExpression(scriptInstance_t inst, sval_u expr, sval_u rhsSourcePos, scr_block_s *block)
 {
-    switch ( *(_BYTE *)expr.stringValue )
+    switch ( *(_BYTE *)Ptr32_Decode(expr.stringValue) )
     {
         case 5:
             return 0;
         case 0xF:
             EmitClearArrayVariable(
                 inst,
-                *(sval_u *)(expr.stringValue + 4),
-                *(sval_u *)(expr.stringValue + 8),
-                *(sval_u *)(expr.stringValue + 12),
-                *(sval_u *)(expr.stringValue + 16),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 16),
                 block);
             return 1;
         case 0x11:
             EmitClearFieldVariable(
                 inst,
-                *(sval_u *)(expr.stringValue + 4),
-                *(sval_u *)(expr.stringValue + 8),
-                *(sval_u *)(expr.stringValue + 12),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 4),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 8),
+                *(sval_u *)Ptr32_Decode(expr.stringValue + 12),
                 rhsSourcePos,
                 block);
             return 1;
@@ -3941,10 +3941,10 @@ char __cdecl EmitClearVariableExpression(scriptInstance_t inst, sval_u expr, sva
             if ( gScrCompilePub[inst].script_loading )
                 CompileError(
                     inst,
-                    *(unsigned int *)(expr.stringValue + 8),
+                    *(unsigned int *)Ptr32_Decode(expr.stringValue + 8),
                     "$ and self field can only be used in the script debugger");
             else
-                CompileError(inst, *(unsigned int *)(expr.stringValue + 8), "not an lvalue");
+                CompileError(inst, *(unsigned int *)Ptr32_Decode(expr.stringValue + 8), "not an lvalue");
             return 1;
         default:
             return 1;
@@ -4058,7 +4058,7 @@ void __cdecl EmitIfStatement(
     nextPos = TempMallocAlignStrict(0);
     Scr_TransferBlock(block, ifStatBlock->block);
     EmitStatement(inst, stmt, lastStatement, endSourcePos, ifStatBlock->block);
-    if ( *(unsigned int *)(ifStatBlock->stringValue + 8) != block->localVarsCreateCount
+    if ( *(unsigned int *)Ptr32_Decode(ifStatBlock->stringValue + 8) != block->localVarsCreateCount
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     3017,
@@ -4070,7 +4070,7 @@ void __cdecl EmitIfStatement(
     }
     EmitNOP2(inst, lastStatement, endSourcePos, ifStatBlock->block);
     offset = (char *)(TempMallocAlignStrict(0) - nextPos);
-    if ( (unsigned int)offset >= 0x10000
+    if ( (unsigned int)Ptr32_Encode(offset) >= 0x10000
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     3020,
@@ -4080,7 +4080,7 @@ void __cdecl EmitIfStatement(
     {
         __debugbreak();
     }
-    *(_WORD *)pos = (_WORD)offset;
+    *(_WORD *)pos = (_WORD)Ptr32_Encode(offset);
 }
 
 void __cdecl EmitNOP2(scriptInstance_t inst, bool lastStatement, unsigned int endSourcePos, scr_block_s *block)
@@ -4243,8 +4243,8 @@ void __cdecl EmitIfElseStatement(
     Scr_TransferBlock(block, ifStatBlock->block);
     EmitStatement(inst, stmt1, lastStatement, endSourcePos, ifStatBlock->block);
     EmitRemoveLocalVars(inst, ifStatBlock->block, ifStatBlock->block);
-    if (!*(_DWORD *)ifStatBlock->stringValue)
-        childBlocks[childCount++] = (scr_block_s *)ifStatBlock->stringValue;
+    if (!*(_DWORD *)Ptr32_Decode(ifStatBlock->stringValue))
+        childBlocks[childCount++] = (scr_block_s *)Ptr32_Decode(ifStatBlock->stringValue);
     checksum = gScrVarPub[inst].checksum;
     if (lastStatement)
     {
@@ -4264,7 +4264,7 @@ void __cdecl EmitIfElseStatement(
     }
     gScrVarPub[inst].checksum = checksum + 1;
     offset = (char *)(TempMallocAlignStrict(0) - nextPos1);
-    if ((unsigned int)offset >= 0x10000
+    if ((unsigned int)Ptr32_Encode(offset) >= 0x10000
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
             3084,
@@ -4274,12 +4274,12 @@ void __cdecl EmitIfElseStatement(
     {
         __debugbreak();
     }
-    *(_WORD *)pos1 = (_WORD)offset;
+    *(_WORD *)pos1 = (_WORD)Ptr32_Encode(offset);
     Scr_TransferBlock(block, elseStatBlock->block);
     EmitStatement(inst, stmt2, lastStatement, endSourcePos, elseStatBlock->block);
     EmitNOP2(inst, lastStatement, endSourcePos, elseStatBlock->block);
-    if (!*(_DWORD *)elseStatBlock->stringValue)
-        childBlocks[childCount++] = (scr_block_s *)elseStatBlock->stringValue;
+    if (!*(_DWORD *)Ptr32_Decode(elseStatBlock->stringValue))
+        childBlocks[childCount++] = (scr_block_s *)Ptr32_Decode(elseStatBlock->stringValue);
     if (!lastStatement)
         *(_DWORD *)pos2 = TempMallocAlignStrict(0) - nextPos2;
     Scr_InitFromChildBlocks(childBlocks, childCount, block);
@@ -4419,7 +4419,7 @@ void __cdecl EmitWhileStatement(
     gScrCompileGlob[inst].bCanContinue = 0;
     Scr_TransferBlock(block, whileStatBlock->block);
     EmitCreateLocalVars(inst, whileStatBlock->block);
-    if (*(_DWORD *)(whileStatBlock->stringValue + 4) > block->localVarsCount
+    if (*(_DWORD *)Ptr32_Decode(whileStatBlock->stringValue + 4) > block->localVarsCount
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
             3201,
@@ -4429,7 +4429,7 @@ void __cdecl EmitWhileStatement(
     {
         __debugbreak();
     }
-    block->localVarsCreateCount = *(_DWORD *)(whileStatBlock->stringValue + 4);
+    block->localVarsCreateCount = *(_DWORD *)Ptr32_Decode(whileStatBlock->stringValue + 4);
     pos1 = TempMallocAlignStrict(0);
     constConditional = 0;
     if (EmitOrEvalExpression(inst, expr, &constValue, block))
@@ -4476,15 +4476,15 @@ void __cdecl EmitWhileStatement(
     gScrCompileGlob[inst].bCanContinue = 1;
     gScrCompileGlob[inst].currentContinueStatement = 0;
     EmitStatement(inst, stmt, 0, 0, whileStatBlock->block);
-    if (*(_DWORD *)whileStatBlock->stringValue != 3)
-        *(_DWORD *)whileStatBlock->stringValue = 0;
+    if (*(_DWORD *)Ptr32_Decode(whileStatBlock->stringValue) != 3)
+        *(_DWORD *)Ptr32_Decode(whileStatBlock->stringValue) = 0;
     gScrCompileGlob[inst].bCanBreak = 0;
     gScrCompileGlob[inst].bCanContinue = 0;
     ConnectContinueStatements(inst);
     EmitOpcode(inst, 0x63u, 0, 0);
     AddOpcodePos(inst, whileSourcePos.stringValue, 0);
-    if (*(_BYTE *)stmt.stringValue == 46)
-        AddOpcodePos(inst, *(_DWORD *)(stmt.stringValue + 12), 1);
+    if (*(_BYTE *)Ptr32_Decode(stmt.stringValue) == 46)
+        AddOpcodePos(inst, *(_DWORD *)Ptr32_Decode(stmt.stringValue + 12), 1);
     EmitShort(inst, 0);
     offset = TempMallocAlignStrict(0) - pos1;
     if (offset >= 0x10000
@@ -4628,7 +4628,7 @@ void __cdecl EmitForStatement(
     EmitStatement(inst, stmt1, 0, 0, block);
     Scr_TransferBlock(block, forStatBlock->block);
     EmitCreateLocalVars(inst, forStatBlock->block);
-    if (*(_DWORD *)(forStatBlock->stringValue + 4) > block->localVarsCount
+    if (*(_DWORD *)Ptr32_Decode(forStatBlock->stringValue + 4) > block->localVarsCount
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
             3417,
@@ -4638,13 +4638,13 @@ void __cdecl EmitForStatement(
     {
         __debugbreak();
     }
-    block->localVarsCreateCount = *(_DWORD *)(forStatBlock->stringValue + 4);
+    block->localVarsCreateCount = *(_DWORD *)Ptr32_Decode(forStatBlock->stringValue + 4);
     Scr_TransferBlock(block, forStatPostBlock->block);
     pos1 = TempMallocAlignStrict(0);
-    if (*(_BYTE *)expr.stringValue == 67)
+    if (*(_BYTE *)Ptr32_Decode(expr.stringValue) == 67)
     {
         constConditional = 0;
-        if (EmitOrEvalExpression(inst, *(sval_u *)(expr.stringValue + 4), &constValue, block))
+        if (EmitOrEvalExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), &constValue, block))
         {
             if (constValue.value.type == 6 || constValue.value.type == 5)
             {
@@ -4704,8 +4704,8 @@ void __cdecl EmitForStatement(
     EmitStatement(inst, stmt2, 0, 0, forStatPostBlock->block);
     EmitOpcode(inst, 0x63u, 0, 0);
     AddOpcodePos(inst, forSourcePos.stringValue, 0);
-    if (*(_BYTE *)stmt.stringValue == 46)
-        AddOpcodePos(inst, *(_DWORD *)(stmt.stringValue + 12), 1);
+    if (*(_BYTE *)Ptr32_Decode(stmt.stringValue) == 46)
+        AddOpcodePos(inst, *(_DWORD *)Ptr32_Decode(stmt.stringValue + 12), 1);
     EmitShort(inst, 0);
     offset = TempMallocAlignStrict(0) - pos1;
     if (offset >= 0x10000
@@ -4818,7 +4818,7 @@ void __cdecl EmitWaittillStatement(
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    node = *(sval_u **)(*(unsigned int *)exprlist.stringValue + 4);
+    node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !node
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3700, 0, "%s", "node") )
     {
@@ -4830,7 +4830,7 @@ void __cdecl EmitWaittillStatement(
     AddOpcodePos(inst, waitSourcePos.stringValue, 0);
     AddOpcodePos(inst, waitSourcePos.stringValue, 0);
     AddOpcodePos(inst, sourcePos.stringValue, 0);
-    AddOpcodePos(inst, *(unsigned int *)(node->stringValue + 4), 0);
+    AddOpcodePos(inst, *(unsigned int *)Ptr32_Decode(node->stringValue + 4), 0);
     EmitFormalWaittillParameterListRefInternal(inst, node, block);
     EmitOpcode(inst, 0x34u, 0, 0);
 }
@@ -4842,7 +4842,7 @@ void __cdecl EmitFormalWaittillParameterListRefInternal(scriptInstance_t inst, s
         node = node[1].node;
         if ( !node )
             break;
-        EmitSafeSetWaittillVariableField(inst, *node->node, *(sval_u *)(node->stringValue + 4), block);
+        EmitSafeSetWaittillVariableField(inst, *node->node, *(sval_u *)Ptr32_Decode(node->stringValue + 4), block);
     }
 }
 
@@ -4870,7 +4870,7 @@ void __cdecl EmitWaittillmatchStatement(
     sval_u *nodea; // [esp+0h] [ebp-8h]
     int exprCount; // [esp+4h] [ebp-4h]
 
-    node = *(sval_u **)(*(unsigned int *)exprlist.stringValue + 4);
+    node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !node
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3732, 0, "%s", "node") )
     {
@@ -4883,7 +4883,7 @@ void __cdecl EmitWaittillmatchStatement(
             break;
         EmitExpression(inst, *node->node, block);
     }
-    nodea = *(sval_u **)(*(unsigned int *)exprlist.stringValue + 4);
+    nodea = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !nodea
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3746, 0, "%s", "node") )
     {
@@ -4895,13 +4895,13 @@ void __cdecl EmitWaittillmatchStatement(
     AddOpcodePos(inst, waitSourcePos.stringValue, 0);
     AddOpcodePos(inst, waitSourcePos.stringValue, 0);
     AddOpcodePos(inst, sourcePos.stringValue, 0);
-    AddOpcodePos(inst, *(unsigned int *)(nodea->stringValue + 4), 0);
+    AddOpcodePos(inst, *(unsigned int *)Ptr32_Decode(nodea->stringValue + 4), 0);
     while ( 1 )
     {
         nodea = nodea[1].node;
         if ( !nodea )
             break;
-        AddOpcodePos(inst, *(unsigned int *)(nodea->stringValue + 4), 0);
+        AddOpcodePos(inst, *(unsigned int *)Ptr32_Decode(nodea->stringValue + 4), 0);
     }
     if ( exprCount >= 256
         && !Assert_MyHandler(
@@ -4952,7 +4952,7 @@ void __cdecl EmitNotifyStatement(
     EmitPrimitiveExpression(inst, obj, block);
     EmitOpcode(inst, 0x79u, -expr_count - 2, 0);
     AddOpcodePos(inst, notifySourcePos.stringValue, 16);
-    AddOpcodePos(inst, *(unsigned int *)(start_node->stringValue + 4), 0);
+    AddOpcodePos(inst, *(unsigned int *)Ptr32_Decode(start_node->stringValue + 4), 0);
     AddOpcodePos(inst, sourcePos.stringValue, 0);
 }
 
@@ -5013,7 +5013,7 @@ void __cdecl EmitSwitchStatement(
     caseStatement = gScrCompileGlob[inst].currentCaseStatement;
     while (caseStatement)
     {
-        EmitCodepos(inst, (const char *)caseStatement->name);
+        EmitCodepos(inst, (const char *)Ptr32_Decode(caseStatement->name));
         EmitCodepos(inst, caseStatement->codePos);
         caseStatement = caseStatement->next;
         ++num;
@@ -5069,10 +5069,10 @@ void __cdecl EmitSwitchStatementList(
     gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     gScrCompileGlob[inst].breakBlock = 0;
     hasDefault = 0;
-    for (node = *(sval_u **)(*(_DWORD *)val.stringValue + 4); node; node = nextNode)
+    for (node = *(sval_u **)(*(_DWORD *)Ptr32_Decode(val.stringValue) + 4); node; node = nextNode)
     {
         nextNode = node[1].node;
-        if (*(_BYTE *)node->stringValue == 63 || *(_BYTE *)node->stringValue == 64)
+        if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63 || *(_BYTE *)Ptr32_Decode(node->stringValue) == 64)
         {
             if (gScrCompileGlob[inst].breakBlock)
             {
@@ -5089,16 +5089,16 @@ void __cdecl EmitSwitchStatementList(
                 gScrCompileGlob[inst].bCanBreak = 0;
                 EmitRemoveLocalVars(inst, gScrCompileGlob[inst].breakBlock, gScrCompileGlob[inst].breakBlock);
             }
-            if (*(_BYTE *)node->stringValue == 63)
+            if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63)
             {
                 gScrCompileGlob[inst].breakBlock = *(scr_block_s **)(node->stringValue + 12);
-                EmitCaseStatement(inst, *(sval_u *)(node->stringValue + 4), *(sval_u *)(node->stringValue + 8));
+                EmitCaseStatement(inst, *(sval_u *)Ptr32_Decode(node->stringValue + 4), *(sval_u *)Ptr32_Decode(node->stringValue + 8));
             }
             else
             {
                 gScrCompileGlob[inst].breakBlock = *(scr_block_s **)(node->stringValue + 8);
                 hasDefault = 1;
-                EmitDefaultStatement(inst, *(sval_u *)(node->stringValue + 4));
+                EmitDefaultStatement(inst, *(sval_u *)Ptr32_Decode(node->stringValue + 4));
             }
             Scr_TransferBlock(block, gScrCompileGlob[inst].breakBlock);
             if (gScrCompileGlob[inst].bCanBreak
@@ -5173,22 +5173,22 @@ void __cdecl EmitCaseStatement(scriptInstance_t inst, sval_u expr, sval_u source
     unsigned int name; // [esp+4h] [ebp-4h]
     unsigned int namea; // [esp+4h] [ebp-4h]
 
-    if ( *(_BYTE *)expr.stringValue == 9 )
+    if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 9 )
     {
-        if ( IsValidArrayIndex(inst, *(unsigned int *)(expr.stringValue + 4)) )
+        if ( IsValidArrayIndex(inst, *(unsigned int *)Ptr32_Decode(expr.stringValue + 4)) )
         {
-            name = GetInternalVariableIndex(inst, *(unsigned int *)(expr.stringValue + 4));
+            name = GetInternalVariableIndex(inst, *(unsigned int *)Ptr32_Decode(expr.stringValue + 4));
             EmitCaseStatementInfo(inst, name, sourcePos);
         }
         else
         {
-            v3 = va("case index %d out of range", *(unsigned int *)(expr.stringValue + 4));
+            v3 = va("case index %d out of range", *(unsigned int *)Ptr32_Decode(expr.stringValue + 4));
             CompileError(inst, sourcePos.stringValue, v3);
         }
     }
-    else if ( *(_BYTE *)expr.stringValue == 13 )
+    else if ( *(_BYTE *)Ptr32_Decode(expr.stringValue) == 13 )
     {
-        namea = *(unsigned int *)(expr.stringValue + 4);
+        namea = *(unsigned int *)Ptr32_Decode(expr.stringValue + 4);
         CompileTransferRefToString(inst, namea, 1u);
         EmitCaseStatementInfo(inst, namea, sourcePos);
     }
@@ -5222,7 +5222,7 @@ void __cdecl EmitCaseStatementInfo(scriptInstance_t inst, unsigned int name, sva
     }
     else
     {
-        newCaseStatement = (CaseStatementInfo *)Hunk_AllocateTempMemoryHigh(16, "EmitCaseStatementInfo");
+        newCaseStatement = (CaseStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(16, "EmitCaseStatementInfo"));
         newCaseStatement->name = name;
         newCaseStatement->codePos = TempMallocAlignStrict(0);
         newCaseStatement->sourcePos = sourcePos.stringValue;
@@ -5255,7 +5255,7 @@ void __cdecl EmitBreakStatement(scriptInstance_t inst, sval_u sourcePos, scr_blo
         EmitCodepos(inst, 0);
         if (gScrCompilePub[inst].developer_statement != 2)
         {
-            newBreakStatement = (BreakStatementInfo *)Hunk_AllocateTempMemoryHigh(12, "EmitBreakStatement");
+            newBreakStatement = (BreakStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(12, "EmitBreakStatement"));
             newBreakStatement->codePos = (const char *)gScrCompileGlob[inst].codePos;
             newBreakStatement->nextCodePos = TempMallocAlignStrict(0);
             newBreakStatement->next = gScrCompileGlob[inst].currentBreakStatement;
@@ -5282,7 +5282,7 @@ void __cdecl EmitContinueStatement(scriptInstance_t inst, sval_u sourcePos, scr_
         EmitCodepos(inst, 0);
         if (gScrCompilePub[inst].developer_statement != 2)
         {
-            newContinueStatement = (ContinueStatementInfo *)Hunk_AllocateTempMemoryHigh(12, "EmitContinueStatement");
+            newContinueStatement = (ContinueStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(12, "EmitContinueStatement"));
             newContinueStatement->codePos = (const char *)gScrCompileGlob[inst].codePos;
             newContinueStatement->nextCodePos = TempMallocAlignStrict(0);
             newContinueStatement->next = gScrCompileGlob[inst].currentContinueStatement;
@@ -5378,7 +5378,7 @@ void __cdecl EmitFormalParameterListInternal(scriptInstance_t inst, sval_u *node
         node = node[1].node;
         if ( !node )
             break;
-        EmitSafeSetVariableField(inst, *node->node, *(sval_u *)(node->stringValue + 4), block);
+        EmitSafeSetVariableField(inst, *node->node, *(sval_u *)Ptr32_Decode(node->stringValue + 4), block);
     }
 }
 
@@ -5433,13 +5433,13 @@ void __cdecl EmitDeveloperThread(scriptInstance_t inst, sval_u val, sval_u *stmt
     {
         gScrCompilePub[inst].developer_statement = 1;
         InitThread(inst, 1);
-        posId = FindVariable(inst, gScrCompileGlob[inst].filePosId, *(unsigned int *)(val.stringValue + 4));
+        posId = FindVariable(inst, gScrCompileGlob[inst].filePosId, *(unsigned int *)Ptr32_Decode(val.stringValue + 4));
         SetThreadPosition(inst, posId);
         EmitThreadInternal(
             inst,
             val,
-            *(sval_u *)(val.stringValue + 16),
-            *(sval_u *)(val.stringValue + 20),
+            *(sval_u *)Ptr32_Decode(val.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(val.stringValue + 20),
             stmttblock->block);
     }
     else
@@ -5451,8 +5451,8 @@ void __cdecl EmitDeveloperThread(scriptInstance_t inst, sval_u val, sval_u *stmt
         EmitThreadInternal(
             inst,
             val,
-            *(sval_u *)(val.stringValue + 16),
-            *(sval_u *)(val.stringValue + 20),
+            *(sval_u *)Ptr32_Decode(val.stringValue + 16),
+            *(sval_u *)Ptr32_Decode(val.stringValue + 20),
             stmttblock->block);
         TempMemorySetPos(begin_pos);
         gScrVarPub[inst].checksum = savedChecksum;
@@ -5464,7 +5464,7 @@ void __cdecl EmitIncludeList(scriptInstance_t inst, sval_u val)
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    for ( node = *(sval_u **)(*(unsigned int *)val.stringValue + 4); node; node = node[1].node )
+    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
         EmitInclude(inst, *node);
 }
 
@@ -5473,7 +5473,7 @@ void __cdecl EmitInclude(scriptInstance_t inst, sval_u val)
     char *v2; // eax
     unsigned int filename; // [esp+0h] [ebp-4h]
 
-    if ( *(_BYTE *)val.stringValue != 88
+    if ( *(_BYTE *)Ptr32_Decode(val.stringValue) != 88
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     4755,
@@ -5483,10 +5483,10 @@ void __cdecl EmitInclude(scriptInstance_t inst, sval_u val)
     {
         __debugbreak();
     }
-    v2 = SL_ConvertToString(*(unsigned int *)(val.stringValue + 4), inst);
+    v2 = SL_ConvertToString(*(unsigned int *)Ptr32_Decode(val.stringValue + 4), inst);
     filename = Scr_CreateCanonicalFilename(inst, v2);
-    Scr_CompileRemoveRefToString(inst, *(unsigned int *)(val.stringValue + 4));
-    AddFilePrecache(inst, filename, *(unsigned int *)(val.stringValue + 8), 1, 0, 0);
+    Scr_CompileRemoveRefToString(inst, *(unsigned int *)Ptr32_Decode(val.stringValue + 4));
+    AddFilePrecache(inst, filename, *(unsigned int *)Ptr32_Decode(val.stringValue + 8), 1, 0, 0);
 }
 
 void __cdecl Scr_CompileStatement(scriptInstance_t inst, sval_u parseData)

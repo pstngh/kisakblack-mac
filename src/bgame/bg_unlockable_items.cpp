@@ -721,7 +721,7 @@ int __cdecl BG_UnlockablesCompareItemsBySortKey(const void *arg0, const void *ar
 {
     int returnValue; // [esp+0h] [ebp-Ch]
 
-    returnValue = *(unsigned int *)(*(unsigned int *)arg0 + 264) - *(unsigned int *)(*(unsigned int *)arg1 + 264);
+    returnValue = *(unsigned int *)Ptr32_Decode(*(unsigned int *)arg0 + 264) - *(unsigned int *)Ptr32_Decode(*(unsigned int *)arg1 + 264);
     if ( !returnValue )
         return **(unsigned int **)arg0 - **(unsigned int **)arg1;
     return returnValue;
@@ -2850,11 +2850,11 @@ bool __cdecl BG_UnlockablesIsItemEquippedInAnyCustomClass(int controllerIndex, i
         if ( customClassName && BG_UnlockablesIsItemEquipped(controllerIndex, customClassName, itemIndex) )
         {
             String = Dvar_GetString(customClassName);
-            v8 = (unsigned int)&String[strlen(String) + 1];
+            v8 = (unsigned int)Ptr32_Encode(&String[strlen(String) + 1]);
             p_isEquipped = &isEquipped;
             while ( *++p_isEquipped )
                 ;
-            memcpy(p_isEquipped, String, v8 - (unsigned int)String);
+            memcpy(p_isEquipped, String, v8 - (unsigned int)Ptr32_Encode(String));
             v4 = &isEquipped;
             while ( *++v4 )
                 ;

@@ -743,12 +743,12 @@ void __cdecl    G_InitGame(int levelTime, int randomSeed, int restart, int regis
 
     G_srand(randomSeed);
 
-    if (*(_BYTE *)g_log->current.integer)
+    if (*(_BYTE *)Ptr32_Decode(g_log->current.integer))
     {
         if (g_logSync->current.enabled)
-            FS_FOpenFileByMode((char *)g_log->current.integer, &level.logFile, FS_APPEND_SYNC);
+            FS_FOpenFileByMode((char *)Ptr32_Decode(g_log->current.integer), &level.logFile, FS_APPEND_SYNC);
         else
-            FS_FOpenFileByMode((char *)g_log->current.integer, &level.logFile, FS_APPEND);
+            FS_FOpenFileByMode((char *)Ptr32_Decode(g_log->current.integer), &level.logFile, FS_APPEND);
         if (level.logFile)
         {
             char serverinfo[1024];
@@ -2145,7 +2145,7 @@ void G_PrintAllFastFileErrors()
     }
     G_PrintFastFileErrors((char*)"code_post_gfx_mp");
     G_PrintFastFileErrors((char*)"common_mp");
-    G_PrintFastFileErrors((char *)sv_mapname->current.integer);
+    G_PrintFastFileErrors((char *)Ptr32_Decode(sv_mapname->current.integer));
 }
 
 void __cdecl G_PrintFastFileErrors(char *fastfile)

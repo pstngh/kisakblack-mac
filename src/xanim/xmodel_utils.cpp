@@ -392,7 +392,7 @@ int __cdecl XModelGetLodForDist_Internal(const XModel *model, float dist)
         if ( (LODWORD(lodDist) & 0x7F800000) == 0x7F800000 )
         {
             if ( model->name )
-                v2 = va("'%s' nan lod dist. %d/%d", model->name, lodIndex, lodCount);
+                v2 = va("'%s' nan lod dist. %d/%d", (const char *)model->name, lodIndex, lodCount);
             else
                 v2 = va("'%s' nan lod dist. %d/%d", "", lodIndex, lodCount);
             if ( !Assert_MyHandler(

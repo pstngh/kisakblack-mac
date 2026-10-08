@@ -5137,8 +5137,8 @@ void __cdecl VEH_UpdateNitrousPosition(gentity_s *pSelf)
     nitrousVeh = veh->nitrousVehicle;
     memset(zero, 0, sizeof(zero));
     Sys_EnterCriticalSection(CRITSECT_PHYSICS);
-    Phys_ObjGetPosition((int)nitrousVeh->m_phys_user_data, absPos, absAxis);
-    Phys_ObjGetVelocities((int)nitrousVeh->m_phys_user_data, tvel, avel);
+    Phys_ObjGetPosition((int)Ptr32_Encode(nitrousVeh->m_phys_user_data), absPos, absAxis);
+    Phys_ObjGetVelocities((int)Ptr32_Encode(nitrousVeh->m_phys_user_data), tvel, avel);
     notifyFlags = nitrousVeh->m_server_notify_flags;
     nitrousVeh->m_server_notify_flags = 0;
     intensity = nitrousVeh->m_collision_intensity;
@@ -6899,7 +6899,7 @@ void    VEH_UpdatePath(gentity_s *ent)
             }
             G_VehUpdatePathPos(&nextVpp, -1);
         }
-        if (*(_BYTE *)g_vehicleDrawPath->current.integer && *(_BYTE *)g_vehicleDrawPath->current.integer == 49)
+        if (*(_BYTE *)Ptr32_Decode(g_vehicleDrawPath->current.integer) && *(_BYTE *)Ptr32_Decode(g_vehicleDrawPath->current.integer) == 49)
             VP_DrawPath(&nextVpp);
         if (veh->pathPos.endOfPath && (veh->flags & 0x100) == 0)
             veh->speed = 0.0f;
@@ -10080,9 +10080,9 @@ void __cdecl CMD_VEH_SetGunnerTargetEnt(scr_entref_t entref)
     v3[1] = targetOffset[1];
     v3[2] = targetOffset[2];
     veh->gunnerTargets[gunnerIndex].targetOrigin[0] = 0.0f;
-    targetOrigin = (int)veh->gunnerTargets[gunnerIndex].targetOrigin;
-    *(unsigned int *)(targetOrigin + 4) = 0;
-    *(unsigned int *)(targetOrigin + 8) = 0;
+    targetOrigin = (int)Ptr32_Encode(veh->gunnerTargets[gunnerIndex].targetOrigin);
+    *(unsigned int *)Ptr32_Decode(targetOrigin + 4) = 0;
+    *(unsigned int *)Ptr32_Decode(targetOrigin + 8) = 0;
 }
 
 void __cdecl CMD_VEH_ClearGunnerTarget(scr_entref_t entref)

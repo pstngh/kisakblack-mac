@@ -1013,9 +1013,9 @@ define_s *__cdecl PC_CopyDefine(source_s *source, define_s *define)
     token_s *lasttokena; // [esp+2Ch] [ebp-4h]
 
     newdefine = GetMemory(strlen(define->name) + 33);
-    *newdefine = (unsigned int)(newdefine + 8);
+    *newdefine = (unsigned int)Ptr32_Encode(newdefine + 8);
     name = define->name;
-    v4 = (_BYTE *)*newdefine;
+    v4 = (_BYTE *)Ptr32_Decode(*newdefine);
     do
     {
         v2 = *name;
@@ -1036,7 +1036,7 @@ define_s *__cdecl PC_CopyDefine(source_s *source, define_s *define)
         if ( lasttoken )
             lasttoken->next = newtoken;
         else
-            newdefine[5] = (unsigned int)newtoken;
+            newdefine[5] = (unsigned int)Ptr32_Encode(newtoken);
         lasttoken = newtoken;
     }
     newdefine[4] = 0;
@@ -1048,7 +1048,7 @@ define_s *__cdecl PC_CopyDefine(source_s *source, define_s *define)
         if ( lasttokena )
             lasttokena->next = newtokena;
         else
-            newdefine[4] = (unsigned int)newtokena;
+            newdefine[4] = (unsigned int)Ptr32_Encode(newtokena);
         lasttokena = newtokena;
     }
     return (define_s *)newdefine;

@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include "cscr_main.h"
 #include <universal/mem_userhunk.h>
@@ -111,13 +112,15 @@ union VariableUnion // sizeof=0x4
     //    intValue = 0;
     //}
 
+    // Pointer members are 32-bit (ptr32.h): the VM reads values through
+    // whichever member it likes, and its tables assume 4-byte values.
     int intValue;
     float floatValue;
     unsigned int stringValue;
-    const float *vectorValue;
-    const char *codePosValue;
+    Ptr32<const float> vectorValue;
+    Ptr32<const char> codePosValue;
     unsigned int pointerValue;
-    VariableStackBuffer *stackValue;
+    Ptr32<VariableStackBuffer> stackValue;
     unsigned int entityOffset;
 };
 

@@ -74,10 +74,10 @@ void __cdecl XModelSurfsSetData(const char *name, XModelSurfs *modelSurfs, void 
 XModel *__cdecl XModelPrecache(char *name, void *(__cdecl *Alloc)(int), void *(__cdecl *AllocColl)(int))
 {
     if ( useFastFile->current.enabled )
-        return (XModel *)((int (__cdecl *)(char *, void *(__cdecl *)(int), void *(__cdecl *)(int)))XModelPrecache_FastFile)(
+        return (XModel *)Ptr32_Decode(((int (__cdecl *)(char *, void *(__cdecl *)(int), void *(__cdecl *)(int)))XModelPrecache_FastFile)(
                                              name,
                                              Alloc,
-                                             AllocColl);
+                                             AllocColl));
     else
         return XModelPrecache_LoadObj(name, Alloc, AllocColl);
 }
@@ -783,14 +783,14 @@ void __cdecl PrefetchArrayIndexed(char *mem, unsigned int elementCount, unsigned
     unsigned int umem; // [esp+4h] [ebp-Ch]
     const unsigned __int8 *memIter; // [esp+8h] [ebp-8h]
 
-    umem = (unsigned int)&mem[elementSize * index];
+    umem = (unsigned int)Ptr32_Encode(&mem[elementSize * index]);
     if ( !elementCount
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\xanim\\xmodel.cpp", 1095, 0, "%s", "elementCount") )
     {
         __debugbreak();
     }
-    for ( memIter = (const unsigned __int8 *)(umem & 0xFFFFFF80);
-                (unsigned int)memIter <= ((umem + elementSize * elementCount - 1) & 0xFFFFFF80);
+    for ( memIter = (const unsigned __int8 *)Ptr32_Decode(umem & 0xFFFFFF80);
+                (unsigned int)Ptr32_Encode(memIter) <= ((umem + elementSize * elementCount - 1) & 0xFFFFFF80);
                 memIter += 128 )
     {
         _mm_prefetch((const char *)memIter, 1);

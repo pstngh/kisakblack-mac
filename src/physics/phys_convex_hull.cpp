@@ -1019,9 +1019,9 @@ chull_t *__cdecl get_brush_chull(const cbrush_t *brush)
     int savedregs; // [esp+10h] [ebp+0h] BYREF
 
     m_tree_root = entities_map.m_tree_root;
-    while (m_tree_root && brush != (const cbrush_t *)m_tree_root->m_avl_key)
+    while (m_tree_root && brush != (const cbrush_t *)Ptr32_Decode(m_tree_root->m_avl_key))
     {
-        if ((unsigned int)brush >= m_tree_root->m_avl_key)
+        if ((unsigned int)Ptr32_Encode(brush) >= m_tree_root->m_avl_key)
             m_tree_root = m_tree_root->m_avl_tree_node.m_right;
         else
             m_tree_root = m_tree_root->m_avl_tree_node.m_left;
@@ -1035,7 +1035,7 @@ chull_t *__cdecl get_brush_chull(const cbrush_t *brush)
         chull = generate_brush_chull(brush);
         if (!chull)
             return 0;
-        chull_list_add(chull, (unsigned int)brush);
+        chull_list_add(chull, (unsigned int)Ptr32_Encode(brush));
     }
     if (!chull && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_main.cpp", 1832, 0, "%s", "chull"))
         __debugbreak();
@@ -1050,9 +1050,9 @@ chull_t *__cdecl get_partition_chull(const CollisionAabbTree *tree)
     int savedregs; // [esp+10h] [ebp+0h] BYREF
 
     m_tree_root = entities_map.m_tree_root;
-    while (m_tree_root && tree != (const CollisionAabbTree *)m_tree_root->m_avl_key)
+    while (m_tree_root && tree != (const CollisionAabbTree *)Ptr32_Decode(m_tree_root->m_avl_key))
     {
-        if ((unsigned int)tree >= m_tree_root->m_avl_key)
+        if ((unsigned int)Ptr32_Encode(tree) >= m_tree_root->m_avl_key)
             m_tree_root = m_tree_root->m_avl_tree_node.m_right;
         else
             m_tree_root = m_tree_root->m_avl_tree_node.m_left;
@@ -1066,7 +1066,7 @@ chull_t *__cdecl get_partition_chull(const CollisionAabbTree *tree)
         chull = generate_partition_chull(tree);
         if (!chull)
             return 0;
-        chull_list_add(chull, (unsigned int)tree);
+        chull_list_add(chull, (unsigned int)Ptr32_Encode(tree));
     }
     if (!chull && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\physics\\phys_main.cpp", 1854, 0, "%s", "chull"))
         __debugbreak();

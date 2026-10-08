@@ -400,8 +400,8 @@ bool gjk_query_output::query_create_prolog(const void *geom)
     iassert(m_local_ent_info->get_ent());
 
     //this->m_local_database_id.m_id1 = (unsigned int)gjk_entity_info_t::get_ent(this->m_local_ent_info);
-    this->m_local_database_id.m_id1 = (unsigned int)this->m_local_ent_info->get_ent();
-    this->m_local_database_id.m_id2 = (unsigned int)geom;
+    this->m_local_database_id.m_id1 = (unsigned int)Ptr32_Encode(this->m_local_ent_info->get_ent());
+    this->m_local_database_id.m_id2 = (unsigned int)Ptr32_Encode(geom);
     //this->m_local_bpei = bpei_database_t::get_bpei(&this->m_bpei_database, this->m_local_database_id);
     this->m_local_bpei = this->m_bpei_database.get_bpei(this->m_local_database_id);
     return this->m_local_bpei->m_data == 0;
@@ -679,7 +679,7 @@ void gjk_query_output::add(const gjk_query_input &input, const CollisionPartitio
     bpei_database_id database_id; // [esp+3Ch] [ebp-Ch]
     broad_phase_environment_info *bpei; // [esp+44h] [ebp-4h]
 
-    database_id.m_id1 = (unsigned int)partition;
+    database_id.m_id1 = (unsigned int)Ptr32_Encode(partition);
     database_id.m_id2 = 0;
     //bpei = bpei_database_t::get_bpei(&this->m_bpei_database, (bpei_database_id)(unsigned int)partition);
     bpei = this->m_bpei_database.get_bpei(database_id);
@@ -709,7 +709,7 @@ void gjk_query_output::add(const gjk_query_input &input, const cbrush_t *brush, 
     int savedregs; // [esp+40h] [ebp+0h] BYREF
 
     //bpei = bpei_database_t::get_bpei(&this->m_bpei_database, (bpei_database_id)(unsigned int)brush);
-    bpei = this->m_bpei_database.get_bpei(bpei_database_id((unsigned int)brush));
+    bpei = this->m_bpei_database.get_bpei(bpei_database_id((unsigned int)Ptr32_Encode(brush)));
     if ( !bpei->m_data )
     {
         cg = gjk_brush_t::create(
@@ -730,8 +730,8 @@ void gjk_query_output::add(const gjk_query_input &input, gentity_s *gent)
     broad_phase_environment_info *bpei; // [esp+38h] [ebp-18h]
     unsigned int gent_id; // [esp+3Ch] [ebp-14h]
 
-    gent_id = (unsigned int)gent;
-    bpei = gjk_query_output::get_ent_info((unsigned int)gent);
+    gent_id = (unsigned int)Ptr32_Encode(gent);
+    bpei = gjk_query_output::get_ent_info((unsigned int)Ptr32_Encode(gent));
     if (!bpei->m_data)
     {
         gjk_entity_info_t *entity_info;
@@ -786,7 +786,7 @@ void gjk_query_output::add(const gjk_query_input &input, centity_s *cent)
     //cent_id = retaddr;
     v12 = this;
     v11 = cent;
-    ent_info = gjk_query_output::get_ent_info((unsigned int)cent);
+    ent_info = gjk_query_output::get_ent_info((unsigned int)Ptr32_Encode(cent));
     if ( !ent_info->m_data )
     {
         entity_info = gjk_query_output::create_entity_info();
@@ -850,7 +850,7 @@ void gjk_query_output::add(const gjk_query_input &input, const Glass *glass)
     const gjk_query_input *inputa; // [esp+34h] [ebp-4h]
 
     inputa = (const gjk_query_input *)glass;
-    ent_info = gjk_query_output::get_ent_info((unsigned int)glass);
+    ent_info = gjk_query_output::get_ent_info((unsigned int)Ptr32_Encode(glass));
     if (!ent_info->m_data)
     {
         glass_id = gjk_query_output::create_entity_info();
@@ -902,8 +902,8 @@ void gjk_query_output::add(const gjk_query_input &input, const DynEntityDef *den
     broad_phase_environment_info *bpei; // [esp+40h] [ebp-8h]
     gjk_entity_info_t *ent_info; // [esp+44h] [ebp-4h]
 
-    dent_id = (unsigned int)dent;
-    bpei = gjk_query_output::get_ent_info((unsigned int)dent);
+    dent_id = (unsigned int)Ptr32_Encode(dent);
+    bpei = gjk_query_output::get_ent_info((unsigned int)Ptr32_Encode(dent));
     if (!bpei->m_data)
     {
         ent_info_ = gjk_query_output::create_entity_info();

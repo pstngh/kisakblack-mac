@@ -240,7 +240,7 @@ void __cdecl Sys_CreateThread(void (__cdecl *function)(unsigned int), unsigned i
         0,
         0,
         Sys_ThreadMain,
-        (LPVOID)threadContext,
+        (LPVOID)Ptr32_Decode(threadContext),
         CREATE_SUSPENDED,
         &threadId[threadContext]);
 
@@ -279,7 +279,7 @@ void __cdecl SetThreadName(unsigned int dwThreadID, const char *szThreadName)
 
 DWORD WINAPI Sys_ThreadMain(LPVOID parameter)
 {
-    unsigned int threadContext = (unsigned int)parameter;
+    unsigned int threadContext = (unsigned int)Ptr32_Encode(parameter);
 
     bcassert(threadContext, THREAD_CONTEXT_COUNT);
     iassert(threadFunc[threadContext]);
@@ -493,7 +493,7 @@ bool __cdecl Sys_WaitForSingleObjectTimeout(void **event, unsigned int msec)
 void __cdecl Sys_WakeRenderer(void *data)
 {
     Sys_ResetEvent(&renderCompletedEvent);
-    smpData = (int)data;
+    smpData = (int)Ptr32_Encode(data);
     //PIXSetMarker(-1, "set smpData");
     Sys_SetEvent(&backendEvent[1]);
     Sys_SetWorkerCmdEvent();

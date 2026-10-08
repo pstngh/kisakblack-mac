@@ -430,9 +430,9 @@ void CL_RconLogin()
     if ( Cmd_Argc() == 3 )
     {
         password = (char *)Cmd_Argv(2);
-        v0 = (unsigned int)&password[strlen(password) + 1];
-        if ( v0 - (unsigned int)(password + 1) < 0x18 )
-            memcpy((unsigned __int8 *)&rconGlob, (unsigned __int8 *)password, v0 - (unsigned int)password);
+        v0 = (unsigned int)Ptr32_Encode(&password[strlen(password) + 1]);
+        if ( v0 - (unsigned int)Ptr32_Encode(password + 1) < 0x18 )
+            memcpy((unsigned __int8 *)&rconGlob, (unsigned __int8 *)password, v0 - (unsigned int)Ptr32_Encode(password));
         else
             Com_Printf(14, "rcon password must be %i characters or less\n", 24);
     }
@@ -916,7 +916,7 @@ void __cdecl CL_WWWDownload()
         else if ( ret == DL_DONE)
         {
             cls.download = 0;
-            FS_BuildOSPath((char *)fs_homepath->current.integer, 0, cls.originalDownloadName, to_ospath);
+            FS_BuildOSPath((char *)Ptr32_Decode(fs_homepath->current.integer), 0, cls.originalDownloadName, to_ospath);
             remove(to_ospath);
             if ( rename(cls.downloadTempName, to_ospath) )
             {

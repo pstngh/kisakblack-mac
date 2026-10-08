@@ -486,7 +486,7 @@ void __cdecl IKImport_GetBoneMatrixArrayLocalBones(IKState *ikState)
     obj = ikState->model;
     if ( !obj && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik_import.cpp", 672, 0, "%s", "obj") )
         __debugbreak();
-    matArray = (DObjAnimMat *)*((unsigned int *)obj + 21);
+    matArray = (DObjAnimMat *)Ptr32_Decode(*((unsigned int *)obj + 21));
     if ( !matArray && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ik\\ik_import.cpp", 675, 0, "%s", "matArray") )
         __debugbreak();
     ikState->rootOffset[0] = matArray->trans[0];
@@ -504,7 +504,7 @@ void __cdecl IKImport_GetBoneMatrixArrayLocalBones(IKState *ikState)
     matArray->quat[2] = 0.0f;
     matArray->quat[3] = 1.0f;
     thisMat = matArray;
-    for ( objBoneIndex = 0; objBoneIndex < *(unsigned __int8 *)(**((unsigned int **)obj + 30) + 4); ++objBoneIndex )
+    for ( objBoneIndex = 0; objBoneIndex < *(unsigned __int8 *)Ptr32_Decode(**((unsigned int **)obj + 30) + 4); ++objBoneIndex )
     {
         if ( (*(unsigned int *)&obj[4 * (objBoneIndex >> 5) + 20] & (0x80000000 >> (objBoneIndex & 0x1F))) != 0 )
         {
@@ -558,7 +558,7 @@ void __cdecl IKImport_GetBoneMatrixArrayLocalBones(IKState *ikState)
             IKImport_AccumulateParentObjBones(
                 ikState,
                 *(const unsigned __int8 **)(**((unsigned int **)obj + 30) + 12),
-                *(unsigned __int8 *)(**((unsigned int **)obj + 30) + 5),
+                *(unsigned __int8 *)Ptr32_Decode(**((unsigned int **)obj + 30) + 5),
                 *(float **)(**((unsigned int **)obj + 30) + 20),
                 objBoneIndexa,
                 matArray,

@@ -111,7 +111,7 @@ int __cdecl DDL_IsStateReadyForIO(const ddlState_t *state)
             }
             else
             {
-                DDL_PrintError("DDL: Buffer offset is out of the DDL buffer limit for member %s.\n", state->member->name);
+                DDL_PrintError("DDL: Buffer offset is out of the DDL buffer limit for member %s.\n", (const char *)state->member->name);
                 return 0;
             }
         }

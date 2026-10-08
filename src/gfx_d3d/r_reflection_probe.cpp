@@ -451,7 +451,7 @@ void R_LoadColorCorrectionData()
     if ( fileSize >= 0 )
     {
         Hunk_CheckTempMemoryHighClear();
-        filebuf = (unsigned __int8 *)Hunk_AllocateTempMemoryHigh(fileSize + 1, "R_LoadColorCorrectionData");
+        filebuf = (unsigned __int8 *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(fileSize + 1, "R_LoadColorCorrectionData"));
         FS_Read(filebuf, fileSize, f);
         FS_FCloseFile(f);
         filebuf[fileSize] = 0;

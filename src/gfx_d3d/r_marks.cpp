@@ -77,10 +77,10 @@ void __cdecl R_BoxSurfaces_r(
         cellIndex = node->cellIndex;
         if ( cellIndex - cellCount < 0 )
             break;
-        side = (const cplane_s *)BoxOnPlaneSide(
+        side = (const cplane_s *)Ptr32_Decode(BoxOnPlaneSide(
                                                              mins,
                                                              maxs,
-                                                             &rgp.world->dpvsPlanes.planes[cellIndex - cellCount]);
+                                                             &rgp.world->dpvsPlanes.planes[cellIndex - cellCount]));
         if ( side == (const cplane_s *)1 )
         {
             ++node;
@@ -505,10 +505,10 @@ void __cdecl R_BoxStaticModels_r(
         cellIndex = node->cellIndex;
         if ( cellIndex - cellCount < 0 )
             break;
-        side = (const cplane_s *)BoxOnPlaneSide(
+        side = (const cplane_s *)Ptr32_Decode(BoxOnPlaneSide(
                                                              mins,
                                                              maxs,
-                                                             &rgp.world->dpvsPlanes.planes[cellIndex - cellCount]);
+                                                             &rgp.world->dpvsPlanes.planes[cellIndex - cellCount]));
         if ( side == (const cplane_s *)1 )
         {
             ++node;
@@ -1278,8 +1278,8 @@ bool __cdecl R_MarkFragments_BrushSurface(
                 R_WARN_MARKS_ERR_LMAP_MISMATCH,
                 markInfo->markHasLightmap,
                 surface->lightmapIndex,
-                markInfo->material->info.name,
-                surface->material->info.name);
+                (const char *)markInfo->material->info.name,
+                (const char *)surface->material->info.name);
         }
         return true;
     }
@@ -1296,8 +1296,8 @@ bool __cdecl R_MarkFragments_BrushSurface(
                 R_WARN_MARKS_ERR_PROBE_MISMATCH,
                 markInfo->markHasReflection,
                 surface->reflectionProbeIndex,
-                markInfo->material->info.name,
-                surface->material->info.name);
+                (const char *)markInfo->material->info.name,
+                (const char *)surface->material->info.name);
         }
         return true;
     }

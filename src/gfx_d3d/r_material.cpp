@@ -540,7 +540,7 @@ void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, Ma
     }
 }
 
-void __cdecl Load_BuildVertexDecl(MaterialVertexDeclaration **mtlVertDecl)
+void __cdecl Load_BuildVertexDecl(Ptr32<MaterialVertexDeclaration> *mtlVertDecl)
 {
     IDirect3DVertexDeclaration9 *v1; // eax
     MaterialStreamRouting data[16]; // [esp+8h] [ebp-28h] BYREF
@@ -984,21 +984,21 @@ Material *__cdecl Material_Duplicate(Material *mtlCopy, char *name)
         v3 = strlen(name);
         mtlNew = Material_Alloc(v3 + 193);
         memcpy(mtlNew, mtlCopy, 0xC0u);
-        *(unsigned int *)mtlNew = (unsigned int)(mtlNew + 192);
+        *(unsigned int *)mtlNew = (unsigned int)Ptr32_Encode(mtlNew + 192);
         memcpy(*(unsigned __int8 **)mtlNew, (unsigned __int8 *)name, v3 + 1);
         stateBitsTableSize = 8 * mtlCopy->stateBitsCount;
-        *((unsigned int *)mtlNew + 47) = (unsigned int)Material_Alloc(stateBitsTableSize);
+        *((unsigned int *)mtlNew + 47) = (unsigned int)Ptr32_Encode(Material_Alloc(stateBitsTableSize));
         memcpy(*((unsigned __int8 **)mtlNew + 47), (unsigned __int8 *)mtlCopy->stateBitsTable, stateBitsTableSize);
         if ( mtlCopy->textureTable )
         {
             textureTableSize = 16 * mtlCopy->textureCount;
-            *((unsigned int *)mtlNew + 45) = (unsigned int)Material_Alloc(textureTableSize);
+            *((unsigned int *)mtlNew + 45) = (unsigned int)Ptr32_Encode(Material_Alloc(textureTableSize));
             memcpy(*((unsigned __int8 **)mtlNew + 45), (unsigned __int8 *)mtlCopy->textureTable, textureTableSize);
         }
         if ( mtlCopy->localConstantTable )
         {
             constantTableSize = 32 * mtlCopy->constantCount;
-            *((unsigned int *)mtlNew + 46) = (unsigned int)Material_Alloc(constantTableSize);
+            *((unsigned int *)mtlNew + 46) = (unsigned int)Ptr32_Encode(Material_Alloc(constantTableSize));
             memcpy(*((unsigned __int8 **)mtlNew + 46), (unsigned __int8 *)mtlCopy->localConstantTable, constantTableSize);
         }
         Material_Add((Material *)mtlNew, hashIndex[0]);
@@ -1108,7 +1108,7 @@ void __cdecl Material_GetHashIndex(const char *name, unsigned __int16 *hashIndex
 Material *__cdecl Material_Register(char *name, int imageTrack)
 {
     if ( useFastFile->current.enabled )
-        return (Material *)((int (__cdecl *)(char *, int))Material_Register_FastFile)(name, imageTrack);
+        return (Material *)Ptr32_Decode(((int (__cdecl *)(char *, int))Material_Register_FastFile)(name, imageTrack));
     else
         return Material_Register_LoadObj(name, imageTrack);
 }
@@ -1262,7 +1262,7 @@ void __cdecl R_GetMaterialList(XAssetHeader header, char *data)
         }
         materialMemory = (XAssetHeader *)&data[8 * *(unsigned int *)data + 4];
         materialMemory->xmodelPieces = header.xmodelPieces;
-        materialMemory[1].xmodelPieces = (XModelPieces *)memory;
+        materialMemory[1].xmodelPieces = (XModelPieces *)Ptr32_Decode(memory);
         ++*(unsigned int *)data;
     }
 }
@@ -1307,7 +1307,7 @@ void __cdecl R_MaterialEdit_f()
             v0 = strstr(rgp.sortedMaterials[i]->info.name, search);
             if ( v0 )
             {
-                Com_Printf(8, "%s\n", rgp.sortedMaterials[i]->info.name);
+                Com_Printf(8, "%s\n", (const char *)rgp.sortedMaterials[i]->info.name);
                 if ( !Current_Edit_Material
                     || strlen(rgp.sortedMaterials[i]->info.name) < strlen(Current_Edit_Material->info.name) )
                 {
@@ -1320,7 +1320,7 @@ void __cdecl R_MaterialEdit_f()
     if ( count )
     {
         if ( count != 1 )
-            Com_Printf(8, "Selecting %s.\n", Current_Edit_Material->info.name);
+            Com_Printf(8, "Selecting %s.\n", (const char *)Current_Edit_Material->info.name);
         for ( i = 0; i < Current_Edit_Material->constantCount; ++i )
         {
             ct = &Current_Edit_Material->localConstantTable[i];
@@ -1389,7 +1389,7 @@ void __cdecl R_MaterialParameterEdit_f()
             if ( index )
             {
                 cte = &Current_Edit_Material->localConstantTable[index - 1];
-                Com_Printf(8, "%s:\n", Current_Edit_Material->info.name);
+                Com_Printf(8, "%s:\n", (const char *)Current_Edit_Material->info.name);
                 if ( Cmd_Argc() == 2 )
                 {
                     Com_Printf(
@@ -1456,12 +1456,12 @@ void __cdecl R_MaterialParameterEdit_f()
             }
             else
             {
-                Com_Printf(8, "%s is not a parameter of %s.\n", name, Current_Edit_Material->info.name);
+                Com_Printf(8, "%s is not a parameter of %s.\n", name, (const char *)Current_Edit_Material->info.name);
             }
         }
         else
         {
-            Com_Printf(8, "%s:\n", Current_Edit_Material->info.name);
+            Com_Printf(8, "%s:\n", (const char *)Current_Edit_Material->info.name);
             for ( i = 0; i < Current_Edit_Material->constantCount; ++i )
             {
                 ct = &Current_Edit_Material->localConstantTable[i];
@@ -1601,17 +1601,17 @@ void __cdecl R_MaterialParameterTweak_f()
                 hack->description = desc;
                 MaterialParameterConstantEntry = cte;
                 memcpy(&MaterialParameterConstantEntry_save, cte, sizeof(MaterialParameterConstantEntry_save));
-                Com_Printf(8, "%s:\n", Current_Edit_Material->info.name);
+                Com_Printf(8, "%s:\n", (const char *)Current_Edit_Material->info.name);
                 Com_Printf(8, "    %s = %g %g %g %g\n", param, cte->literal[0], cte->literal[1], cte->literal[2], cte->literal[3]);
             }
             else
             {
-                Com_Printf(8, "%s is not a parameter of %s.\n", name, Current_Edit_Material->info.name);
+                Com_Printf(8, "%s is not a parameter of %s.\n", name, (const char *)Current_Edit_Material->info.name);
             }
         }
         else
         {
-            Com_Printf(8, "%s:\n", Current_Edit_Material->info.name);
+            Com_Printf(8, "%s:\n", (const char *)Current_Edit_Material->info.name);
             for ( i = 0; i < Current_Edit_Material->constantCount; ++i )
             {
                 ct = &Current_Edit_Material->localConstantTable[i];
@@ -1877,7 +1877,7 @@ unsigned int __cdecl Material_LoadFile(const char *filename, int *file)
 
 bool __cdecl IsValidMaterialHandle(Material *const handle)
 {
-    if ( ((unsigned __int8)handle & 3) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(handle) & 3) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material.cpp",
                     2407,

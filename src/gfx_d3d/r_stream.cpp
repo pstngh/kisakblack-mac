@@ -1035,7 +1035,7 @@ void __cdecl importance_swap_func(void **a, void **b)
 
 bool __cdecl importance_compare_func(void *a, void *b)
 {
-    return (signed int)streamFrontendGlob.imageImportanceBits[(unsigned int)a - 4064] > (signed int)streamFrontendGlob.imageImportanceBits[(unsigned int)b - 4064];
+    return (signed int)streamFrontendGlob.imageImportanceBits[(unsigned int)Ptr32_Encode(a) - 4064] > (signed int)streamFrontendGlob.imageImportanceBits[(unsigned int)Ptr32_Encode(b) - 4064];
 }
 
 void *aux_buffer[2113];
@@ -1235,7 +1235,7 @@ char __cdecl R_StreamRequestImageAllocation(
         v6 = va(
             "-STREAM-allocation complete. bytes=%d,image=%s,imagePart=%d,importance=%f\n",
             request->bufferSize,
-            image->name,
+            (const char *)image->name,
             imagePart,
             importance);
         Com_PrintMessage(16, v6, 0);
@@ -2201,7 +2201,7 @@ void __cdecl MultiplePointDistSqFromBounds(
     float4 v6; // [esp-20h] [ebp-120h]
     float4 v7; // [esp-10h] [ebp-110h]
 
-    if ( ((unsigned int)&s_viewPos & 0xF) != 0
+    if ( ((unsigned int)Ptr32_Encode(&s_viewPos) & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp",
                     3465,
@@ -2211,7 +2211,7 @@ void __cdecl MultiplePointDistSqFromBounds(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)mip0mins & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(mip0mins) & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp",
                     3469,
@@ -2221,7 +2221,7 @@ void __cdecl MultiplePointDistSqFromBounds(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)mip0maxs & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(mip0maxs) & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp",
                     3470,

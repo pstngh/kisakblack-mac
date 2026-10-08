@@ -27,20 +27,20 @@ void __cdecl DDL_Converter_CopyStates(
             case 2:
                 Int = DDL_GetInt(stateFrom, bufferFrom);
                 if ( !DDL_SetInt(stateTo, Int, bufferTo) )
-                    DDL_PrintError("DDL: Found member '%s' but could not write value.\n", stateFrom->member->name);
+                    DDL_PrintError("DDL: Found member '%s' but could not write value.\n", (const char *)stateFrom->member->name);
                 break;
             case 3:
                 LODWORD(v5) = DDL_GetInt64(stateFrom, bufferFrom);
                 if ( !DDL_SetInt64(stateTo, v5, bufferTo) )
-                    DDL_PrintError("DDL: Found member '%s' but could not write value.\n", stateFrom->member->name);
+                    DDL_PrintError("DDL: Found member '%s' but could not write value.\n", (const char *)stateFrom->member->name);
                 break;
             case 5:
                 String = DDL_GetString(stateFrom, bufferFrom);
                 if ( !DDL_SetString(stateTo, String, bufferTo) )
-                    DDL_PrintError("DDL: Found member '%s' but could not write value.\n", stateFrom->member->name);
+                    DDL_PrintError("DDL: Found member '%s' but could not write value.\n", (const char *)stateFrom->member->name);
                 break;
             default:
-                DDL_PrintError("DDL: Invalid type reached during ddl conversion for member '%s'.\n", stateFrom->member->name);
+                DDL_PrintError("DDL: Invalid type reached during ddl conversion for member '%s'.\n", (const char *)stateFrom->member->name);
                 break;
         }
     }

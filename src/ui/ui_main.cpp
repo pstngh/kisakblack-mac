@@ -1205,7 +1205,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                                                                                                                     contextIndex,
                                                                                                                                                                     out,
                                                                                                                                                                     (const char **)args,
-                                                                                                                                                                    (const char *)HIDWORD(args));
+                                                                                                                                                                    (const char *)Ptr32_Decode(HIDWORD(args)));
                                                                                                                                                             else
                                                                                                                                                                 ; // leaderboards were online-only
                                                                                                                                                         }

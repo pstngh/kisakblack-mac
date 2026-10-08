@@ -287,7 +287,7 @@ const char *R_Cinematic_CheckBinkError()
                                                          "%s\n\t%s",
                                                          "!binkError || binkError[0] == '\\0'",
                                                          v1);
-        if ( !(_BYTE)result )
+        if ( !(_BYTE)Ptr32_Encode(result) )
             __debugbreak();
     }
     return result;
@@ -983,7 +983,7 @@ int __cdecl R_Cinematic_BinkShouldSkip(bool useCustomLogic)
 
     if ( !useCustomLogic )
         return BinkShouldSkip(cinematicGlob.bink);
-    bink = (float)(int)cinematicGlob.bink;
+    bink = (float)(int)Ptr32_Encode(cinematicGlob.bink);
     return *(unsigned int *)(cinematicGlob.bink + 12) < (unsigned int)(__int64)((double)(int)(Sys_Milliseconds() - *(unsigned int *)&cinematicGlob.usingAlpha) * *(float *)&cinematicGlob.fileIoState / 1000.0 + bink);
 }
 
@@ -994,7 +994,7 @@ int __cdecl R_Cinematic_BinkShouldWait(bool useCustomLogic)
     if ( !useCustomLogic )
         return BinkWait(cinematicGlob.bink);
 
-    bink = (float)(int)cinematicGlob.bink;
+    bink = (float)(int)Ptr32_Encode(cinematicGlob.bink);
     return (unsigned int)(__int64)((double)(int)(Sys_Milliseconds() + 16 - *(unsigned int *)&cinematicGlob.usingAlpha)
                                                              * *(float *)&cinematicGlob.fileIoState
                                                              / 1000.0
@@ -1076,7 +1076,7 @@ char __cdecl R_Cinematic_StartPlayback_Now(const char *filename, unsigned int pl
     BinkSetMemory(R_Cinematic_Bink_Alloc, R_Cinematic_Bink_Free);
     R_Cinematic_CheckBinkError();
     if (g_cinematicDS)
-        BinkSetSoundSystem(BinkOpenDirectSound, (unsigned int)g_cinematicDS);
+        BinkSetSoundSystem(BinkOpenDirectSound, (unsigned int)Ptr32_Encode(g_cinematicDS));
     R_Cinematic_CheckBinkError();
     R_Cinematic_CheckBinkError();
     BinkSetSoundTrack(5, TrackIDsToPlay);
@@ -1199,8 +1199,8 @@ void __cdecl R_Cinematic_HunksAllocate(int activeTexture, char playbackFlags)
         newResidentBufferSize = 0x1680000;
         newBinkBufferSize = 0x180000;
     }
-    binkBufferBase = (char *)CinematicHunk_Alloc(&cinematicGlob.masterHunk, newBinkBufferSize);
-    residentBufferBase = (char *)CinematicHunk_Alloc(&cinematicGlob.masterHunk, newResidentBufferSize);
+    binkBufferBase = (char *)Ptr32_Decode(CinematicHunk_Alloc(&cinematicGlob.masterHunk, newBinkBufferSize));
+    residentBufferBase = (char *)Ptr32_Decode(CinematicHunk_Alloc(&cinematicGlob.masterHunk, newResidentBufferSize));
     CinematicHunk_Open(&cinematicGlob.binkHunk, binkBufferBase, newBinkBufferSize);
     CinematicHunk_Open(&cinematicGlob.residentHunk, residentBufferBase, newResidentBufferSize);
 }
@@ -1255,7 +1255,7 @@ int __cdecl CinematicHunk_Alloc(CinematicHunk *hunk, int size)
             __debugbreak();
         }
         hunk->lastAllocPtr = alloced;
-        return (int)alloced;
+        return (int)Ptr32_Encode(alloced);
     }
     else
     {

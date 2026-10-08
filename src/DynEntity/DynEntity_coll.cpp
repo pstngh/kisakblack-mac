@@ -661,7 +661,7 @@ void __cdecl DynEnt_GetLocalBounds(const DynEntityDef *dynEntDef, float *mins, f
         XModelGetBounds(dynEntDef->xModel, mins, maxs);
         if ( *maxs <= *mins || maxs[1] <= mins[1] || maxs[2] <= mins[2] )
         {
-            v3 = va("Bad bounds on xmodel %s", dynEntDef->xModel->name);
+            v3 = va("Bad bounds on xmodel %s", (const char *)dynEntDef->xModel->name);
             if ( !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\DynEntity\\DynEntity_coll.cpp",
                             643,

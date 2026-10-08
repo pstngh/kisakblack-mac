@@ -1355,8 +1355,8 @@ void __cdecl R_RenderWaterModel(unsigned int viewIndex)
                     return;
                 interpolate = (double)(data.frame - mesh1->lastSkinTime) / 16.0;
                 *((float *)modelSurf + 5) = interpolate;
-                *((unsigned int *)modelSurf + 1) = (unsigned int)data.vertexBuffer;
-                *((unsigned int *)modelSurf + 2) = (unsigned int)data.vertexBuffer;
+                *((unsigned int *)modelSurf + 1) = (unsigned int)Ptr32_Encode(data.vertexBuffer);
+                *((unsigned int *)modelSurf + 2) = (unsigned int)Ptr32_Encode(data.vertexBuffer);
                 *((unsigned int *)modelSurf + 3) = mesh0->baseVertex;
                 *((unsigned int *)modelSurf + 4) = mesh1->baseVertex;
                 v1 = (float)tile->worldY * config.gridScale;
@@ -1366,11 +1366,11 @@ void __cdecl R_RenderWaterModel(unsigned int viewIndex)
                 *((float *)modelSurf + 10) = v2;
                 dist = Vec3DistanceSq((const float *)modelSurf + 8, lodOrigin);
                 lod = dist >= 2250000.0;
-                *(unsigned int *)modelSurf = (unsigned int)data.indexBuffer[lod];
+                *(unsigned int *)modelSurf = (unsigned int)Ptr32_Encode(data.indexBuffer[lod]);
                 *((unsigned int *)modelSurf + 6) = 289;
                 *((unsigned int *)modelSurf + 7) = data.tileTriCount[lod];
                 surfId = modelSurf - (char *)frontEndDataOut;
-                if ( (((_BYTE)modelSurf - (_BYTE)frontEndDataOut) & 3) != 0
+                if ( (((_BYTE)Ptr32_Encode(modelSurf) - (_BYTE)Ptr32_Encode(frontEndDataOut)) & 3) != 0
                     && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_water_sim.cpp",
                                 1374,
@@ -1422,7 +1422,7 @@ void *FlushBuffers()
     {
         //channel_t<float4>::Cache(data.buffer, 0, 0, 1);
         data.buffer[0].Cache(0, false, true);
-        result = (void *)(i + 1);
+        result = (void *)Ptr32_Decode(i + 1);
     }
     for (j = 0; j < 4; ++j)
     {
@@ -1438,7 +1438,7 @@ void *FlushBuffers()
     {
         //channel_t<char>::Cache(&data.flooroffset, 0, 0, 1);
         data.flooroffset.Cache(0, false, true);
-        result = (void *)(m + 1);
+        result = (void *)Ptr32_Decode(m + 1);
     }
     for (n = 0; n < 4; ++n)
     {
@@ -2867,20 +2867,20 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
     normalOffset.v[0] = 128.0f;
     normalOffset.v[1] = 127.0f;
 
-    dest = (GfxWaterVertex *)cmd->skin.srcBuf;
+    dest = (GfxWaterVertex *)Ptr32_Decode(cmd->skin.srcBuf);
     for ( tileu = 0; (unsigned int)tileu < 0x10; ++tileu )
     {
-        tilev = (int)cmd->skin.meshesEA[tileu];
+        tilev = (int)Ptr32_Encode(cmd->skin.meshesEA[tileu]);
         if ( tilev )
         {
             if ( !Sys_QueryD3DDeviceOKEvent() )
                 return;
-            maxBox.u[3] = (unsigned int)R_LockVertexBuffer(data.vertexBuffer, 0, 0, 0x1000u);
+            maxBox.u[3] = (unsigned int)Ptr32_Encode(R_LockVertexBuffer(data.vertexBuffer, 0, 0, 0x1000u));
             if ( !maxBox.u[3] )
                 return;
-            maxBox.u[3] += 16 * *(unsigned int *)(tilev + 24);
-            maxBox.u[2] = *(unsigned int *)tilev;
-            maxBox.u[1] = *(unsigned int *)(tilev + 4);
+            maxBox.u[3] += 16 * *(unsigned int *)Ptr32_Decode(tilev + 24);
+            maxBox.u[2] = *(unsigned int *)Ptr32_Decode(tilev);
+            maxBox.u[1] = *(unsigned int *)Ptr32_Decode(tilev + 4);
             minBox.v[2] = -FLT_MAX;
             minBox.v[3] = -FLT_MAX;
             maxBox.v[0] = -FLT_MAX;
@@ -2900,8 +2900,8 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
                 {
                     worldV = worldU + maxBox.u[2];
                     worldUV.u[3] = v + maxBox.u[1];
-                    worldUV.u[2] = worldU + *(unsigned int *)(tilev + 8);
-                    worldUV.u[1] = v + *(unsigned int *)(tilev + 12);
+                    worldUV.u[2] = worldU + *(unsigned int *)Ptr32_Decode(tilev + 8);
+                    worldUV.u[1] = v + *(unsigned int *)Ptr32_Decode(tilev + 12);
                     Float4LoadFloats(
                         ((float)(int)worldUV.u[2]),
                         ((float)(int)worldUV.u[1]),
@@ -2913,39 +2913,39 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
                     v161 = (unsigned int)worldU;
                     *(float *)&x = (float)(unsigned int)worldU;
                     Float4LoadFloats(x, y, (0.0), (0.0), (float4 *)v163);
-                    *(float4 *)&a[4] = *ReadValue(&v160, worldV - 1, worldUV.u[3] - 1, (unsigned int)dest);
+                    *(float4 *)&a[4] = *ReadValue(&v160, worldV - 1, worldUV.u[3] - 1, (unsigned int)Ptr32_Encode(dest));
                     v157 = *(_QWORD *)&a[4];
                     v158 = *(float *)&a[12];
                     *(unsigned int *)a = *(unsigned int *)&a[16];
-                    *(float4 *)&b[4] = *ReadValue(&v156, worldV, worldUV.u[3] - 1, (unsigned int)dest);
+                    *(float4 *)&b[4] = *ReadValue(&v156, worldV, worldUV.u[3] - 1, (unsigned int)Ptr32_Encode(dest));
                     v153 = *(_QWORD *)&b[4];
                     v154 = *(float *)&b[12];
                     *(unsigned int *)b = *(unsigned int *)&b[16];
-                    *(float4 *)&c[4] = *ReadValue(&v152, worldV + 1, worldUV.u[3] - 1, (unsigned int)dest);
+                    *(float4 *)&c[4] = *ReadValue(&v152, worldV + 1, worldUV.u[3] - 1, (unsigned int)Ptr32_Encode(dest));
                     v149 = *(_QWORD *)&c[4];
                     v150 = *(float *)&c[12];
                     *(unsigned int *)c = *(unsigned int *)&c[16];
-                    *(float4 *)&d[4] = *ReadValue(&v148, worldV - 1, worldUV.u[3], (unsigned int)dest);
+                    *(float4 *)&d[4] = *ReadValue(&v148, worldV - 1, worldUV.u[3], (unsigned int)Ptr32_Encode(dest));
                     v145 = *(_QWORD *)&d[4];
                     v146 = *(float *)&d[12];
                     *(unsigned int *)d = *(unsigned int *)&d[16];
-                    *(float4 *)&e[4] = *ReadValue(&v144, worldV, worldUV.u[3], (unsigned int)dest);
+                    *(float4 *)&e[4] = *ReadValue(&v144, worldV, worldUV.u[3], (unsigned int)Ptr32_Encode(dest));
                     v141 = *(_QWORD *)&e[4];
                     v142 = *(float *)&e[12];
                     *(unsigned int *)e = *(unsigned int *)&e[16];
-                    *(float4 *)&f[4] = *ReadValue(&v140, worldV + 1, worldUV.u[3], (unsigned int)dest);
+                    *(float4 *)&f[4] = *ReadValue(&v140, worldV + 1, worldUV.u[3], (unsigned int)Ptr32_Encode(dest));
                     v137 = *(_QWORD *)&f[4];
                     v138 = *(float *)&f[12];
                     *(unsigned int *)f = *(unsigned int *)&f[16];
-                    *(float4 *)&g[4] = *ReadValue(&v136, worldV - 1, worldUV.u[3] + 1, (unsigned int)dest);
+                    *(float4 *)&g[4] = *ReadValue(&v136, worldV - 1, worldUV.u[3] + 1, (unsigned int)Ptr32_Encode(dest));
                     v133 = *(_QWORD *)&g[4];
                     v134 = *(float *)&g[12];
                     *(unsigned int *)g = *(unsigned int *)&g[16];
-                    *(float4 *)&h[4] = *ReadValue(&v132, worldV, worldUV.u[3] + 1, (unsigned int)dest);
+                    *(float4 *)&h[4] = *ReadValue(&v132, worldV, worldUV.u[3] + 1, (unsigned int)Ptr32_Encode(dest));
                     v129 = *(_QWORD *)&h[4];
                     v130 = *(float *)&h[12];
                     *(unsigned int *)h = *(unsigned int *)&h[16];
-                    *(float4 *)&i[4] = *ReadValue(&v128, worldV + 1, worldUV.u[3] + 1, (unsigned int)dest);
+                    *(float4 *)&i[4] = *ReadValue(&v128, worldV + 1, worldUV.u[3] + 1, (unsigned int)Ptr32_Encode(dest));
                     *(_QWORD *)&avgpos[12] = *(_QWORD *)&i[4];
                     waterheight = *(float *)&i[12];
                     *(unsigned int *)i = *(unsigned int *)&i[16];
@@ -3102,7 +3102,7 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
                     Float4LoadFloats(
                         (0.0),
                         (0.0),
-                        ((float)((float)*(__int16 *)&avgpos[8] / config.gridScale) - (float)*(int *)(tilev + 16)),
+                        ((float)((float)*(__int16 *)&avgpos[8] / config.gridScale) - (float)*(int *)Ptr32_Decode(tilev + 16)),
                         (0.0),
                         (float4 *)&finalPos.unitVec[1]);
                     v93 = (float)((float)(zoffset.v[1] + finalPos.v[1]) * posOffset.v[1]) + normalScale.v[1];
@@ -3194,10 +3194,10 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
                     v57 = v81;
                     v58 = v82;
                     v59 = v15;
-                    *(_BYTE *)maxBox.u[3] = (int)v80;
-                    *(_BYTE *)(maxBox.u[3] + 1) = (int)v57;
-                    *(_BYTE *)(maxBox.u[3] + 2) = (int)v58;
-                    *(_BYTE *)(maxBox.u[3] + 3) = (int)v59;
+                    *(_BYTE *)Ptr32_Decode(maxBox.u[3]) = (int)v80;
+                    *(_BYTE *)Ptr32_Decode(maxBox.u[3] + 1) = (int)v57;
+                    *(_BYTE *)Ptr32_Decode(maxBox.u[3] + 2) = (int)v58;
+                    *(_BYTE *)Ptr32_Decode(maxBox.u[3] + 3) = (int)v59;
                     v55 = g_swizzleXYAB;
                     v49 = *(_QWORD *)&binormal.unitVec[1].packed;
                     v50 = binormal.u[3];
@@ -3221,7 +3221,7 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
                     BYTE1(finalNormal) = *((_BYTE *)&v49 + g_swizzleXYAB.unitVec[3].array[2]);
                     BYTE2(finalNormal) = *((_BYTE *)&v49 + g_swizzleXYAB.unitVec[3].array[1]);
                     HIBYTE(finalNormal) = *((_BYTE *)&v49 + g_swizzleXYAB.unitVec[3].array[0]);
-                    v39 = (_BYTE *)(maxBox.u[3] + 4);
+                    v39 = (_BYTE *)Ptr32_Decode(maxBox.u[3] + 4);
                     if ( (float)((float)((float)((float)(v45 * normalOffset.v[1]) + *(float *)&mesh) + 0.5) - 0.0) < 0.0 )
                         v38 = g_zero.v[0];
                     else
@@ -3263,8 +3263,8 @@ void    R_WaterSimulationSkinMesh(const WaterSimulationCmd *cmd)
                     v39[1] = (int)v41;
                     v39[2] = (int)v43;
                     v39[3] = (int)v21;
-                    *(unsigned int *)(maxBox.u[3] + 8) = data.colors.v[256 * worldUV.unitVec[3].array[0] + (unsigned __int8)worldV].packed;
-                    v36 = (_BYTE *)(maxBox.u[3] + 12);
+                    *(unsigned int *)Ptr32_Decode(maxBox.u[3] + 8) = data.colors.v[256 * worldUV.unitVec[3].array[0] + (unsigned __int8)worldV].packed;
+                    v36 = (_BYTE *)Ptr32_Decode(maxBox.u[3] + 12);
                     v35 = (float)worldUV.unitVec[2].array[0] + 0.5;
                     if ( (float)(v35 - 255.0) < 0.0 )
                         v34 = (float)worldUV.unitVec[2].array[0] + 0.5;

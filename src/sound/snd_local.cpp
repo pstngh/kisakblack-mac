@@ -49,7 +49,7 @@ int __cdecl SNDL_Play(
         
         pId = SND_PlaySoundAlias(list, attenuation, entHandle, position, 0, fadeTimeMs, direction, playback, &ocache);
         if ( notify )
-            SND_AddLengthNotify(pId, (const char*)entHandle.field.entIndex, SND_LENGTH_NOTIFY_SCRIPT);
+            SND_AddLengthNotify(pId, (const char*)Ptr32_Decode(entHandle.field.entIndex), SND_LENGTH_NOTIFY_SCRIPT);
     }
     else
     {
@@ -58,7 +58,7 @@ int __cdecl SNDL_Play(
     if ( pId != -1 )
     {
         if ( notify )
-            SND_AddLengthNotify(pId, (const char *)entHandle.field.entIndex, SND_LENGTH_NOTIFY_SCRIPT);
+            SND_AddLengthNotify(pId, (const char *)Ptr32_Decode(entHandle.field.entIndex), SND_LENGTH_NOTIFY_SCRIPT);
         if (playback)
             iassert(playback->id == pId);
     }

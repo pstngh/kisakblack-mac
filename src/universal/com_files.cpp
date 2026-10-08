@@ -121,7 +121,7 @@ int __cdecl FS_IwdIsPure(const iwd_t *iwd)
 
 void __cdecl FS_DisablePureCheck(bool disable)
 {
-    if ( fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.integer )
+    if ( fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer) )
         g_disablePureCheck = disable;
     if ( disable )
         FS_ShutdownServerIwdNames();
@@ -473,7 +473,7 @@ int __cdecl FS_FileExists(char *file)
     _iobuf *f; // [esp+4h] [ebp-10Ch]
     char testpath[260]; // [esp+8h] [ebp-108h] BYREF
 
-    FS_BuildOSPath((char *)fs_homepath->current.integer, fs_gamedir, file, testpath);
+    FS_BuildOSPath((char *)Ptr32_Decode(fs_homepath->current.integer), fs_gamedir, file, testpath);
     f = FS_FileOpenReadBinary(testpath);
     if ( !f )
         return 0;
@@ -906,7 +906,7 @@ unsigned int __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, 
                                     if ( fs_copyfiles->current.enabled && !I_stricmp(dir->path, fs_cdpath->current.string) )
                                     {
                                         FS_BuildOSPathForThread(
-                                            (char *)fs_basepath->current.integer,
+                                            (char *)Ptr32_Decode(fs_basepath->current.integer),
                                             dir->gamedir,
                                             sanitizedName,
                                             copypath,
@@ -1902,11 +1902,11 @@ void __cdecl FS_SortFileList(const char **filelist, int numfiles)
     numsortedfiles = 0;
     for ( i = 0; i < numfiles; ++i )
     {
-        for ( j = 0; j < numsortedfiles && FS_PathCmp(filelist[i], (const char *)sortedlist[j]) >= 0; ++j )
+        for ( j = 0; j < numsortedfiles && FS_PathCmp(filelist[i], (const char *)Ptr32_Decode(sortedlist[j])) >= 0; ++j )
             ;
         for ( k = numsortedfiles; k > j; --k )
             sortedlist[k] = sortedlist[k - 1];
-        sortedlist[j] = (unsigned int)filelist[i];
+        sortedlist[j] = (unsigned int)Ptr32_Encode(filelist[i]);
         ++numsortedfiles;
     }
     Com_Memcpy(filelist, sortedlist, 4 * numfiles);
@@ -1986,7 +1986,7 @@ void __cdecl FS_AddUserMapDirIWDs(char *pszGameFolder)
         if ( i->iwd && !I_stricmp(i->iwd->iwdGamename, pszGameFolder) )
             return;
     }
-    FS_AddIwdFilesForGameDirectory((char *)fs_homepath->current.integer, pszGameFolder);
+    FS_AddIwdFilesForGameDirectory((char *)Ptr32_Decode(fs_homepath->current.integer), pszGameFolder);
 }
 
 int bLanguagesListed;
@@ -2161,9 +2161,9 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, const char *basename)
         ;
     iwd = Z_Malloc(4 * i + 804, "FS_LoadZipFile3", 3);
     iwd[198] = i;
-    iwd[199] = (unsigned int)(iwd + 201);
+    iwd[199] = (unsigned int)Ptr32_Encode(iwd + 201);
     for ( i = 0; i < iwd[198]; ++i )
-        *(unsigned int *)(iwd[199] + 4 * i) = 0;
+        *(unsigned int *)Ptr32_Decode(iwd[199] + 4 * i) = 0;
     I_strncpyz((char *)iwd, zipfile, 256);
     I_strncpyz((char *)iwd + 256, basename, 256);
     if ( strlen((const char *)iwd + 256) > 4
@@ -2171,7 +2171,7 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, const char *basename)
     {
         *((_BYTE *)iwd + strlen((const char *)iwd + 256) + 252) = 0;
     }
-    iwd[192] = (unsigned int)uf;
+    iwd[192] = (unsigned int)Ptr32_Encode(uf);
     iwd[196] = gi.number_entry;
     iwd[195] = 0;
     unzGoToFirstFile(uf);
@@ -2193,7 +2193,7 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, const char *basename)
         namePtr += &filename_inzip[strlen(filename_inzip) + 1] - &filename_inzip[1] + 1;
         unzGetCurrentFileInfoPosition(uf, (unsigned long*)&buildBuffer[i].pos);
         buildBuffer[i].next = *(fileInIwd_s **)(iwd[199] + 4 * hash);
-        *(unsigned int *)(iwd[199] + 4 * hash) = (unsigned int)&buildBuffer[i];
+        *(unsigned int *)Ptr32_Decode(iwd[199] + 4 * hash) = (unsigned int)Ptr32_Encode(&buildBuffer[i]);
         unzGoToNextFile(uf);
     }
     iwd[193] = Com_BlockChecksumKey32((const unsigned __int8 *)fs_headerLongs, 4 * fs_numHeaderLongs, 0);
@@ -2204,7 +2204,7 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, const char *basename)
     iwd[193] = iwd[193];
     iwd[194] = iwd[194];
     Z_Free((char *)fs_headerLongs, 3);
-    iwd[200] = (unsigned int)buildBuffer;
+    iwd[200] = (unsigned int)Ptr32_Encode(buildBuffer);
     return (iwd_t *)iwd;
 }
 
@@ -2392,43 +2392,43 @@ void __cdecl FS_Startup(const char *gameName, bool allow_devraw)
     FS_RegisterDvars();
     if ( fs_usedevdir->current.enabled )
     {
-        if ( *(_BYTE *)fs_basepath->current.integer )
-            FS_AddDevGameDirs((char *)fs_basepath->current.integer, allow_devraw);
-        if ( *(_BYTE *)fs_homepath->current.integer && I_stricmp(fs_basepath->current.string, fs_homepath->current.string) )
-            FS_AddDevGameDirs((char *)fs_homepath->current.integer, allow_devraw);
-        if ( *(_BYTE *)fs_cdpath->current.integer && I_stricmp(fs_basepath->current.string, fs_cdpath->current.string) )
-            FS_AddDevGameDirs((char *)fs_cdpath->current.integer, allow_devraw);
+        if ( *(_BYTE *)Ptr32_Decode(fs_basepath->current.integer) )
+            FS_AddDevGameDirs((char *)Ptr32_Decode(fs_basepath->current.integer), allow_devraw);
+        if ( *(_BYTE *)Ptr32_Decode(fs_homepath->current.integer) && I_stricmp(fs_basepath->current.string, fs_homepath->current.string) )
+            FS_AddDevGameDirs((char *)Ptr32_Decode(fs_homepath->current.integer), allow_devraw);
+        if ( *(_BYTE *)Ptr32_Decode(fs_cdpath->current.integer) && I_stricmp(fs_basepath->current.string, fs_cdpath->current.string) )
+            FS_AddDevGameDirs((char *)Ptr32_Decode(fs_cdpath->current.integer), allow_devraw);
     }
-    if ( *(_BYTE *)fs_cdpath->current.integer && I_stricmp(fs_basepath->current.string, fs_cdpath->current.string) )
-        FS_AddLocalizedGameDirectory((char *)fs_cdpath->current.integer, gameName);
-    if ( *(_BYTE *)fs_basepath->current.integer )
-        FS_AddLocalizedGameDirectory((char *)fs_basepath->current.integer, "players");
-    if ( *(_BYTE *)fs_basepath->current.integer )
+    if ( *(_BYTE *)Ptr32_Decode(fs_cdpath->current.integer) && I_stricmp(fs_basepath->current.string, fs_cdpath->current.string) )
+        FS_AddLocalizedGameDirectory((char *)Ptr32_Decode(fs_cdpath->current.integer), gameName);
+    if ( *(_BYTE *)Ptr32_Decode(fs_basepath->current.integer) )
+        FS_AddLocalizedGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), "players");
+    if ( *(_BYTE *)Ptr32_Decode(fs_basepath->current.integer) )
     {
         v3 = va("%s_shared", gameName);
-        FS_AddLocalizedGameDirectory((char *)fs_basepath->current.integer, v3);
-        FS_AddLocalizedGameDirectory((char *)fs_basepath->current.integer, gameName);
+        FS_AddLocalizedGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), v3);
+        FS_AddLocalizedGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), gameName);
     }
-    if ( *(_BYTE *)fs_basepath->current.integer && I_stricmp(fs_homepath->current.string, fs_basepath->current.string) )
+    if ( *(_BYTE *)Ptr32_Decode(fs_basepath->current.integer) && I_stricmp(fs_homepath->current.string, fs_basepath->current.string) )
     {
         v4 = va("%s_shared", gameName);
-        FS_AddLocalizedGameDirectory((char *)fs_basepath->current.integer, v4);
-        FS_AddLocalizedGameDirectory((char *)fs_homepath->current.integer, gameName);
+        FS_AddLocalizedGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), v4);
+        FS_AddLocalizedGameDirectory((char *)Ptr32_Decode(fs_homepath->current.integer), gameName);
     }
-    if ( *(_BYTE *)fs_basegame->current.integer
+    if ( *(_BYTE *)Ptr32_Decode(fs_basegame->current.integer)
         && !I_stricmp(gameName, "main")
         && I_stricmp(fs_basegame->current.string, gameName)
-        && *(_BYTE *)fs_basepath->current.integer )
+        && *(_BYTE *)Ptr32_Decode(fs_basepath->current.integer) )
     {
-        FS_AddGameDirectory((char *)fs_basepath->current.integer, fs_basegame->current.string, 0, 0);
+        FS_AddGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), fs_basegame->current.string, 0, 0);
     }
-    if ( *(_BYTE *)fs_gameDirVar->current.integer
+    if ( *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer)
         && !I_stricmp(gameName, "main")
         && I_stricmp(fs_gameDirVar->current.string, gameName)
-        && *(_BYTE *)fs_basepath->current.integer )
+        && *(_BYTE *)Ptr32_Decode(fs_basepath->current.integer) )
     {
-        FS_AddGameDirectory((char *)fs_basepath->current.integer, "usermaps", 0, 0);
-        FS_AddGameDirectory((char *)fs_basepath->current.integer, fs_gameDirVar->current.string, 0, 0);
+        FS_AddGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), "usermaps", 0, 0);
+        FS_AddGameDirectory((char *)Ptr32_Decode(fs_basepath->current.integer), fs_gameDirVar->current.string, 0, 0);
     }
     Com_ReadCDKey();
     //BLOPS_NULLSUB();
@@ -2564,9 +2564,9 @@ void FS_RegisterDvars()
                                         "Game data directory. Must be \"\" or a sub directory of 'mods/'.");
     fs_usermapDir = _Dvar_RegisterString("fs_usermapdir", (char *)"", 0x144u, "Usermap data directory.");
     fs_ignoreLocalized = _Dvar_RegisterBool("fs_ignoreLocalized", 0, 0xA0u, "Ignore localized files");
-    homePath = (char *)RETURN_ZERO32();
+    homePath = (char *)Ptr32_Decode(RETURN_ZERO32());
     if ( !homePath || !*homePath )
-        homePath = (char *)fs_basepath->reset.integer;
+        homePath = (char *)Ptr32_Decode(fs_basepath->reset.integer);
     fs_homepath = _Dvar_RegisterString("fs_h", homePath, 0x210u, "Game home path");
     FS_GetOsFolderPath(5, ospathPersonalDocuments);
     fs_userDocuments = _Dvar_RegisterString(

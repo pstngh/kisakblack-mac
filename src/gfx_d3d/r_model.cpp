@@ -394,7 +394,7 @@ LABEL_42:
             else
                 v11 = -1;
             *(unsigned int *)v17 = v11;
-            *((unsigned int *)v17 + 1) = (unsigned int)v15;
+            *((unsigned int *)v17 + 1) = (unsigned int)Ptr32_Encode(v15);
             *((_WORD *)v17 + 7) = gfxEntIndex;
             *((_WORD *)v17 + 8) = 0;
             memcpy(v17 + 24, placement, 0x1Cu);

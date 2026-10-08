@@ -670,14 +670,14 @@ void __cdecl GScr_SetGenericField(unsigned __int8 *b, fieldtype_t type, int ofs,
         case F_ACTOR:
             ent = Scr_GetEntityAllowNull(0, SCRIPTINSTANCE_SERVER);
             if ( ent )
-                *(unsigned int *)&b[ofs] = (unsigned int)ent->actor;
+                *(unsigned int *)&b[ofs] = (unsigned int)Ptr32_Encode(ent->actor);
             else
                 *(unsigned int *)&b[ofs] = 0;
             break;
         case F_SENTIENT:
             enta = Scr_GetEntityAllowNull(0, SCRIPTINSTANCE_SERVER);
             if ( enta )
-                *(unsigned int *)&b[ofs] = (unsigned int)enta->sentient;
+                *(unsigned int *)&b[ofs] = (unsigned int)Ptr32_Encode(enta->sentient);
             else
                 *(unsigned int *)&b[ofs] = 0;
             break;
@@ -689,7 +689,7 @@ void __cdecl GScr_SetGenericField(unsigned __int8 *b, fieldtype_t type, int ofs,
                 ((SentientHandle *)&b[ofs])->setSentient(0);
             break;
         case F_PATHNODE:
-            *(unsigned int *)&b[ofs] = (unsigned int)Scr_GetPathnode(0, SCRIPTINSTANCE_SERVER);
+            *(unsigned int *)&b[ofs] = (unsigned int)Ptr32_Encode(Scr_GetPathnode(0, SCRIPTINSTANCE_SERVER));
             break;
         default:
             Scr_SetGenericField(b, type, ofs, SCRIPTINSTANCE_SERVER, whichbits);
@@ -1346,7 +1346,7 @@ void __cdecl SP_worldspawn(SpawnVar *spawnVar)
     }
     G_SpawnString(spawnVar, "message", "", &s);
     SV_SetConfigstring(4, (char *)s);
-    SV_SetConfigstring(11, (char *)g_motd->current.integer);
+    SV_SetConfigstring(11, (char *)Ptr32_Decode(g_motd->current.integer));
     G_SpawnString(spawnVar, "gravity", "800", &s);
     if ( !bg_gravity
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\game_mp\\g_spawn_mp.cpp", 1381, 0, "%s", "bg_gravity") )

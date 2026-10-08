@@ -815,7 +815,7 @@ void __cdecl Dvar_UpdateEnumDomain(dvar_s *dvar, const char **stringTable)
     }
     malleableDvar = dvar;
     dvar->domain.enumeration.stringCount = stringCount;
-    malleableDvar->domain.integer.max = (int)stringTable;
+    malleableDvar->domain.integer.max = (int)Ptr32_Encode(stringTable);
     v5 = *Dvar_ClampValueToDomain(&result, dvar->type, dvar->current, dvar->reset, dvar->domain);
     malleableDvar->current = v5;
     malleableDvar->latched = dvar->current;
@@ -1505,7 +1505,7 @@ void __cdecl Dvar_UpdateResetValue(dvar_s *dvar, DvarValue value)
                 shouldFree = Dvar_ShouldFreeResetString(dvar);
                 if ( shouldFree )
                     oldString.integer = dvar->reset.integer;
-                Dvar_AssignResetStringValue(dvar, &resetString, (char *)value.integer);
+                Dvar_AssignResetStringValue(dvar, &resetString, (char *)Ptr32_Decode(value.integer));
                 dvar->reset.integer = resetString.integer;
                 if ( shouldFree )
                     Dvar_FreeString(&oldString);
@@ -1521,11 +1521,11 @@ void __cdecl Dvar_AssignResetStringValue(dvar_s *dvar, DvarValue *dest, char *st
 {
     if ( !string && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\dvar.cpp", 226, 0, "%s", "string") )
         __debugbreak();
-    if ( dvar->current.integer && (string == (char *)dvar->current.integer || !strcmp(string, dvar->current.string)) )
+    if ( dvar->current.integer && (string == (char *)Ptr32_Decode(dvar->current.integer) || !strcmp(string, dvar->current.string)) )
     {
         Dvar_WeakCopyString(dvar->current.string, dest);
     }
-    else if ( dvar->latched.integer && (string == (char *)dvar->latched.integer || !strcmp(string, dvar->latched.string)) )
+    else if ( dvar->latched.integer && (string == (char *)Ptr32_Decode(dvar->latched.integer) || !strcmp(string, dvar->latched.string)) )
     {
         Dvar_WeakCopyString(dvar->latched.string, dest);
     }
@@ -1539,14 +1539,14 @@ void __cdecl Dvar_CopyString(char *string, DvarValue *value)
 {
     if ( !string && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\dvar.cpp", 163, 0, "%s", "string") )
         __debugbreak();
-    value->integer = (int)CopyString(string, "Dvar_CopyString", 11, SCRIPTINSTANCE_SERVER);
+    value->integer = (int)Ptr32_Encode(CopyString(string, "Dvar_CopyString", 11, SCRIPTINSTANCE_SERVER));
 }
 
 void __cdecl Dvar_WeakCopyString(const char *string, DvarValue *value)
 {
     if ( !string && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\dvar.cpp", 171, 0, "%s", "string") )
         __debugbreak();
-    value->integer = (int)string;
+    value->integer = (int)Ptr32_Encode(string);
 }
 
 void __cdecl Dvar_MakeLatchedValueCurrent(dvar_s *dvar)
@@ -1672,11 +1672,11 @@ void __cdecl Dvar_AssignCurrentStringValue(dvar_s *dvar, DvarValue *dest, char *
 {
     if ( !string && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\dvar.cpp", 202, 0, "%s", "string") )
         __debugbreak();
-    if ( dvar->latched.integer && (string == (char *)dvar->latched.integer || !strcmp(string, dvar->latched.string)) )
+    if ( dvar->latched.integer && (string == (char *)Ptr32_Decode(dvar->latched.integer) || !strcmp(string, dvar->latched.string)) )
     {
         Dvar_WeakCopyString(dvar->latched.string, dest);
     }
-    else if ( dvar->reset.integer && (string == (char *)dvar->reset.integer || !strcmp(string, dvar->reset.string)) )
+    else if ( dvar->reset.integer && (string == (char *)Ptr32_Decode(dvar->reset.integer) || !strcmp(string, dvar->reset.string)) )
     {
         Dvar_WeakCopyString(dvar->reset.string, dest);
     }
@@ -1712,7 +1712,7 @@ void __cdecl Dvar_SetLatchedValue(dvar_s *dvar, DvarValue value)
                 shouldFree = Dvar_ShouldFreeLatchedString(dvar);
                 if ( shouldFree )
                     oldString.integer = dvar->latched.integer;
-                Dvar_AssignLatchedStringValue(dvar, &latchedString, (char *)value.integer);
+                Dvar_AssignLatchedStringValue(dvar, &latchedString, (char *)Ptr32_Decode(value.integer));
                 dvar->latched.integer = latchedString.integer;
                 if ( shouldFree )
                     Dvar_FreeString(&oldString);
@@ -1728,11 +1728,11 @@ void __cdecl Dvar_AssignLatchedStringValue(dvar_s *dvar, DvarValue *dest, char *
 {
     if ( !string && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\dvar.cpp", 214, 0, "%s", "string") )
         __debugbreak();
-    if ( dvar->current.integer && (string == (char *)dvar->current.integer || !strcmp(string, dvar->current.string)) )
+    if ( dvar->current.integer && (string == (char *)Ptr32_Decode(dvar->current.integer) || !strcmp(string, dvar->current.string)) )
     {
         Dvar_WeakCopyString(dvar->current.string, dest);
     }
-    else if ( dvar->reset.integer && (string == (char *)dvar->reset.integer || !strcmp(string, dvar->reset.string)) )
+    else if ( dvar->reset.integer && (string == (char *)Ptr32_Decode(dvar->reset.integer) || !strcmp(string, dvar->reset.string)) )
     {
         Dvar_WeakCopyString(dvar->reset.string, dest);
     }
@@ -1950,7 +1950,7 @@ void __cdecl Dvar_MakeExplicitType(
     v6 = dvar->type == DVAR_TYPE_STRING && castValue.integer;
     wasString = v6;
     if (v6)
-        castValue.integer = (int)CopyString((char *)castValue.integer, "Dvar_MakeExplicitType", 11, SCRIPTINSTANCE_SERVER);
+        castValue.integer = (int)Ptr32_Encode(CopyString((char *)Ptr32_Decode(castValue.integer), "Dvar_MakeExplicitType", 11, SCRIPTINSTANCE_SERVER));
     if (dvar->type != DVAR_TYPE_STRING && Dvar_ShouldFreeCurrentString(dvar))
         Dvar_FreeString(&dvar->current);
     dvar->current.integer = 0;
@@ -2000,7 +2000,7 @@ DvarValue *__cdecl Dvar_StringToValue(DvarValue *result, dvarType_t type, DvarLi
             value.integer = Dvar_StringToEnum(&domain, string);
             break;
         case DVAR_TYPE_STRING:
-            value.integer = (int)string;
+            value.integer = (int)Ptr32_Encode(string);
             break;
         case DVAR_TYPE_COLOR:
             Dvar_StringToColor(string, (unsigned __int8 *)&value);
@@ -2119,7 +2119,7 @@ void __cdecl Dvar_UpdateValue(dvar_s *dvar, DvarValue value)
                 shouldFree = Dvar_ShouldFreeCurrentString(dvar);
                 if ( shouldFree )
                     oldString.integer = dvar->current.integer;
-                Dvar_AssignCurrentStringValue(dvar, &currentString, (char *)value.integer);
+                Dvar_AssignCurrentStringValue(dvar, &currentString, (char *)Ptr32_Decode(value.integer));
                 dvar->current.integer = currentString.integer;
                 if ( Dvar_ShouldFreeLatchedString(dvar) )
                     Dvar_FreeString(&dvar->latched);
@@ -2252,7 +2252,7 @@ const dvar_s *__cdecl Dvar_RegisterNew(
             dvar->reset = value;
             break;
         case DVAR_TYPE_STRING:
-            Dvar_CopyString((char *)value.integer, &dvar->current);
+            Dvar_CopyString((char *)Ptr32_Decode(value.integer), &dvar->current);
             Dvar_WeakCopyString(dvar->current.string, &dvar->latched);
             Dvar_WeakCopyString(dvar->current.string, &dvar->reset);
             break;
@@ -2440,7 +2440,7 @@ const dvar_s *__cdecl _Dvar_RegisterString(
     {
         __debugbreak();
     }
-    dvarValue.integer = (int)value;
+    dvarValue.integer = (int)Ptr32_Encode(value);
     memset(&v5, 0, sizeof(v5));
     return Dvar_RegisterVariant((char*)dvarName, DVAR_TYPE_STRING, flags, dvarValue, v5, description);
 }
@@ -2597,7 +2597,7 @@ void __cdecl Dvar_SetBoolFromSource(dvar_s *dvar, bool value, DvarSetSource sour
                 v3 = "1";
             else
                 v3 = "0";
-            newValue.integer = (int)v3;
+            newValue.integer = (int)Ptr32_Encode(v3);
         }
         else
         {
@@ -2642,7 +2642,7 @@ void __cdecl Dvar_SetIntFromSource(dvar_s *dvar, int value, DvarSetSource source
         else
         {
             Com_sprintf(string, 0x20u, "%i", value);
-            newValue.integer = (int)string;
+            newValue.integer = (int)Ptr32_Encode(string);
         }
         Dvar_SetVariant(dvar, newValue, source);
     }
@@ -2681,7 +2681,7 @@ void __cdecl Dvar_SetInt64FromSource(dvar_s *dvar, __int64 value, DvarSetSource 
         else
         {
             Com_sprintf(string, 0x20u, "%lli", value);
-            newValue.integer = (int)string;
+            newValue.integer = (int)Ptr32_Encode(string);
         }
         Dvar_SetVariant(dvar, newValue, source);
     }
@@ -2720,7 +2720,7 @@ void __cdecl Dvar_SetFloatFromSource(dvar_s *dvar, float value, DvarSetSource so
         else
         {
             Com_sprintf(string, 0x20u, "%g", value);
-            newValue.integer = (int)string;
+            newValue.integer = (int)Ptr32_Encode(string);
         }
         Dvar_SetVariant(dvar, newValue, source);
     }
@@ -2885,7 +2885,7 @@ void __cdecl Dvar_SetColorFromSource(dvar_s *dvar, float r, float g, float b, fl
         else
         {
             Com_sprintf(string, 0x80u, "%g %g %g %g", r, g, b, a);
-            newValue.integer = (int)string;
+            newValue.integer = (int)Ptr32_Encode(string);
         }
         Dvar_SetVariant(dvar, newValue, source);
     }
@@ -2963,7 +2963,7 @@ void __cdecl Dvar_SetStringFromSource(dvar_s *dvar, const char *string, DvarSetS
         if ( dvar->type == DVAR_TYPE_STRING )
         {
             I_strncpyz(stringCopy, string, 1024);
-            newValue.integer = (int)stringCopy;
+            newValue.integer = (int)Ptr32_Encode(stringCopy);
         }
         else
         {

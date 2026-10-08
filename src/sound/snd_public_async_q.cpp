@@ -811,7 +811,7 @@ void __cdecl SND_NotifyProcess(const snd_notify *cmd)
             {
                 __debugbreak();
             }
-            if ( *(unsigned int *)cmd->context.ent_update.handle.handle == -1
+            if ( *(unsigned int *)Ptr32_Decode(cmd->context.ent_update.handle.handle) == -1
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\sound\\snd_public_async_q.cpp",
                             553,

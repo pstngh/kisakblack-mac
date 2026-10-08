@@ -1,4 +1,5 @@
 #include "phys_transient_allocator.h"
+#include <universal/ptr32.h>
 #include "phys_mem_new.h"
 
 void phys_transient_allocator::reset()
@@ -61,7 +62,7 @@ void __thiscall phys_transient_allocator::resize()
     {
         *(unsigned int *)v3 = 0x4000;
         *((unsigned int *)v3 + 1) = 4;
-        *((unsigned int *)v3 + 2) = (unsigned int)this->m_first_block;
+        *((unsigned int *)v3 + 2) = (unsigned int)Ptr32_Encode(this->m_first_block);
         this->m_first_block = (phys_transient_allocator::block_header *)v3;
         this->m_total_memory_allocated += 0x4000;
         this->m_cur = v3 + 12;
@@ -76,13 +77,13 @@ int phys_transient_allocator::mt_allocate_internal(int size, int alignment)
     do
     {
         cur = this->m_cur;
-        if ((char *)(size + (~(alignment - 1) & (unsigned int)&cur[alignment - 1])) > this->m_end)
+        if ((char *)Ptr32_Decode(size + (~(alignment - 1) & (unsigned int)Ptr32_Encode(&cur[alignment - 1]))) > this->m_end)
             return 0;
-    } while ((char *)_InterlockedCompareExchange(
+    } while ((char *)Ptr32_Decode(_InterlockedCompareExchange(
         (volatile unsigned __int32 *)&this->m_cur,
         size + (~(alignment - 1) & (unsigned int)&cur[alignment - 1]),
-        (signed __int32)cur) != cur);
-    return ~(alignment - 1) & (unsigned int)&cur[alignment - 1];
+        (signed __int32)cur)) != cur);
+    return ~(alignment - 1) & (unsigned int)Ptr32_Encode(&cur[alignment - 1]);
 }
 
 void *__thiscall phys_transient_allocator::allocate(
@@ -96,11 +97,11 @@ void *__thiscall phys_transient_allocator::allocate(
     void *ptr; // [esp+14h] [ebp-4h]
 
     transient_allocator_update_largest_size();
-    v8 = ~(alignment - 1) & (int)&this->m_cur[alignment - 1];
-    if ((char *)(size + v8) <= this->m_end)
+    v8 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
+    if ((char *)Ptr32_Decode(size + v8) <= this->m_end)
     {
-        this->m_cur = (char *)(size + v8);
-        ptr = (void *)v8;
+        this->m_cur = (char *)Ptr32_Decode(size + v8);
+        ptr = (void *)Ptr32_Decode(v8);
     }
     else
     {
@@ -110,11 +111,11 @@ void *__thiscall phys_transient_allocator::allocate(
     {
         //phys_transient_allocator::resize();
         this->resize();
-        v7 = ~(alignment - 1) & (int)&this->m_cur[alignment - 1];
-        if ((char *)(size + v7) <= this->m_end)
+        v7 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
+        if ((char *)Ptr32_Decode(size + v7) <= this->m_end)
         {
-            this->m_cur = (char *)(size + v7);
-            ptr = (void *)v7;
+            this->m_cur = (char *)Ptr32_Decode(size + v7);
+            ptr = (void *)Ptr32_Decode(v7);
         }
         else
         {
@@ -156,18 +157,18 @@ void *__thiscall phys_transient_allocator::mt_allocate(
     transient_allocator_update_largest_size();
     //minspec_read_write_mutex::ReadLock(&this->m_mutex);
     this->m_mutex.ReadLock();
-    ptr = (void *)phys_transient_allocator::mt_allocate_internal(size, alignment);
+    ptr = (void *)Ptr32_Decode(phys_transient_allocator::mt_allocate_internal(size, alignment));
     //minspec_read_write_mutex::ReadUnlock(&this->m_mutex);
     this->m_mutex.ReadUnlock();
     if (!ptr)
     {
         //minspec_read_write_mutex::WriteLock(&this->m_mutex);
         this->m_mutex.WriteLock();
-        v8 = ~(alignment - 1) & (int)&this->m_cur[alignment - 1];
-        if ((char *)(size + v8) <= this->m_end)
+        v8 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
+        if ((char *)Ptr32_Decode(size + v8) <= this->m_end)
         {
-            this->m_cur = (char *)(size + v8);
-            ptr = (void *)v8;
+            this->m_cur = (char *)Ptr32_Decode(size + v8);
+            ptr = (void *)Ptr32_Decode(v8);
         }
         else
         {
@@ -176,11 +177,11 @@ void *__thiscall phys_transient_allocator::mt_allocate(
         if (!ptr)
         {
             phys_transient_allocator::resize();
-            v7 = ~(alignment - 1) & (int)&this->m_cur[alignment - 1];
-            if ((char *)(size + v7) <= this->m_end)
+            v7 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
+            if ((char *)Ptr32_Decode(size + v7) <= this->m_end)
             {
-                this->m_cur = (char *)(size + v7);
-                ptr = (void *)v7;
+                this->m_cur = (char *)Ptr32_Decode(size + v7);
+                ptr = (void *)Ptr32_Decode(v7);
             }
             else
             {

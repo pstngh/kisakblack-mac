@@ -547,9 +547,9 @@ void __cdecl PrintPlayerPickupMessage(gentity_s *player, unsigned int weapIdx)
         __debugbreak();
     }
     if ( BG_WeaponIsClipOnly(weapIdx) )
-        v2 = va("%c GAME_PICKUP_CLIPONLY_AMMO %s", 102, weapVariantDef->szDisplayName);
+        v2 = va("%c GAME_PICKUP_CLIPONLY_AMMO %s", 102, (const char *)weapVariantDef->szDisplayName);
     else
-        v2 = va("%c GAME_PICKUP_AMMO %s", 102, weapVariantDef->szDisplayName);
+        v2 = va("%c GAME_PICKUP_AMMO %s", 102, (const char *)weapVariantDef->szDisplayName);
     SV_GameSendServerCommand(player - g_entities, SV_CMD_CAN_IGNORE, v2);
 }
 
@@ -683,7 +683,7 @@ void __cdecl PrintMessage_CannotGrabItem(
         if ( BG_PlayerHasWeapon(&player->client->ps, weapIndex) )
         {
             WeaponVariantDef = BG_GetWeaponVariantDef(weapIndex);
-            v6 = va("%c GAME_PICKUP_CANTCARRYMOREAMMO %s", 102, WeaponVariantDef->szDisplayName);
+            v6 = va("%c GAME_PICKUP_CANTCARRYMOREAMMO %s", 102, (const char *)WeaponVariantDef->szDisplayName);
         }
         else
         {
@@ -1411,9 +1411,9 @@ void __cdecl SaveRegisteredWeapons()
             lastWrittenIndex = weapIndex;
             lastWrittenVariantCount = weapVariantDef->iVariantCount;
             if ( lastWrittenVariantCount )
-                v0 = va("%i %s %i", weapIndex, weapVariantDef->szInternalName, weapVariantDef->iVariantCount);
+                v0 = va("%i %s %i", weapIndex, (const char *)weapVariantDef->szInternalName, weapVariantDef->iVariantCount);
             else
-                v0 = va("%i %s", weapIndex, weapVariantDef->szInternalName);
+                v0 = va("%i %s", weapIndex, (const char *)weapVariantDef->szInternalName);
             SV_SetConfigstring(count + 2836, v0);
             ++count;
         }

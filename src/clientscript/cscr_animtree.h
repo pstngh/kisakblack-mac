@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 
 #include "cscr_main.h"
 #include "cscr_variable.h"
@@ -24,7 +25,7 @@ struct scr_anim_s // sizeof=0x4
             unsigned __int16 index;
             unsigned __int16 tree;
         };
-        const char *linkPointer;
+        Ptr32<const char> linkPointer;
     };
 
     scr_anim_s()
@@ -33,7 +34,7 @@ struct scr_anim_s // sizeof=0x4
     }
     scr_anim_s(int i)
     {
-        linkPointer = (const char *)i; // KISAKHACK
+        Ptr32_SetRaw(linkPointer, (unsigned int)i); // KISAKHACK: the packed index/tree
     }
 };
 
@@ -45,7 +46,7 @@ struct scr_animtree_t // sizeof=0x4
     }
     scr_animtree_t(int val)
     {
-        anims = (XAnim_s *)val;
+        anims = (XAnim_s *)Ptr32_Decode(val);
     }
     scr_animtree_t()
     {

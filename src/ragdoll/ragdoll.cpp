@@ -171,7 +171,7 @@ const RagdollBody *__cdecl Ragdoll_CreateRagdollForDObj(
 
     if ( ragdoll )
     {
-        body = (RagdollBody *)Ragdoll_HandleBody((int)ragdoll);
+        body = (RagdollBody *)Ragdoll_HandleBody((int)Ptr32_Encode(ragdoll));
         if ( reset )
             Ragdoll_BodyNewState(body, BS_DEAD);
         if ( body->state == BS_DEAD )

@@ -269,7 +269,7 @@ void __cdecl R_FreeStaticIndexBuffer(IDirect3DIndexBuffer9 *ib)
     while ( alwaysfails );
 }
 
-void __cdecl Load_VertexBuffer(IDirect3DVertexBuffer9 **vb, unsigned __int8 *bufferData, int sizeInBytes)
+void __cdecl Load_VertexBuffer(Ptr32<IDirect3DVertexBuffer9> *vb, unsigned __int8 *bufferData, int sizeInBytes)
 {
     unsigned __int8 *v3; // eax
 

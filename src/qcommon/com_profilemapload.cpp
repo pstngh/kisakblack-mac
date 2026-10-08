@@ -131,7 +131,7 @@ void __cdecl ProfLoad_Deactivate()
     {
         __debugbreak();
     }
-    v0 = (MapProfileEntry *)QueryPerformanceCounter(&PerformanceCount);
+    v0 = (MapProfileEntry *)Ptr32_Decode(QueryPerformanceCounter(&PerformanceCount));
     mapLoadProfile.ticksFinish = PerformanceCount.QuadPart;
     mapLoadProfile.isLoading = 0;
     ProfLoad_Print();

@@ -72,7 +72,7 @@ const FxEffectDef *__cdecl FX_Convert(const FxEditorEffectDef *editorEffect, voi
                     if ( !*((unsigned int *)elemVisual->anonymous + 59) )
                     {
                         v2 = FX_RegisterPhysPreset("default");
-                        *((unsigned int *)elemVisual->anonymous + 59) = (unsigned int)v2;
+                        *((unsigned int *)elemVisual->anonymous + 59) = (unsigned int)Ptr32_Encode(v2);
                         Com_PrintError(
                             20,
                             "ERROR: no physics preset specified for the FX model [%s]\n",
@@ -2389,7 +2389,7 @@ char __cdecl FX_ValidateAtlasSettings(const FxEditorEffectDef *editorEffect, con
                 "effect '%s' segment '%s':\nmaterial %s. atlas range of %i exceeds %i\n",
                 editorEffect->name,
                 edElemDef->name,
-                mtlInfoRef.name,
+                (const char *)mtlInfoRef.name,
                 edElemDef->atlas.indexRange,
                 127);
             return 0;
@@ -2402,7 +2402,7 @@ char __cdecl FX_ValidateAtlasSettings(const FxEditorEffectDef *editorEffect, con
                 "effect '%s' segment '%s':\nmaterial %s is a %i x %i atlas, which is not a power of 2 on both axes\n",
                 editorEffect->name,
                 edElemDef->name,
-                mtlInfoRef.name,
+                (const char *)mtlInfoRef.name,
                 mtlInfoRef.textureAtlasColumnCount,
                 mtlInfoRef.textureAtlasRowCount);
             return 0;
@@ -2420,10 +2420,10 @@ char __cdecl FX_ValidateAtlasSettings(const FxEditorEffectDef *editorEffect, con
                         "effect '%s' segment '%s':\nmaterial %s is a %i x %i atlas, but material %s is a %i x %i atlas\n",
                         editorEffect->name,
                         edElemDef->name,
-                        mtlInfoRef.name,
+                        (const char *)mtlInfoRef.name,
                         mtlInfoRef.textureAtlasColumnCount,
                         mtlInfoRef.textureAtlasRowCount,
-                        mtlInfo.name,
+                        (const char *)mtlInfo.name,
                         mtlInfo.textureAtlasColumnCount,
                         mtlInfo.textureAtlasRowCount);
                     return 0;
@@ -2439,7 +2439,7 @@ char __cdecl FX_ValidateAtlasSettings(const FxEditorEffectDef *editorEffect, con
             "effect '%s' segment '%s':\nmaterial %s is a %i x %i atlas, which exceeds 256 max frames per atlas\n",
             editorEffect->name,
             edElemDef->name,
-            mtlInfoRef.name,
+            (const char *)mtlInfoRef.name,
             mtlInfoRef.textureAtlasColumnCount,
             mtlInfoRef.textureAtlasRowCount);
         return 0;

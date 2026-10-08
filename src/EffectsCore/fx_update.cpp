@@ -1050,7 +1050,7 @@ void __cdecl FX_UpdateEffectPartialForClass(
                 if ( elemHandle == 0xFFFF )
                 {
                     Com_Printf(0, "---- EFFECT ABOUT TO ASSERT ----\n");
-                    Com_Printf(0, "effect '%s' spawned at %i pass %i\n", effect->def->name, effect->msecBegin, passCount);
+                    Com_Printf(0, "effect '%s' spawned at %i pass %i\n", (const char *)effect->def->name, effect->msecBegin, passCount);
                     Com_Printf(
                         0,
                         "looping from %i to %i, first existing is %i\n",
@@ -1984,7 +1984,7 @@ int __cdecl FX_UpdateElementPosition_Local(FxUpdateElem *update)
     {
         v1 = va(
                      "effect %s def %i baseVel %g %g %g",
-                     update->effect->def->name,
+                     (const char *)update->effect->def->name,
                      update->elemIndex,
                      *update->elemBaseVel,
                      update->elemBaseVel[1],
@@ -2547,7 +2547,7 @@ char __cdecl FX_AcquireEffectLock_IsLiveEffect(FxEffect *effect)
     while ( _InterlockedExchangeAdd((volatile unsigned __int32 *)&effect[1], 0x20000000u) >= 0x20000000 )
     {
         _InterlockedExchangeAdd((volatile unsigned __int32 *)&effect[1], 0xE0000000);
-        if ( ((int)effect[1].def & 0x3FFF) == 0 )
+        if ( ((int)Ptr32_Encode(effect[1].def) & 0x3FFF) == 0 )
             return 0;
     }
     return 1;
@@ -3260,7 +3260,7 @@ void __cdecl FX_RewindTo(int localClientNum, int time)
         {
             v5 = system->system.shared->allEffectHandles[i & 0x3FF];
             effect = FX_EffectFromHandle(&system->system, v5);
-            v12[v13++] = (unsigned int)effect;
+            v12[v13++] = (unsigned int)Ptr32_Encode(effect);
             if ( (effect->atomics.status & 0x3FFF) != 0 && effect->effect.msecBegin < time && effect->effect.owner == v5 )
             {
                 IsDObjEntityValid = 1;
@@ -3301,7 +3301,7 @@ void __cdecl FX_RewindTo(int localClientNum, int time)
         }
         for ( bitNum = 0; bitNum < v13; ++bitNum )
         {
-            effecta = (FxEffectContainer *)v12[bitNum];
+            effecta = (FxEffectContainer *)Ptr32_Decode(v12[bitNum]);
             if ( (effecta->atomics.status & 0x3FFF) != 0 )
             {
                 while ( _InterlockedExchangeAdd(&effecta->atomics.status, 0x20000000u) >= 0x20000000 )
@@ -3318,7 +3318,7 @@ void __cdecl FX_RewindTo(int localClientNum, int time)
             {
                 if ( Com_BitCheckAssert(system->system.restartList, bitNuma, 128) )
                 {
-                    effectb = (FxEffectContainer *)v12[bitNuma];
+                    effectb = (FxEffectContainer *)Ptr32_Decode(v12[bitNuma]);
                     effectb->effect.msecLastUpdate = effectb->effect.msecBegin;
                     if ( effectb->effect.def )
                     {

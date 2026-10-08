@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include <universal/fft.h>
 
 #include <d3d9.h>
@@ -31,7 +32,7 @@ void __cdecl WaterPixelsFromAmplitudes(GfxColor *pixels, complex_s *H, const wat
 void __cdecl GenerateMipMaps(_D3DFORMAT format, unsigned __int8 *pixels, water_t *water);
 void __cdecl R_UploadWaterTexture(water_t *water, float floatTime);
 void __cdecl R_InitWater();
-void __cdecl Load_PicmipWater(water_t **waterRef);
+void __cdecl Load_PicmipWater(Ptr32<water_t> *waterRef);
 
 
 extern volatile unsigned int g_waterLock;

@@ -441,7 +441,7 @@ void __cdecl R_AddDObjToScene(
                 sceneModel->entnum = entnum;
                 scene.dpvs.sceneXModelIndex[entnum] = sceneEntIndex;
                 //sceneModel->cachedLightingHandle = (unsigned __int16 *)Ragdoll_HandleBody((int)pose);
-                sceneModel->cachedLightingHandle = (unsigned __int16 *)((int)pose);
+                sceneModel->cachedLightingHandle = (unsigned __int16 *)Ptr32_Decode((int)Ptr32_Encode(pose));
                 sceneModel->lightingOriginToleranceSq = lightingOriginToleranceSq;
                 radius = XModelGetRadius(model);
                 CG_GetPoseOrigin(pose, sceneModel->placement.base.origin);
@@ -1268,7 +1268,7 @@ const MaterialTechnique *__cdecl Material_GetTechnique(const Material *material,
     {
         v2 = va(
                      "material '%s' missing techset. %d tech %d",
-                     material->info.name,
+                     (const char *)material->info.name,
                      material->localTechniqueSet != 0,
                      techType);
         if ( !Assert_MyHandler(
@@ -1296,7 +1296,7 @@ MaterialTechniqueSet *__cdecl Material_GetTechniqueSet(const Material *material)
     {
         v1 = va(
                      "material '%s' missing techset. If you are building fastfile, check Launcher for error messages.",
-                     material->info.name);
+                     (const char *)material->info.name);
         if ( !Assert_MyHandler(
                         "c:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material.h",
                         554,
@@ -1510,7 +1510,7 @@ const XSurface *__cdecl R_GetXSurface(unsigned int *modelSurf, surfaceType_t sur
     {
         __debugbreak();
     }
-    return (const XSurface *)modelSurf[1];
+    return (const XSurface *)Ptr32_Decode(modelSurf[1]);
 }
 
 GfxDrawSurf *__cdecl R_AddXModelSurfaces(
@@ -1804,7 +1804,7 @@ void __cdecl R_AddDObjSurfacesCamera(
                         skinnedSurf->info.lightingHandle = lightingHandle;
                         skinnedSurf->info.dobjModelIndex = modelIndex;
                         surfId = (_BYTE *)modelSurf - (_BYTE *)frontEndDataOut;
-                        if ( (((_BYTE)modelSurf - (_BYTE)frontEndDataOut) & 3) != 0
+                        if ( (((_BYTE)Ptr32_Encode(modelSurf) - (_BYTE)Ptr32_Encode(frontEndDataOut)) & 3) != 0
                             && !Assert_MyHandler(
                                         "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_scene.cpp",
                                         1588,
@@ -2018,7 +2018,7 @@ LABEL_24:
                     HIDWORD(newDrawSurf.packed) = HIDWORD(newDrawSurf.packed) & 0xFE7FFFFF | 0x1000000;
                 }
                 surfId = (_BYTE *)modelSurf - (_BYTE *)frontEndDataOut;
-                if ( (((_BYTE)modelSurf - (_BYTE)frontEndDataOut) & 3) != 0
+                if ( (((_BYTE)Ptr32_Encode(modelSurf) - (_BYTE)Ptr32_Encode(frontEndDataOut)) & 3) != 0
                     && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_scene.cpp",
                                 1779,

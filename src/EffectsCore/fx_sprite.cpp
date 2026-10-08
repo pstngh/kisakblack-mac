@@ -19,7 +19,7 @@ void __cdecl FX_SpriteGenerateVerts(FxGenerateVertsCmd *cmd)
     {
         __debugbreak();
     }
-    for ( i = 0; i < (int)spriteInfo->indices; ++i )
+    for ( i = 0; i < (int)Ptr32_Encode(spriteInfo->indices); ++i )
         FX_GenerateSpriteCodeMeshVerts((FxSprite *)&spriteInfo[2 * i + 1], cmd);
 }
 

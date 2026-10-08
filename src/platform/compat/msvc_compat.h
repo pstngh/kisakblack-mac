@@ -113,13 +113,21 @@ static inline char *_ui64toa(unsigned long long value, char *str, int radix) {
 // buffer (not a typed jmp_buf). Bridge straight to glibc's __sigsetjmp primitive
 // (savemask 0): this both casts the buffer and avoids the glibc setjmp<->_setjmp
 // macro recursion that `#define _setjmp setjmp` would trigger.
-#ifndef _setjmp
+#if defined(__APPLE__)
+// Darwin's _setjmp/_longjmp are the non-sigmask pair and take an int buffer.
+// (The function-like macro does not re-expand its own name.)
+#define _setjmp(buf) _setjmp((int *)(buf))
+#elif !defined(_setjmp)
 #define _setjmp(buf) __sigsetjmp((struct __jmp_buf_tag *)(buf), 0)
 #endif
 // longjmp's matching restore — the decompiled code passes the same raw int*/void*
 // buffer. _longjmp is glibc's non-sigmask variant (pairs with __sigsetjmp(...,0))
 // and isn't a macro, so this doesn't recurse.
+#if defined(__APPLE__)
+#define longjmp(buf, val) _longjmp((int *)(buf), (val))
+#else
 #define longjmp(buf, val) _longjmp((struct __jmp_buf_tag *)(buf), (val))
+#endif
 
 // Structured Exception Handling -> C++ try/catch. GCC has no SEH; the filter
 // expression is dropped (catch-all). This compiles the crash-guard scaffolding;

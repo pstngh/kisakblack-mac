@@ -821,7 +821,7 @@ int __cdecl G_EntLinkToInternal(gentity_s *ent, gentity_s *parent, unsigned int 
             break;
     }
     tagInfo = MT_Alloc(112, 17, SCRIPTINSTANCE_SERVER);
-    *(unsigned int *)tagInfo = (unsigned int)parent;
+    *(unsigned int *)tagInfo = (unsigned int)Ptr32_Encode(parent);
     *((_WORD *)tagInfo + 4) = 0;
     if ( tagName )
     {
@@ -839,7 +839,7 @@ int __cdecl G_EntLinkToInternal(gentity_s *ent, gentity_s *parent, unsigned int 
         }
     }
     Scr_SetString((unsigned __int16 *)tagInfo + 4, tagName, SCRIPTINSTANCE_SERVER);
-    *((unsigned int *)tagInfo + 1) = (unsigned int)parent->tagChildren;
+    *((unsigned int *)tagInfo + 1) = (unsigned int)Ptr32_Encode(parent->tagChildren);
     *((unsigned int *)tagInfo + 3) = index;
     memset(tagInfo + 16, 0, 0x30u);
     parent->tagChildren = ent;

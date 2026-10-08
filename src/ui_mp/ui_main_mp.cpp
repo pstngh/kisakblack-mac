@@ -269,7 +269,7 @@ void __cdecl UI_UpdateListboxPos_f()
                                 }
                                 max = Item_ListBox_MaxScroll(0, contextIndex, item);
                                 viewmax = Item_ListBox_Viewmax(0, contextIndex, item);
-                                Item_ListBox_SetCursorPos(0, contextIndex, item, (int)max, viewmax, listPtr->cursorPos[contextIndex], 1);
+                                Item_ListBox_SetCursorPos(0, contextIndex, item, (int)Ptr32_Encode(max), viewmax, listPtr->cursorPos[contextIndex], 1);
                                 return;
                             }
                         }

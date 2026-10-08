@@ -789,7 +789,7 @@ bool __cdecl ApplyTokenToField(unsigned int fieldNum, char *token, visionSetVars
             break;
         case 6:
             matField = (Material **)voidField;
-            *(unsigned int *)voidField = (unsigned int)Material_Register(token, 6);
+            *(unsigned int *)voidField = (unsigned int)Ptr32_Encode(Material_Register(token, 6));
             if ( *matField )
                 goto LABEL_32;
             result = 0;

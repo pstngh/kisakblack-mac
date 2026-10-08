@@ -120,7 +120,7 @@ void __cdecl BG_SetupWeaponDefSharedAmmoIndexes(unsigned int weapIndex, WeaponDe
                     v5 = BG_WeaponName(otherWeapIndex);
                     v4 = weapDef->iSharedAmmoCap;
                     v3 = BG_WeaponName(weapIndex);
-                    Com_Error(ERR_DROP, "Shared ammo cap mismatch for \"%s\" shared ammo cap: %s set to %i but \"%s\" already set it to %i", weapDef->szSharedAmmoCapName, v3, v4, v5, iSharedAmmoCap);
+                    Com_Error(ERR_DROP, "Shared ammo cap mismatch for \"%s\" shared ammo cap: %s set to %i but \"%s\" already set it to %i", (const char *)weapDef->szSharedAmmoCapName, v3, v4, v5, iSharedAmmoCap);
                 }
             }
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\bgame\\bg_weapons_ammo.cpp", 121, 0, "unreachable") )

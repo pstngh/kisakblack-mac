@@ -137,7 +137,7 @@ LABEL_22:
                     {
                         if ( v15 >= obj->numBones )
                         {
-                            v4 = va("model %d: '%s'", kk, localModels[kk]->name);
+                            v4 = va("model %d: '%s'", kk, (const char *)localModels[kk]->name);
                             if ( !Assert_MyHandler(
                                             "C:\\projects_pc\\cod\\codsrc\\src\\xanim\\xanim_calc.cpp",
                                             2289,
@@ -152,7 +152,7 @@ LABEL_22:
                             || (LODWORD(v21->quat[2]) & 0x7F800000) == 0x7F800000
                             || (LODWORD(v21->quat[3]) & 0x7F800000) == 0x7F800000 )
                         {
-                            v5 = va("model %d: '%s'", kk, localModels[kk]->name);
+                            v5 = va("model %d: '%s'", kk, (const char *)localModels[kk]->name);
                             if ( !Assert_MyHandler(
                                             "C:\\projects_pc\\cod\\codsrc\\src\\xanim\\xanim_calc.cpp",
                                             2290,

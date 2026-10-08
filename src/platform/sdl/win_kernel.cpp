@@ -6,6 +6,7 @@
 // This is the Linux replacement for the Win32 kernel calls in src/win32. Nothing
 // links against it yet (the engine is still being brought to compile), but the
 // implementations are real so the eventual link behaves correctly.
+#include <universal/ptr32.h>
 #include <windows.h>
 
 #include <pthread.h>
@@ -311,12 +312,19 @@ DWORD GetModuleFileNameA(HMODULE, char *buf, DWORD size) {
 // page-aligned, demand-zero, lazily committed — matching Win32 reserve/commit semantics.
 // We track each (base -> size) so MEM_RELEASE can munmap and VirtualQuery can report
 // the owning allocation (its free-walk asserts AllocationBase==ptr, RegionSize>0).
+// 64-bit builds reserve from the 32-bit linear window (ptr32.h) instead: the
+// physical-memory pool and hunk live there so their pointers fit in 32 bits.
 namespace { std::map<char *, size_t> g_vallocs; std::mutex g_vmutex; }
 void *VirtualAlloc(void *addr, SIZE_T size, DWORD, DWORD) {
     if (addr) return addr;                          // commit within an already-reserved range (lazy)
     size_t n = size ? size : 1;
+#ifdef KISAK_PTR32
+    void *p = Ptr32_RegionAlloc(n);
+    if (!p) return nullptr;
+#else
     void *p = mmap(nullptr, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (p == MAP_FAILED) return nullptr;
+#endif
     { std::lock_guard<std::mutex> lk(g_vmutex); g_vallocs[(char *)p] = n; }
     return p;
 }
@@ -328,17 +336,28 @@ BOOL VirtualFree(void *addr, SIZE_T size, DWORD freeType) {
         { std::lock_guard<std::mutex> lk(g_vmutex);
           auto it = g_vallocs.find((char *)addr);
           if (it != g_vallocs.end()) { n = it->second; g_vallocs.erase(it); } }
+#ifdef KISAK_PTR32
+        if (n) Ptr32_RegionFree(addr);
+#else
         if (n) munmap(addr, n);
+#endif
     } else {
-        // MEM_DECOMMIT: addr/size are a page-aligned SUB-REGION of a reservation.
-        // madvise(MADV_DONTNEED) drops the physical pages and faults in fresh zero
-        // pages on next access — exactly Win32's decommit / next-commit contract.
-        // (Hunk_Clear -> Z_VirtualDecommit passes page-aligned ranges.)
+        // MEM_DECOMMIT: addr/size are a 4 KB-aligned SUB-REGION of a reservation,
+        // and the next commit must see zeroes. Whole system pages are replaced
+        // with fresh zero pages (dropping their memory); partial pages at either
+        // end (16 KB pages on Apple Silicon) are cleared by hand. madvise
+        // (MADV_DONTNEED) is not enough: macOS does not zero the pages.
         if (size) {
-            if (((uintptr_t)addr & 0xFFF) == 0 && (size & 0xFFF) == 0)
-                madvise(addr, size, MADV_DONTNEED);
-            else
+            uintptr_t page = (uintptr_t)getpagesize();
+            uintptr_t lo = ((uintptr_t)addr + page - 1) & ~(page - 1);
+            uintptr_t hi = ((uintptr_t)addr + size) & ~(page - 1);
+            if (lo < hi && mmap((void *)lo, hi - lo, PROT_READ | PROT_WRITE,
+                                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0) != MAP_FAILED) {
+                memset(addr, 0, lo - (uintptr_t)addr);
+                memset((void *)hi, 0, (uintptr_t)addr + size - hi);
+            } else {
                 memset(addr, 0, size);
+            }
         }
     }
     return TRUE;

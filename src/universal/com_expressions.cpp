@@ -842,7 +842,7 @@ LABEL_39:
                     Com_PrintError(
                         16,
                         "%s:%d - Expression Error: Unknown token '%s'\n",
-                        statement->filename,
+                        (char *)statement->filename,
                         statement->line,
                         token->token);
                     Com_PrintError(16, "%s\n", sourceText);
@@ -864,7 +864,7 @@ LABEL_39:
             if ( lastType )
             {
                 OperandAsString = GetOperandAsString(lastOperand);
-                Com_PrintError(16, "%s:%d - Expression Error: %s(...\n", statement->filename, statement->line, OperandAsString);
+                Com_PrintError(16, "%s:%d - Expression Error: %s(...\n", (char *)statement->filename, statement->line, OperandAsString);
                 Com_PrintError(16, "%s\n", sourceText);
                 Com_EndParseSession();
                 return 0;
@@ -882,7 +882,7 @@ LABEL_39:
                     Com_PrintError(
                         16,
                         "%s:%d - Expression Error: Found a right parenthesis that doesn't match any left parenthesis\n",
-                        statement->filename,
+                        (char *)statement->filename,
                         statement->line);
                     Com_PrintError(16, "%s\n", sourceText);
                     Com_EndParseSession();
@@ -928,7 +928,7 @@ const char *__cdecl GetOperandAsString(Operand operand)
     switch ( operand.dataType )
     {
         case VAL_STRING:
-            return va("%s", operand.internals.string);
+            return va("%s", (const char *)operand.internals.string);
         case VAL_INT:
             return va("%i", operand.internals.intVal);
         case VAL_FLOAT:
@@ -1026,9 +1026,9 @@ expressionEntry *__cdecl Expression_StringOperand(const char *str, ExpressionAll
     entry->next = 0;
     entry->type = 1;
     entry->data.op = OP_MULTIPLY;
-    entry->data.operand.internals.intVal = (int)&entry[1];
+    entry->data.operand.internals.intVal = (int)Ptr32_Encode(&entry[1]);
     v5 = str;
-    intVal = (_BYTE *)entry->data.operand.internals.intVal;
+    intVal = (_BYTE *)Ptr32_Decode(entry->data.operand.internals.intVal);
     do
     {
         v2 = *v5;

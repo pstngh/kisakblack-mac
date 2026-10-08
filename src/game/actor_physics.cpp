@@ -29,7 +29,7 @@ void __cdecl AIPhys_AddTouchEnt(actor_physics_t *pPhys, int entityNum)
 
 void __cdecl setup_gjkcc_input(actor_physics_t *pPhys, gjkcc_input_t *gjkcc_in)
 {
-    gjkcc_in->gjkcc_id = (unsigned int)pPhys;
+    gjkcc_in->gjkcc_id = (unsigned int)Ptr32_Encode(pPhys);
     gjkcc_in->is_server_thread = 1;
     gjkcc_in->proximity_data = &pPhys->proximity_data;
     gjkcc_in->proximity_mask = 0x2838013;

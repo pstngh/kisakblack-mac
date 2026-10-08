@@ -74,22 +74,22 @@ double __thiscall phys_contact_manifold::compute_convex_poly_area()
     area = 0.0;
     v2 = *m_list_contact_point;
     v3 = (int *)(m_list_contact_point + 1);
-    v4 = (int)&m_list_contact_point[this->m_list_contact_point_count - 1];
+    v4 = (int)Ptr32_Encode(&m_list_contact_point[this->m_list_contact_point_count - 1]);
     if ( m_list_contact_point + 1 != (contact_manifold_mesh_point **)v4 )
     {
         do
         {
             v5 = v3[1];
             v6 = *v3;
-            v7 = *(float *)(v5 + 16) - *(float *)(*v3++ + 16);
+            v7 = *(float *)Ptr32_Decode(v5 + 16) - *(float *)Ptr32_Decode(*v3++ + 16);
             v9 = v7;
-            v10 = *(float *)(v5 + 20) - *(float *)(v6 + 20);
-            v11 = *(float *)(v6 + 16) - v2->m_contact_p.x;
-            v12 = *(float *)(v6 + 20) - v2->m_contact_p.y;
+            v10 = *(float *)Ptr32_Decode(v5 + 20) - *(float *)Ptr32_Decode(v6 + 20);
+            v11 = *(float *)Ptr32_Decode(v6 + 16) - v2->m_contact_p.x;
+            v12 = *(float *)Ptr32_Decode(v6 + 20) - v2->m_contact_p.y;
             v13 = v11 * v10 - v12 * v9;
             area = v13 + area;
         }
-        while ( v3 != (int *)v4 );
+        while ( v3 != (int *)Ptr32_Decode(v4) );
     }
     areaa = area * 0.5;
     result = areaa;
@@ -207,7 +207,7 @@ LABEL_20:
                         }
                         v7 += 4;
                     }
-                    while ( (int)v7 <= (int)(v6 - 3) );
+                    while ( (int)Ptr32_Encode(v7) <= (int)Ptr32_Encode(v6 - 3) );
                 }
                 for ( ; v7 <= v6; ++v7 )
                 {
@@ -326,7 +326,7 @@ LABEL_30:
                         }
                         v7 += 4;
                     }
-                    while ( (int)v7 <= (int)(v6 - 3) );
+                    while ( (int)Ptr32_Encode(v7) <= (int)Ptr32_Encode(v6 - 3) );
                 }
                 for ( ; v7 <= v6; ++v7 )
                 {
@@ -404,18 +404,18 @@ void __thiscall phys_contact_manifold::generate_convex_poly_internal()
             {
                 do
                 {
-                    v7 = (int)*(m_list_contact_point - 1);
-                    v8 = (unsigned int)(m_list_contact_point - 1);
+                    v7 = (int)Ptr32_Encode(*(m_list_contact_point - 1));
+                    v8 = (unsigned int)Ptr32_Encode(m_list_contact_point - 1);
                     p_x = &(*(m_list_contact_point - 2))->m_contact_p.x;
-                    e2.x = v6->m_contact_p.x - *(float *)(v7 + 16);
-                    e2.y = v6->m_contact_p.y - *(float *)(v7 + 20);
-                    e1.x = *(float *)(v7 + 16) - *p_x;
-                    e1.y = *(float *)(v7 + 20) - p_x[1];
+                    e2.x = v6->m_contact_p.x - *(float *)Ptr32_Decode(v7 + 16);
+                    e2.y = v6->m_contact_p.y - *(float *)Ptr32_Decode(v7 + 20);
+                    e1.x = *(float *)Ptr32_Decode(v7 + 16) - *p_x;
+                    e1.y = *(float *)Ptr32_Decode(v7 + 20) - p_x[1];
                     if ( phys_contact_manifold::rht(&e1, &e2, 0.1156, 0.00030458649) )
                         break;
                     --m_list_contact_point;
                 }
-                while ( v8 > (unsigned int)min_cp_mp );
+                while ( v8 > (unsigned int)Ptr32_Encode(min_cp_mp) );
                 m_list_sorted_mesh_point = i_smp;
             }
             m_allocator = v24->m_allocator;
@@ -450,18 +450,18 @@ void __thiscall phys_contact_manifold::generate_convex_poly_internal()
             {
                 do
                 {
-                    v14 = (int)*(m_list_contact_point - 1);
-                    v15 = (unsigned int)(m_list_contact_point - 1);
+                    v14 = (int)Ptr32_Encode(*(m_list_contact_point - 1));
+                    v15 = (unsigned int)Ptr32_Encode(m_list_contact_point - 1);
                     v16 = &(*(m_list_contact_point - 2))->m_contact_p.x;
-                    e1.x = v13->m_contact_p.x - *(float *)(v14 + 16);
-                    e1.y = v13->m_contact_p.y - *(float *)(v14 + 20);
-                    e2.x = *(float *)(v14 + 16) - *v16;
-                    e2.y = *(float *)(v14 + 20) - v16[1];
+                    e1.x = v13->m_contact_p.x - *(float *)Ptr32_Decode(v14 + 16);
+                    e1.y = v13->m_contact_p.y - *(float *)Ptr32_Decode(v14 + 20);
+                    e2.x = *(float *)Ptr32_Decode(v14 + 16) - *v16;
+                    e2.y = *(float *)Ptr32_Decode(v14 + 20) - v16[1];
                     if ( phys_contact_manifold::rht(&e2, &e1, 0.1156, 0.00030458649) )
                         break;
                     --m_list_contact_point;
                 }
-                while ( v15 > (unsigned int)min_cp_mp );
+                while ( v15 > (unsigned int)Ptr32_Encode(min_cp_mp) );
                 v12 = i_smp;
             }
             v17 = v24->m_allocator;
@@ -627,9 +627,9 @@ void __thiscall phys_contact_manifold_process::intersect_poly_segment(
     v31 = t_exit * dir_4;
     v34 = p0->x + v28;
     v24 = v31 + p0->y;
-    *(float *)(v23 + 16) = v34;
+    *(float *)Ptr32_Decode(v23 + 16) = v34;
     v37 = v24;
-    *(float *)(v23 + 20) = v37;
+    *(float *)Ptr32_Decode(v23 + 20) = v37;
 }
 
 // aislop
@@ -866,9 +866,9 @@ void __thiscall phys_contact_manifold::comp_feature_normal()
     }
     m_allocator = this->m_allocator;
     v3 = g_contact_manifold_error_msg;
-    v4 = (int)(m_allocator->m_buffer_cur + 3) & 0xFFFFFFFC;
-    m_allocator->m_buffer_cur = (char *)v4;
-    if ( (char *)v4 >= m_allocator->m_buffer_end
+    v4 = (int)Ptr32_Encode(m_allocator->m_buffer_cur + 3) & 0xFFFFFFFC;
+    m_allocator->m_buffer_cur = (char *)Ptr32_Decode(v4);
+    if ( (char *)Ptr32_Decode(v4) >= m_allocator->m_buffer_end
         && _tlAssert(
                  "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
                  114,
@@ -893,8 +893,8 @@ void __thiscall phys_contact_manifold::comp_feature_normal()
     }
     m_list_sorted_mesh_point = this->m_list_sorted_mesh_point;
     m_list_mesh_point = this->m_list_mesh_point;
-    v10 = (unsigned int)&m_list_sorted_mesh_point[this->m_list_mesh_point_count];
-    for ( i = v10; (unsigned int)m_list_sorted_mesh_point < v10; ++m_list_mesh_point )
+    v10 = (unsigned int)Ptr32_Encode(&m_list_sorted_mesh_point[this->m_list_mesh_point_count]);
+    for ( i = v10; (unsigned int)Ptr32_Encode(m_list_sorted_mesh_point) < v10; ++m_list_mesh_point )
         *m_list_sorted_mesh_point++ = m_list_mesh_point;
     v11 = this->m_list_mesh_point_count < 2;
     this->m_list_mesh_point = 0;
@@ -945,7 +945,7 @@ void __thiscall phys_contact_manifold::comp_feature_normal()
         *v19 = this->m_feature_hitp.x + (*v13)->m_p.x;
         v19[1] = this->m_feature_hitp.y + v19[1];
         v19[2] = this->m_feature_hitp.z + v19[2];
-        v20 = (float *)*((unsigned int *)this->m_list_sorted_mesh_point + 1);
+        v20 = (float *)Ptr32_Decode(*((unsigned int *)this->m_list_sorted_mesh_point + 1));
         *v20 = this->m_feature_hitp.x + *v20;
         v20[1] = this->m_feature_hitp.y + v20[1];
         v20[2] = this->m_feature_hitp.z + v20[2];
@@ -957,7 +957,7 @@ void __thiscall phys_contact_manifold::comp_feature_normal()
         this->m_feature_normal.x = this->m_feature_hitn.x;
         m_close_mesh_point_count = this->m_close_mesh_point_count;
         this->m_feature_normal.y = this->m_feature_hitn.y;
-        v23 = (unsigned int)&v21[m_close_mesh_point_count];
+        v23 = (unsigned int)Ptr32_Encode(&v21[m_close_mesh_point_count]);
         this->m_feature_normal.z = this->m_feature_hitn.z;
         v75 = (float **)v23;
         dot_p_fn = 0.11697778;
@@ -967,7 +967,7 @@ void __thiscall phys_contact_manifold::comp_feature_normal()
             do
             {
                 mp_j_it = *(contact_manifold_mesh_point ***)v23;
-                if ( dot_p_fn > (double)*(float *)(*(unsigned int *)v23 + 16) )
+                if ( dot_p_fn > (double)*(float *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(v23) + 16) )
                     break;
                 v65 = v23 + 4;
                 v77 = (contact_manifold_mesh_point ***)(v23 + 4);
@@ -1007,12 +1007,12 @@ void __thiscall phys_contact_manifold::comp_feature_normal()
                                     v26 = v45;
                                 }
                                 v32 = v75;
-                                if ( (unsigned int)v75 >= i )
+                                if ( (unsigned int)Ptr32_Encode(v75) >= i )
                                     goto LABEL_94;
-                                if ( (int)(i - (unsigned int)v75 + 3) / 4 < 4 )
+                                if ( (int)(i - (unsigned int)Ptr32_Encode(v75) + 3) / 4 < 4 )
                                 {
 LABEL_68:
-                                    while ( (unsigned int)v32 < i )
+                                    while ( (unsigned int)Ptr32_Encode(v32) < i )
                                     {
                                         v37 = *v32;
                                         if ( best_cos_sq > (double)(*v32)[4] )
@@ -1102,7 +1102,7 @@ LABEL_68:
                                             }
                                         }
                                         v32 += 4;
-                                        if ( (int)v32 >= (int)(i - 12) )
+                                        if ( (int)Ptr32_Encode(v32) >= (int)(i - 12) )
                                             goto LABEL_68;
                                     }
                                 }
@@ -1119,7 +1119,7 @@ LABEL_94:
 LABEL_79:
                         ++v77;
                     }
-                    while ( (unsigned int)v77 < i );
+                    while ( (unsigned int)Ptr32_Encode(v77) < i );
                 }
                 v10 = i;
                 v23 = v65;
@@ -1139,7 +1139,7 @@ LABEL_79:
         }
         v39 = this->m_list_sorted_mesh_point;
         v40 = (float **)v39;
-        if ( (unsigned int)v39 < i )
+        if ( (unsigned int)Ptr32_Encode(v39) < i )
         {
             do
             {
@@ -1169,7 +1169,7 @@ LABEL_79:
                 }
                 ++v40;
             }
-            while ( (unsigned int)v40 < i );
+            while ( (unsigned int)Ptr32_Encode(v40) < i );
         }
         this->m_list_mesh_point_count = v39 - this->m_list_sorted_mesh_point;
     }
@@ -1226,9 +1226,9 @@ void __thiscall phys_contact_manifold::generate_convex_poly(const phys_mat44 *co
     }
     m_allocator = this->m_allocator;
     v4 = g_contact_manifold_error_msg;
-    v5 = (int)(m_allocator->m_buffer_cur + 3) & 0xFFFFFFFC;
-    m_allocator->m_buffer_cur = (char *)v5;
-    if ( (char *)v5 >= m_allocator->m_buffer_end
+    v5 = (int)Ptr32_Encode(m_allocator->m_buffer_cur + 3) & 0xFFFFFFFC;
+    m_allocator->m_buffer_cur = (char *)Ptr32_Decode(v5);
+    if ( (char *)Ptr32_Decode(v5) >= m_allocator->m_buffer_end
         && _tlAssert(
                  "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
                  114,
@@ -1621,7 +1621,7 @@ char *__thiscall phys_memory_heap::fast_align_start(int alignment, const char *e
 {
     char *result; // eax
 
-    result = (char *)(~(alignment - 1) & (int)&this->m_buffer_cur[alignment - 1]);
+    result = (char *)Ptr32_Decode(~(alignment - 1) & (int)Ptr32_Encode(&this->m_buffer_cur[alignment - 1]));
     this->m_buffer_cur = result;
     if ( result >= this->m_buffer_end )
     {

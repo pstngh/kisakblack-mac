@@ -198,7 +198,7 @@ void __cdecl iSND_ReleaseStreamBuffer(unsigned int streamVoice, unsigned int buf
     iassert(streamVoice < SND_MAX_STREAM_VOICES);
     iassert(bufferIndex < StreamVoice::BUFFER_COUNT);
 
-    releaseWindow = (char *)InterlockedExchange((volatile unsigned int *)&g_sd.streamVoices[streamVoice].buffers[bufferIndex].pAudioData, 0);
+    releaseWindow = (char *)Ptr32_Decode(InterlockedExchange((volatile unsigned int *)&g_sd.streamVoices[streamVoice].buffers[bufferIndex].pAudioData, 0));
 
     if (releaseWindow)
     {
@@ -241,7 +241,7 @@ int __cdecl SND_StartAliasStream(SndStartAliasInfo *startAliasInfo, unsigned int
             1,
             "Tried to play streamed sound '%s' from alias '%s', but it was not found at load time.\n",
             filename2,
-            alias->name);
+            (const char *)alias->name);
         return SND_SetPlaybackIdNotPlayed(voiceIndex);
     }
 }
@@ -335,7 +335,7 @@ LABEL_11:
             buffer->AudioBytes = size;
             iassert(!buffer->pAudioData);
             buffer->pAudioData = (const unsigned __int8 *)data;
-            buffer->pContext = (void *)(bufferIndex | (streamVoice << 8));
+            buffer->pContext = (void *)Ptr32_Decode(bufferIndex | (streamVoice << 8));
 
             err = g_sd.voices[voiceIndex]->SubmitSourceBuffer(buffer, header->format != SND_ASSET_FORMAT_WMA ? 0 : &bufferWMA);
             iassert(err == S_OK); // LWSS ADD
@@ -418,7 +418,7 @@ int __cdecl iSND_CreateVoice(int voiceIndex, const snd_asset *snd, int isLooping
         {
             if (format != SND_ASSET_FORMAT_WMA)
             {
-                Com_PrintError(9, "invalid asset for alias %s\n", g_snd.voice[voiceIndex].alias->name);
+                Com_PrintError(9, "invalid asset for alias %s\n", (const char *)g_snd.voice[voiceIndex].alias->name);
                 return 0;
             }
             iassert(!isStreaming);

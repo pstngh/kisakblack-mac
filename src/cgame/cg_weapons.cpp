@@ -681,14 +681,14 @@ void __cdecl CG_RegisterWeapon(int localClientNum, unsigned int weaponNum)
                         Com_Error(
                             ERR_LOCALIZATION,
                             "Weapon %s: Could not translate display name \"%s\"",
-                            weapVariantDef->szInternalName,
-                            weapVariantDef->szDisplayName);
+                            (const char *)weapVariantDef->szInternalName,
+                            (const char *)weapVariantDef->szDisplayName);
                     else
                         Com_PrintWarning(
                             17,
                             "WARNING: Weapon %s: Could not translate display name \"%s\"\n",
-                            weapVariantDef->szInternalName,
-                            weapVariantDef->szDisplayName);
+                            (const char *)weapVariantDef->szInternalName,
+                            (const char *)weapVariantDef->szDisplayName);
                 }
                 weapInfo->translatedDisplayName = weapVariantDef->szDisplayName;
             }
@@ -701,14 +701,14 @@ void __cdecl CG_RegisterWeapon(int localClientNum, unsigned int weaponNum)
                         Com_Error(
                             ERR_LOCALIZATION,
                             "Weapon %s: Could not translate mode name \"%s\"",
-                            weapVariantDef->szInternalName,
-                            weapDef->szModeName);
+                            (const char *)weapVariantDef->szInternalName,
+                            (const char *)weapDef->szModeName);
                     else
                         Com_PrintWarning(
                             17,
                             "WARNING: Weapon %s: Could not translate mode name \"%s\"\n",
-                            weapVariantDef->szInternalName,
-                            weapDef->szModeName);
+                            (const char *)weapVariantDef->szInternalName,
+                            (const char *)weapDef->szModeName);
                 }
                 weapInfo->translatedModename = weapDef->szModeName;
             }
@@ -721,14 +721,14 @@ void __cdecl CG_RegisterWeapon(int localClientNum, unsigned int weaponNum)
                         Com_Error(
                             ERR_LOCALIZATION,
                             "Weapon %s: Could not translate AI overlay description \"%s\"",
-                            weapVariantDef->szInternalName,
-                            weapDef->szOverlayName);
+                            (const char *)weapVariantDef->szInternalName,
+                            (const char *)weapDef->szOverlayName);
                     else
                         Com_PrintWarning(
                             17,
                             "WARNING: Weapon %s: Could not translate AI overlay description \"%s\"\n",
-                            weapVariantDef->szInternalName,
-                            weapDef->szOverlayName);
+                            (const char *)weapVariantDef->szInternalName,
+                            (const char *)weapDef->szOverlayName);
                 }
                 weapInfo->translatedAIOverlayDescription = weapDef->szOverlayName;
             }
@@ -1091,9 +1091,9 @@ void __cdecl CG_CreateWeaponViewModelXAnim(ViewModelInfo *viewModelInfo, const W
         if ( *weapVariantDef->szXAnims[animIndexa] )
         {
             if ( !XAnimHasBone(pAnimsa, animIndexa, scr_const.tag_camera) )
-                Com_Error(ERR_DROP, "G_RegisterWeapon: Camera anim [%s] missing tag_camera bone", weapVariantDef->szXAnims[animIndexa]);
+                Com_Error(ERR_DROP, "G_RegisterWeapon: Camera anim [%s] missing tag_camera bone", (const char *)weapVariantDef->szXAnims[animIndexa]);
             if ( XAnimGetBoneCount(pAnimsa, animIndexa) > 1u )
-                Com_Error(ERR_DROP, "CG_RegisterWeapon: Camera anim [%s] can only have a tag_camera bone", weapVariantDef->szXAnims[animIndexa]);
+                Com_Error(ERR_DROP, "CG_RegisterWeapon: Camera anim [%s] can only have a tag_camera bone", (const char *)weapVariantDef->szXAnims[animIndexa]);
         }
     }
     if ( viewModelInfo
@@ -4786,7 +4786,7 @@ void __cdecl CG_VehicleJolt(centity_s *cent, float *origin, float *dir)
         {
             __debugbreak();
         }
-        Phys_ObjAddForce((int)cent->nitrousVeh->m_phys_user_data, origin, dir, 0);
+        Phys_ObjAddForce((int)Ptr32_Encode(cent->nitrousVeh->m_phys_user_data), origin, dir, 0);
     }
 }
 
@@ -5026,7 +5026,7 @@ void __cdecl CG_FireWeapon(
             AnglesToAxis(cent->pose.angles, entMatrix);
             R_FoliageNofityWeaponFiring(
                 (int)localClientNum,
-                (unsigned int)cent,
+                (unsigned int)Ptr32_Encode(cent),
                 fireOrigin,
                 entMatrix[0],
                 weaponDef->weapClass == WEAPCLASS_GAS);
@@ -7074,14 +7074,14 @@ void __cdecl CG_SetBaseWeaponForStats(const WeaponVariantDef *weapVariantDef)
                 Com_Error(
                     ERR_DROP,
                     "Parent weapon '%s' not found for '%s'",
-                    weapVariantDef->weapDef->parentWeaponName,
-                    weapVariantDef->szInternalName);
+                    (const char *)weapVariantDef->weapDef->parentWeaponName,
+                    (const char *)weapVariantDef->szInternalName);
             else
                 weapVariantDef->weapDef->itemIndex = itemIndex;
         }
         else if ( !weapVariantDef->weapDef->itemIndex )
         {
-            Com_Printf(16, "weapon %s not found in weapon table\n", weapVariantDef->szInternalName);
+            Com_Printf(16, "weapon %s not found in weapon table\n", (const char *)weapVariantDef->szInternalName);
         }
     }
 }
@@ -7145,7 +7145,7 @@ void __cdecl CG_SetupWeaponConfigString(int configStringIndex)
                 }
                 return;
             }
-            Com_Error(ERR_DROP, "Weapon variant count mismatch for '%s'", weapVariantDef->szInternalName);
+            Com_Error(ERR_DROP, "Weapon variant count mismatch for '%s'", (const char *)weapVariantDef->szInternalName);
         }
         Com_Error(ERR_DROP, "Weapon index mismatch for '%s'", token);
     }

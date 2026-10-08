@@ -432,7 +432,7 @@ void __cdecl SV_MapRotate_f()
         Playlist_SVMapRotate();
     }
     Com_Printf(0, "\"sv_mapRotation\" is:\"%s\"\n\n", sv_mapRotation->current.string);
-    if ( !*(_BYTE *)sv_mapRotationCurrent->current.integer )
+    if ( !*(_BYTE *)Ptr32_Decode(sv_mapRotationCurrent->current.integer) )
         Dvar_SetString((dvar_s *)sv_mapRotationCurrent, sv_mapRotation->current.string);
     Com_Printf(0, "\"sv_mapRotationCurrent\" is:\"%s\"\n\n", sv_mapRotationCurrent->current.string);
     token = UI_GetMapRotationToken();

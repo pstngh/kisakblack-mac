@@ -138,8 +138,8 @@ void    SV_LinkEntity(gentity_s *gEnt)
     }
     currentAngles = gEnt->r.currentAngles;
     currentOrigin = gEnt->r.currentOrigin;
-    angles = (float *)LODWORD(gEnt->r.currentAngles[0]);
-    if (((unsigned int)angles & 0x7F800000) == 0x7F800000
+    angles = (float *)Ptr32_Decode(LODWORD(gEnt->r.currentAngles[0]));
+    if (((unsigned int)Ptr32_Encode(angles) & 0x7F800000) == 0x7F800000
         || (v55 = *((_DWORD *)currentAngles + 1), (v55 & 0x7F800000) == 0x7F800000)
         || (v54 = *((_DWORD *)currentAngles + 2), (v54 & 0x7F800000) == 0x7F800000))
     {

@@ -135,7 +135,7 @@ int __cdecl Item_IsVisible(int localClientNum, int contextIndex, itemDef_s *item
     if ( uiscript_debug && uiscript_debug->current.integer )
     {
         if ( item->window.name )
-            Com_Printf(13, "Item %s is hidden because its 'visible when' expression is false\n", item->window.name);
+            Com_Printf(13, "Item %s is hidden because its 'visible when' expression is false\n", (const char *)item->window.name);
         else
             Com_Printf(13, "Item %s is hidden because its 'visible when' expression is false\n", "unnamed");
     }

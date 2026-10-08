@@ -81,26 +81,27 @@ void __cdecl DB_ConvertOffsetToAlias(unsigned int *data)
 
 void __cdecl DB_ConvertOffsetToPointer(unsigned int *data)
 {
-    *data = (unsigned int)&g_streamBlocks[(unsigned int)(*data - 1) >> 29].data[(*data - 1) & 0x1FFFFFFF];
+    *data = Ptr32_Encode(&g_streamBlocks[(unsigned int)(*data - 1) >> 29].data[(*data - 1) & 0x1FFFFFFF]);
 }
 
-void __cdecl Load_XStringCustom(const char **str)
+void __cdecl Load_XStringCustom(Ptr32<const char> *str)
 {
     unsigned __int8 *numBytesLoaded; // [esp+4h] [ebp-8h]
 
     numBytesLoaded = DB_LoadXFileDataNullTerminated((unsigned __int8 *)*str);
-    DB_IncStreamPos((int)numBytesLoaded);
+    DB_IncStreamPos((int)Ptr32_Encode(numBytesLoaded));
 }
 
-void __cdecl Load_TempStringCustom(const char **str)
+void __cdecl Load_TempStringCustom(Ptr32<const char> *str)
 {
-    const char *String; // [esp+0h] [ebp-4h]
+    unsigned int String; // [esp+0h] [ebp-4h]
 
     Load_XStringCustom(str);
+    // The field keeps the script string index, not a pointer.
     if ( *str )
-        String = (const char *)SL_GetString((char *)*str, 4u, SCRIPTINSTANCE_SERVER);
+        String = SL_GetString((char *)*str, 4u, SCRIPTINSTANCE_SERVER);
     else
         String = 0;
-    *str = String;
+    Ptr32_SetRaw(*str, String);
 }
 

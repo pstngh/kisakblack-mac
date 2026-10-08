@@ -386,7 +386,7 @@ void R_InitWater(void)
 }
 
 
-void __cdecl Load_PicmipWater(water_t **waterRef)
+void __cdecl Load_PicmipWater(Ptr32<water_t> *waterRef)
 {
     complex_s *H0; // eax
     float real; // edx

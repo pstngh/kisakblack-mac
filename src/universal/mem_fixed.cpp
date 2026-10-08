@@ -1,4 +1,5 @@
 #include "mem_fixed.h"
+#include <universal/ptr32.h>
 #include "assertive.h"
 
 _fixed_heapnode *__cdecl Hunk_FixedInit(
@@ -47,19 +48,19 @@ _fixed_heapnode *__cdecl Hunk_FixedInit(
     }
     buffer[2].next = name;
     buffer->next = scheme;
-    buffer[1].next = (_fixed_heapnode *)flags;
+    buffer[1].next = (_fixed_heapnode *)Ptr32_Decode(flags);
     buffer[3].next = type;
-    buffer[4].next = (_fixed_heapnode *)size;
+    buffer[4].next = (_fixed_heapnode *)Ptr32_Decode(size);
     if ( *scheme_specific_data < 4 )
         v8 = 4;
     else
         v8 = *scheme_specific_data;
-    buffer[5].next = (_fixed_heapnode *)v8;
-    count = (size - 28) / (unsigned int)&buffer[5].next[1];
+    buffer[5].next = (_fixed_heapnode *)Ptr32_Decode(v8);
+    count = (size - 28) / (unsigned int)Ptr32_Encode(&buffer[5].next[1]);
     node = buffer + 7;
     buffer[6].next = buffer + 7;
     for ( i = 0; i < (int)(count - 1); ++i )
-        node->next = (_fixed_heapnode *)((char *)buffer[5].next + (unsigned int)node);
+        node->next = (_fixed_heapnode *)((char *)buffer[5].next + (unsigned int)Ptr32_Encode(node));
     node->next = 0;
     return buffer;
 }
@@ -119,7 +120,7 @@ void __cdecl Hunk_FixedFree(HunkUser *_user, char *ptr)
         }
         else
         {
-            *(unsigned int *)ptr = (unsigned int)_user[1].name;
+            *(unsigned int *)ptr = (unsigned int)Ptr32_Encode(_user[1].name);
             _user[1].name = ptr;
         }
     }

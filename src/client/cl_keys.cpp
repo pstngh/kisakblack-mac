@@ -1236,7 +1236,7 @@ const char *__cdecl Key_KeynumToString(int keynum, int translate)
     if ((unsigned int)keynum >= 0x100)
         return "<OUT OF RANGE>";
     if (translate && (SEH_GetCurrentLanguage() == 1 || SEH_GetCurrentLanguage() == 2) && keynum >= 48 && keynum <= 57)
-        return (const char *)*((_DWORD *)&keynames_localized[92].name + keynum);
+        return (const char *)Ptr32_Decode(*((_DWORD *)&keynames_localized[92].name + keynum));
     if (keynum > 32 && keynum < 127 && keynum != 34)
     {
         tinystr[0] = toupper(keynum);

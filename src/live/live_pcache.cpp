@@ -414,7 +414,7 @@ void __cdecl PCache_ReleasePlayerEmblem(PCacheComponent *comp)
     if ( LODWORD(comp[13].xuid) )
         CL_CompositePushCancel(comp[13].xuid);
     if ( HIDWORD(comp[13].xuid) )
-        CL_CompositeReleaseImage((GfxImage *)HIDWORD(comp[13].xuid));
+        CL_CompositeReleaseImage((GfxImage *)Ptr32_Decode(HIDWORD(comp[13].xuid)));
     HIDWORD(comp[13].xuid) = 0;
     comp[13].type = 0;
     LODWORD(comp[13].xuid) = 0;

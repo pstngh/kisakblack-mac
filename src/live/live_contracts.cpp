@@ -138,7 +138,7 @@ LABEL_5:
                             if ( !I_stricmp(token, "visible") )
                             {
                                 if ( !s_numContracts
-                                    || s_contractCycleTickerMessages[31][s_numContracts + 2] != (const char *)contractIndex )
+                                    || s_contractCycleTickerMessages[31][s_numContracts + 2] != (const char *)Ptr32_Decode(contractIndex) )
                                 {
                                     s_contractDisplayOrder[s_numContracts++] = contractIndex;
                                 }

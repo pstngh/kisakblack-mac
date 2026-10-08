@@ -150,7 +150,7 @@ void __cdecl nuge::get_ballistic_info(
     float v53; // [esp-4h] [ebp-10h]
 
     v5 = center_of_mass;
-    if ( ((unsigned __int8)center_of_mass & 0xF) != 0 )
+    if ( ((unsigned __int8)Ptr32_Encode(center_of_mass) & 0xF) != 0 )
     {
         if ( _tlAssert(
                      "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
@@ -163,7 +163,7 @@ void __cdecl nuge::get_ballistic_info(
         v5 = center_of_mass;
     }
     v6 = total_momentum;
-    if ( ((unsigned __int8)total_momentum & 0xF) != 0 )
+    if ( ((unsigned __int8)Ptr32_Encode(total_momentum) & 0xF) != 0 )
     {
         if ( _tlAssert(
                      "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
@@ -193,7 +193,7 @@ void __cdecl nuge::get_ballistic_info(
         v46 = 4 * v48;
         do
         {
-            v11 = (float *)*((unsigned int *)v10 - 2);
+            v11 = (float *)Ptr32_Decode(*((unsigned int *)v10 - 2));
             if ( v11 )
             {
                 v49 = 1.0 / v11[60];
@@ -211,7 +211,7 @@ void __cdecl nuge::get_ballistic_info(
                 v6->z = v26 + v6->z;
                 *total_mass = v49 + *total_mass;
             }
-            v12 = (float *)*((unsigned int *)v10 - 1);
+            v12 = (float *)Ptr32_Decode(*((unsigned int *)v10 - 1));
             if ( v12 )
             {
                 v50 = 1.0 / v12[60];
@@ -247,7 +247,7 @@ void __cdecl nuge::get_ballistic_info(
                 v6->z = v28 + v6->z;
                 *total_mass = v51 + *total_mass;
             }
-            v14 = (float *)*((unsigned int *)v10 + 1);
+            v14 = (float *)Ptr32_Decode(*((unsigned int *)v10 + 1));
             if ( v14 )
             {
                 v52 = 1.0 / v14[60];
@@ -471,14 +471,14 @@ void    nuge::apply_ballistic_target(
                 v24 = *((_DWORD *)v23 - 2);
                 if (v24)
                 {
-                    s_ = *(float *)(v24 + 240);
+                    s_ = *(float *)Ptr32_Decode(v24 + 240);
                     s1_ = s_ * s_;
                     B = 1.0 / s1_ + B;
                 }
                 v25 = *((_DWORD *)v23 - 1);
                 if (v25)
                 {
-                    s_ = *(float *)(v25 + 240);
+                    s_ = *(float *)Ptr32_Decode(v25 + 240);
                     s1_ = s_ * s_;
                     B = 1.0 / s1_ + B;
                 }
@@ -491,7 +491,7 @@ void    nuge::apply_ballistic_target(
                 v26 = *((_DWORD *)v23 + 1);
                 if (v26)
                 {
-                    s_ = *(float *)(v26 + 240);
+                    s_ = *(float *)Ptr32_Decode(v26 + 240);
                     s1_ = s_ * s_;
                     B = 1.0 / s1_ + B;
                 }
@@ -570,7 +570,7 @@ void    nuge::calc_velocities(
     //
     //*(float *)v20 = a1;
     //*(float *)&v20[1] = delta_ta;
-    if (((unsigned __int8)t_vel & 0xF) != 0
+    if (((unsigned __int8)Ptr32_Encode(t_vel) & 0xF) != 0
         && _tlAssert(
             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
             444,
@@ -579,7 +579,7 @@ void    nuge::calc_velocities(
     {
         __debugbreak();
     }
-    if (((unsigned __int8)a_vel & 0xF) != 0
+    if (((unsigned __int8)Ptr32_Encode(a_vel) & 0xF) != 0
         && _tlAssert(
             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
             444,
@@ -668,7 +668,7 @@ void    nuge::calc_velocities(
     //
     //v13[0] = a1;
     //v13[1] = retaddr;
-    if ( ((unsigned __int8)t_vel & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(t_vel) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,
@@ -677,7 +677,7 @@ void    nuge::calc_velocities(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)a_vel & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(a_vel) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,
@@ -704,7 +704,7 @@ void __cdecl nuge::calc_sphere_inertia(float radius, phys_vec3 *unit_inertia, fl
     float v6; // [esp-4h] [ebp-10h]
 
     v3 = unit_inertia;
-    if ( ((unsigned __int8)unit_inertia & 0xF) != 0 )
+    if ( ((unsigned __int8)Ptr32_Encode(unit_inertia) & 0xF) != 0 )
     {
         if ( _tlAssert(
                      "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
@@ -740,7 +740,7 @@ void __cdecl nuge::calc_box_inertia(const phys_vec3 *dim, phys_vec3 *unit_inerti
     float v13; // [esp+18h] [ebp-18h]
 
     v3 = unit_inertia;
-    if ( ((unsigned __int8)unit_inertia & 0xF) != 0 )
+    if ( ((unsigned __int8)Ptr32_Encode(unit_inertia) & 0xF) != 0 )
     {
         if ( _tlAssert(
                      "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
@@ -824,7 +824,7 @@ void __cdecl nuge::calc_bound_sphere(const phys_vec3 *vert_list, int vert_count,
     float v55; // [esp+10h] [ebp-10h]
     float v56; // [esp+10h] [ebp-10h]
 
-    if ( ((unsigned __int8)vert_list & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(vert_list) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,
@@ -833,7 +833,7 @@ void __cdecl nuge::calc_bound_sphere(const phys_vec3 *vert_list, int vert_count,
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)com & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(com) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,
@@ -997,7 +997,7 @@ void __cdecl nuge::calc_bound_box(const phys_vec3 *vert_list, int vert_count, ph
     float vmin_8; // [esp+18h] [ebp-18h]
     float vmin_12; // [esp+1Ch] [ebp-14h]
 
-    if ( ((unsigned __int8)vert_list & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(vert_list) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,
@@ -1006,7 +1006,7 @@ void __cdecl nuge::calc_bound_box(const phys_vec3 *vert_list, int vert_count, ph
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)dim & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(dim) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,
@@ -1015,7 +1015,7 @@ void __cdecl nuge::calc_bound_box(const phys_vec3 *vert_list, int vert_count, ph
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)com & 0xF) != 0
+    if ( ((unsigned __int8)Ptr32_Encode(com) & 0xF) != 0
         && _tlAssert(
                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_math.h",
                  444,

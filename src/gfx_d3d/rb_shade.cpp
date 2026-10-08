@@ -312,7 +312,7 @@ void __cdecl RB_BeginSurface(const Material *material, unsigned __int8 techType)
     if ( r_logFile->current.integer )
     {
         v2 = RB_LogTechniqueType(techType);
-        v3 = va("---------- RB_BeginSurface( %s, %s )\n", material->info.name, v2);
+        v3 = va("---------- RB_BeginSurface( %s, %s )\n", (const char *)material->info.name, v2);
         RB_LogPrint(v3);
     }
     tess.firstVertex = 0;
@@ -482,7 +482,7 @@ void __cdecl R_DrawTessTechnique(GfxCmdBufContext context, const GfxDrawPrimArgs
     R_BeginPixMaterial(context.state);
     if ( r_logFile->current.integer )
     {
-        v2 = va("\n---------- R_DrawTechnique( %s ) ----------\n", technique->name);
+        v2 = va("\n---------- R_DrawTechnique( %s ) ----------\n", (const char *)technique->name);
         RB_LogPrint(v2);
     }
     isPixelCostEnabled = pixelCostMode != GFX_PIXEL_COST_MODE_OFF;

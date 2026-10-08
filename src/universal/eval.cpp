@@ -1,4 +1,5 @@
 #include "eval.h"
+#include <universal/ptr32.h>
 #include "assertive.h"
 #include <cstdlib>
 #include <string.h>
@@ -324,7 +325,7 @@ bool    Eval_EvaluationStep(Eval *eval)
                 v30 - v31);
             free(*(void **)(eval + 16 * (*(_DWORD *)(eval + 20484) - 2) + 4104));
             free(*(void **)(eval + 16 * (*(_DWORD *)(eval + 20484) - 1) + 4104));
-            *(_DWORD *)(eval + 16 * (*(_DWORD *)(eval + 20484) - 2) + 4104) = (_DWORD)s;
+            *(_DWORD *)(eval + 16 * (*(_DWORD *)(eval + 20484) - 2) + 4104) = (_DWORD)Ptr32_Encode(s);
         }
         else
         {
@@ -875,11 +876,11 @@ EvalValue * Eval_Solve(EvalValue *result, Eval *eval)
     unsigned int pExceptionObject[5]; // [esp+18h] [ebp-14h] BYREF
     int savedregs; // [esp+2Ch] [ebp+0h] BYREF
 
-    pExceptionObject[1] = (unsigned int)&v4;
+    pExceptionObject[1] = (unsigned int)Ptr32_Encode(&v4);
     pExceptionObject[4] = 0;
     if ( eval->parenCount )
     {
-        pExceptionObject[0] = (unsigned int)"missing ')'";
+        pExceptionObject[0] = (unsigned int)Ptr32_Encode("missing ')'");
         _CxxThrowException(pExceptionObject, &PA.deinit);
     }
     while ( Eval_EvaluationStep(eval) )

@@ -194,7 +194,7 @@ void __cdecl DoLengthNotify(unsigned int msec, const char *lengthNotifyData, snd
 {
     if ( id == SND_LENGTH_NOTIFY_SCRIPT )
     {
-        SND_LengthNotify((unsigned int)lengthNotifyData, msec);
+        SND_LengthNotify((unsigned int)Ptr32_Encode(lengthNotifyData), msec);
     }
     else if ( id == SND_LENGTH_NOTIFY_SUBTITLE )
     {
@@ -669,7 +669,7 @@ void __cdecl SND_SetVoiceStartFlux(snd_voice_t *voice, float *player)
             move_type = (snd_flux_type_t)(rand() % 3 + 1);
         if ( !((alias->flags & 2) >> 1) )
         {
-            Com_PrintError(9, "Alias %s has move_type but is not 3d\n", alias->name);
+            Com_PrintError(9, "Alias %s has move_type but is not 3d\n", (const char *)alias->name);
             return;
         }
 
@@ -685,7 +685,7 @@ void __cdecl SND_SetVoiceStartFlux(snd_voice_t *voice, float *player)
                                                  + (float)(voice->direction[1] * voice->direction[1]))
                                  + (float)(voice->direction[2] * voice->direction[2])) < SND_EPSILON )
             {
-                Com_PrintError(9, "Alias %s has move_type of shot but has no direction\n", alias->name);
+                Com_PrintError(9, "Alias %s has move_type of shot but has no direction\n", (const char *)alias->name);
                 return;
             }
             moveBasis[0][0] = voice->direction[0];
@@ -1200,7 +1200,7 @@ snd_alias_t *__cdecl SND_PickSoundAliasFromList(snd_alias_list_t *aliasList, int
         randomIndex = -1;
         if ( (((selectionArray[0]->flags & 0xE0000000) >> 29) & 4) != 0 )
         {
-            seed = (int)aliasList + objectId;
+            seed = (int)Ptr32_Encode(aliasList) + objectId;
             v3 = RandWithSeed(&seed);
             randomIndex = v3 % actualCount;
         }
@@ -1346,7 +1346,7 @@ unsigned int __cdecl SND_PlaySoundAlias(
         return -1;
     if ( alias->dryCurve == -1 )
     {
-        Com_PrintError(9, "Error: '%s' had bad volume curve\n", alias->name);
+        Com_PrintError(9, "Error: '%s' had bad volume curve\n", (const char *)alias->name);
         return -1;
     }
     if ( (float)((float)alias->probability / 255.0) > 0.0 )
@@ -1451,8 +1451,8 @@ char __cdecl SND_CheckValidSecondary(const snd_alias_t *alias, const snd_alias_t
                     Com_PrintError(
                         9,
                         "Error: Infinite recursion in secondary aliases sequenced together.\nAlias sequence start: '%s'->'%s'\n",
-                        alias->name,
-                        alias->secondaryname);
+                        (const char *)alias->name,
+                        (const char *)alias->secondaryname);
                     return 0;
                 }
                 ++secondaryAliasRecursionCounter;
@@ -1464,8 +1464,8 @@ char __cdecl SND_CheckValidSecondary(const snd_alias_t *alias, const snd_alias_t
             Com_PrintError(
                 9,
                 "ERROR: a looping alias cannot have a non-looping secondary alias.\nERROR: Alias sequence: '%s'->'%s'\n",
-                alias->name,
-                alias->secondaryname);
+                (const char *)alias->name,
+                (const char *)alias->secondaryname);
             return 0;
         }
     }
@@ -1474,8 +1474,8 @@ char __cdecl SND_CheckValidSecondary(const snd_alias_t *alias, const snd_alias_t
         Com_PrintError(
             9,
             "ERROR: a non-looping alias cannot have a looping secondary alias.\nERROR: Alias sequence: '%s'->'%s'\n",
-            alias->name,
-            alias->secondaryname);
+            (const char *)alias->name,
+            (const char *)alias->secondaryname);
         return 0;
     }
 }
@@ -1597,7 +1597,7 @@ bool __cdecl SND_IsAliasVoice(const snd_alias_t *alias)
 
 int __cdecl SND_GetCurrentReverb()
 {
-    if ( snd_reverb_override->current.integer && *(_BYTE *)snd_reverb_override->current.integer )
+    if ( snd_reverb_override->current.integer && *(_BYTE *)Ptr32_Decode(snd_reverb_override->current.integer) )
         return SND_HashName(snd_reverb_override->current.string);
     if ( g_snd.effect && g_snd.effect->reverbId )
         return g_snd.effect->reverbId;
@@ -1610,7 +1610,7 @@ void __cdecl SND_UpdateDebugAlias()
     float soundDir[3]; // [esp+24h] [ebp-10h] BYREF
     unsigned int i; // [esp+30h] [ebp-4h]
 
-    if ( snd_stop_alias && snd_stop_alias->current.integer && *(_BYTE *)snd_stop_alias->current.integer )
+    if ( snd_stop_alias && snd_stop_alias->current.integer && *(_BYTE *)Ptr32_Decode(snd_stop_alias->current.integer) )
     {
         for ( i = 0; i < SND_MAX_VOICES; ++i )
         {
@@ -1622,13 +1622,13 @@ void __cdecl SND_UpdateDebugAlias()
         }
         Dvar_SetString((dvar_s *)snd_stop_alias, "");
     }
-    if ( snd_start_alias && snd_start_alias->current.integer && *(_BYTE *)snd_start_alias->current.integer )
+    if ( snd_start_alias && snd_start_alias->current.integer && *(_BYTE *)Ptr32_Decode(snd_start_alias->current.integer) )
     {
         soundDir[0] = 1.0f;
         soundDir[1] = 0.0f;
         soundDir[2] = 0.0f;
         entHandle.field = SND_EntHandle(0, 4094, 0, 0, 1, TEAM_FREE).field;
-        SND_Play((char *)snd_start_alias->current.integer, 0, 1.0, entHandle, g_snd.listeners[0].orient.origin, soundDir, 0);
+        SND_Play((char *)Ptr32_Decode(snd_start_alias->current.integer), 0, 1.0, entHandle, g_snd.listeners[0].orient.origin, soundDir, 0);
         Dvar_SetString((dvar_s *)snd_start_alias, "");
     }
 }
@@ -2183,7 +2183,7 @@ void __cdecl SND_UpdateSnapshot(float dt)
     float voiceOcclusions[64]; // [esp+29Ch] [ebp-100h]
 
     defaultCurve = g_snd.defaultCurve;
-    if (snd_debug_snapshot && snd_debug_snapshot->current.integer && *(_BYTE *)snd_debug_snapshot->current.integer)
+    if (snd_debug_snapshot && snd_debug_snapshot->current.integer && *(_BYTE *)Ptr32_Decode(snd_debug_snapshot->current.integer))
     {
         SNDL_SetSnapshot(SND_SNAPSHOT_DEBUG, SND_HashName(snd_debug_snapshot->current.string), 0.0, 1.0);
     }
@@ -2411,7 +2411,7 @@ double __cdecl SND_GetBaseLevel(const snd_voice_t *voice)
 
     if (snd_solo_alias_substring->current.integer)
     {
-        if (*(_BYTE *)snd_solo_alias_substring->current.integer)
+        if (*(_BYTE *)Ptr32_Decode(snd_solo_alias_substring->current.integer))
         {
             if (!strstr(alias->name, snd_solo_alias_substring->current.string))
                 return 0.0;
@@ -2419,7 +2419,7 @@ double __cdecl SND_GetBaseLevel(const snd_voice_t *voice)
     }
     if (snd_mute_alias_substring->current.integer)
     {
-        if (*(_BYTE *)snd_mute_alias_substring->current.integer)
+        if (*(_BYTE *)Ptr32_Decode(snd_mute_alias_substring->current.integer))
         {
             if (strstr(alias->name, snd_mute_alias_substring->current.string))
                 return 0.0;
@@ -3016,7 +3016,7 @@ void __cdecl SND_UpdateVoice(snd_voice_t *voice, float dt)
                         fard = (float)alias->distMin;
                         if ( neard >= fard )
                         {
-                            Com_PrintError(9, "Alias %s had invalid dist min %f. needs to be > than %f\n", alias->name, fard, neard);
+                            Com_PrintError(9, "Alias %s had invalid dist min %f. needs to be > than %f\n", (const char *)alias->name, fard, neard);
                             fard = neard + 1.0;
                         }
                         g_4b = SND_GetDistance(voice);
@@ -3125,7 +3125,7 @@ void __cdecl SND_UpdateVoice(snd_voice_t *voice, float dt)
                 else
                 {
                     if ( (alias->flags & 0x40) >> 6 )
-                        Com_PrintError(9, "ERROR: alias %s has mono asset but is marked as futz\n", alias->name);
+                        Com_PrintError(9, "ERROR: alias %s has mono asset but is marked as futz\n", (const char *)alias->name);
                     ga = (float)voice->alias->centerSend / 65535.0;
                     t_4a = SND_GetPanByIndex(voice->alias->pan);
                     v3 = Snd_GetMixChannelCount(snd_speakerConfiguration->current.unsignedInt);

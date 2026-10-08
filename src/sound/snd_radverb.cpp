@@ -1,4 +1,5 @@
 #include "snd_radverb.h"
+#include <universal/ptr32.h>
 
 #include <universal/assertive.h>
 #include <universal/com_math.h>
@@ -291,7 +292,7 @@ void __cdecl SND_RvFrame(
     float *outLSa; // [esp+4Ch] [ebp+2Ch]
     float *outRSa; // [esp+50h] [ebp+30h]
 
-    SND_RvFrameParam(params, state, (unsigned int)count);
+    SND_RvFrameParam(params, state, (unsigned int)Ptr32_Encode(count));
     earlyLpfState = state->earlyLpfState;
     counta = 4;
     do
@@ -404,8 +405,8 @@ void __cdecl SND_RvFrame(
                 ++outLSa;
             }
             while ( !v22 );
-            *(float *)((char *)v13 + (unsigned int)outRFa) = (float)(state->dampLpfState[1] + state->dampLpfState[0]) * 0.70710677;
-            *(float *)((char *)v13 + (unsigned int)inRSa) = (float)(state->dampLpfState[0] - state->dampLpfState[1]) * 0.70710677;
+            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa)) = (float)(state->dampLpfState[1] + state->dampLpfState[0]) * 0.70710677;
+            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa)) = (float)(state->dampLpfState[0] - state->dampLpfState[1]) * 0.70710677;
             *(float *)((char *)v13 + v40) = (float)(state->dampLpfState[3] - state->dampLpfState[2]) * 0.70710677;
             *v13 = (float)(state->dampLpfState[3] + state->dampLpfState[2]) * 0.70710677;
             v24 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + v39))
@@ -433,25 +434,25 @@ void __cdecl SND_RvFrame(
             v30 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + v37))
                     + (float)(state->params.inputLpf * state->inputLpfState[2]);
             state->inputLpfState[2] = v30;
-            state->delayLine[state->delayIndex + 0x10000] = v30 + *(float *)((char *)v13 + (unsigned int)inRSa);
+            state->delayLine[state->delayIndex + 0x10000] = v30 + *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa));
             v31 = state->earlyLpfState[2];
-            v32 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + (unsigned int)inRSa))
+            v32 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa)))
                     + (float)(state->params.lateLpf * state->lateLpfState[2]);
             v33 = state->inputLpfState[2];
             state->lateLpfState[2] = v32;
-            *(float *)((char *)v13 + (unsigned int)inRSa) = (float)((float)((float)(v33 * state->params.dryGain)
+            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa)) = (float)((float)((float)(v33 * state->params.dryGain)
                                                                                                                             + (float)(v31 * state->params.earlyGain))
                                                                                                             + (float)(v32 * state->params.lateGainProx[2]))
                                                                                             * state->params.returnGain;
-            v34 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + (unsigned int)outRSa))
+            v34 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRSa)))
                     + (float)(state->params.inputLpf * state->inputLpfState[3]);
             state->inputLpfState[3] = v34;
-            state->delayLine[state->delayIndex + 98304] = v34 + *(float *)((char *)v13 + (unsigned int)outRFa);
-            v35 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + (unsigned int)outRFa))
+            state->delayLine[state->delayIndex + 98304] = v34 + *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa));
+            v35 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa)))
                     + (float)(state->params.lateLpf * state->lateLpfState[3]);
             v36 = state->params.lateGainProx[3];
             state->lateLpfState[3] = v35;
-            *(float *)((char *)v13 + (unsigned int)outRFa) = (float)((float)((float)(v36 * v35)
+            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa)) = (float)((float)((float)(v36 * v35)
                                                                                                                              + (float)(state->params.earlyGain
                                                                                                                                              * state->earlyLpfState[3]))
                                                                                                              + (float)(state->inputLpfState[3] * state->params.dryGain))

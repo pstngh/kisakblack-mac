@@ -123,7 +123,7 @@ void __cdecl CG_PrintEntities(unsigned int localClientNum)
                     else
                         model = cgs->gameModels[cent->cent.nextState.index.brushmodel];
                     if ( model )
-                        Com_Printf(14, "\t%s", model->name);
+                        Com_Printf(14, "\t%s", (const char *)model->name);
                     else
                         Com_Printf(14, "\t%s", "NONE");
                 }
@@ -659,7 +659,7 @@ LABEL_55:
                         {
                             __debugbreak();
                         }
-                        out[1] = (char *)(unsigned __int16)v15;
+                        out[1] = (char *)Ptr32_Decode((unsigned __int16)v15);
                         undertow_volumes[num_undertow_volumes] = (unsigned __int16)v15;
                         v8 = 0;
                         v9 = 0;

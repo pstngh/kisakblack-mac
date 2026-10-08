@@ -1485,7 +1485,7 @@ int __cdecl MenuParse_itemDef(menuDef_t *menu, int handle)
 
     if ( menu->itemCount >= 512 )
     {
-        Com_Error(ERR_DROP, "too many itemDefs for menu %s. MAX is %i", menu->window.name, 512);
+        Com_Error(ERR_DROP, "too many itemDefs for menu %s. MAX is %i", (const char *)menu->window.name, 512);
     }
     else
     {
@@ -1753,7 +1753,7 @@ int    MenuParse_blurWorld(menuDef_t *menu, int handle)
 
 int __cdecl MenuParse_legacySplitScreenScale(menuDef_t *menu, int handle)
 {
-    return SetItemStaticFlag(menu, handle, (int)&objBuf[1758][2]);
+    return SetItemStaticFlag(menu, handle, (int)Ptr32_Encode(&objBuf[1758][2]));
 }
 
 int __cdecl SetItemStaticFlag(menuDef_t *menu, int handle, int flag)
@@ -3560,7 +3560,7 @@ int __cdecl ItemParse_state(itemDef_s *item, int handle)
         item->animInfo->animStates = g_load_0.animStates;
         *item->animInfo->animStates = (animParamsDef_t *)UI_Alloc(0x6Cu, 4);
         Item_PropertiesToAnimState(item, *item->animInfo->animStates);
-        **(unsigned int **)item->animInfo->animStates = (unsigned int)String_Alloc("Default");
+        **(unsigned int **)item->animInfo->animStates = (unsigned int)Ptr32_Encode(String_Alloc("Default"));
         ++item->animInfo->animStateCount;
     }
     animParams = (animParamsDef_t *)UI_Alloc(0x6Cu, 4);
@@ -3602,9 +3602,9 @@ void __cdecl Item_SetupKeywordHash()
 MenuList *__cdecl UI_LoadMenu(const char *menuFile, int imageTrack)
 {
     if ( useFastFile->current.enabled )
-        return (MenuList *)((int (__cdecl *)(const char *, int))UI_LoadMenus_FastFile)(menuFile, imageTrack);
+        return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenus_FastFile)(menuFile, imageTrack));
     else
-        return (MenuList *)((int (__cdecl *)(const char *, int))UI_LoadMenu_LoadObj)(menuFile, imageTrack);
+        return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenu_LoadObj)(menuFile, imageTrack));
 }
 
 MenuList * UI_LoadMenu_LoadObj(char *menuFile, int imageTrack)
@@ -3835,8 +3835,8 @@ MenuList *__cdecl UI_LoadMenus(const char *menuFile, int imageTrack)
     if ( G_ExitAfterToolComplete() )
         return 0;
     if ( useFastFile->current.enabled )
-        return (MenuList *)((int (__cdecl *)(const char *, int))UI_LoadMenus_FastFile)(menuFile, imageTrack);
-    return (MenuList *)((int (__cdecl *)(const char *, int))UI_LoadMenus_LoadObj)(menuFile, imageTrack);
+        return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenus_FastFile)(menuFile, imageTrack));
+    return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenus_LoadObj)(menuFile, imageTrack));
 }
 
 char menuBuf[32768];

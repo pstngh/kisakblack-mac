@@ -318,7 +318,7 @@ void __cdecl FX_EffectNoLongerReferenced(FxSystem *system, FxEffectContainer *re
     }
     if ( (remoteEffect->atomics.status & 0x7FE0000) != 0 )
     {
-        v3 = va("%s, %i", remoteEffect->effect.def->name, remoteEffect->atomics.status);
+        v3 = va("%s, %i", (const char *)remoteEffect->effect.def->name, remoteEffect->atomics.status);
         if ( !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\EffectsCore\\fx_system.cpp",
                         765,
@@ -338,7 +338,7 @@ void __cdecl FX_EffectNoLongerReferenced(FxSystem *system, FxEffectContainer *re
                 21,
                 "effect 0x%08x \"%s\", status 0x%08x, owner 0x%08x\n",
                 remoteEffect,
-                remoteEffect->effect.def->name,
+                (const char *)remoteEffect->effect.def->name,
                 remoteEffect->atomics.status,
                 owner);
         else
@@ -484,7 +484,7 @@ void __cdecl FX_RunGarbageCollectionAndPrioritySort(FxSystem *system)
                 {
                     effectHandle = system->shared->allEffectHandles[--activeIndex & 0x3FF];
                     effect = (FxEffect *)FX_EffectFromHandle(system, effectHandle);
-                    if ( ((int)effect[1].def & 0x3FFF) != 0 )
+                    if ( ((int)Ptr32_Encode(effect[1].def) & 0x3FFF) != 0 )
                     {
                         system->shared->allEffectHandles[((_WORD)freedCount + (_WORD)activeIndex) & 0x3FF] = effectHandle;
                     }
@@ -1506,7 +1506,7 @@ void __cdecl FX_AssertAllocatedEffect(int localClientNum, unsigned int hEffect, 
     }
     FX_EffectToHandle(&system->system, effect);
     if ( (effect->atomics.status & 0x3FFF) == 0 )
-        Com_Error(ERR_DROP, "FX_AssertAllocatedEffect: %s %s.", effect->effect.def->name, error_msg);
+        Com_Error(ERR_DROP, "FX_AssertAllocatedEffect: %s %s.", (const char *)effect->effect.def->name, error_msg);
     if ( (effect->atomics.status & 0x3FFF) == 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\EffectsCore\\fx_system.cpp",
@@ -2301,7 +2301,7 @@ int __cdecl FX_MakePhysId(const FxElemDef *elemDef, const float *origin, const f
     return sequence
              + (((int)vel[2] + (int)vel[1] + (int)*vel + (int)origin[2] + (int)origin[1] + (int)*origin)
                 ^ time
-                ^ (unsigned int)elemDef);
+                ^ (unsigned int)Ptr32_Encode(elemDef));
 }
 
 void __cdecl FX_SpawnTrailElem_NoCull(
@@ -3385,7 +3385,7 @@ void __cdecl FX_SpawnSound(
     }
     else
     {
-        Com_PrintWarning(21, "No visuals for sound particle element in '%s'\n", effect->def->name);
+        Com_PrintWarning(21, "No visuals for sound particle element in '%s'\n", (const char *)effect->def->name);
     }
 }
 

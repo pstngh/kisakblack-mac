@@ -541,7 +541,7 @@ void __cdecl R_AddCodeMeshDrawSurf(
             __debugbreak();
         }
         if ( !r_fullbright->current.enabled && !r_lightConflicts->current.enabled )
-            R_WarnOncePerFrame(R_WARN_NONEMISSIVE_FX_MATERIAL, material->info.name, fxName);
+            R_WarnOncePerFrame(R_WARN_NONEMISSIVE_FX_MATERIAL, (const char *)material->info.name, fxName);
     }
 }
 
@@ -606,9 +606,9 @@ void __cdecl R_AddRopeCodeMeshDrawSurf(
     {
         v7 = va(
                      "index = 0x%08x, sortedMaterials = 0x%08x, material = 0x%08x\n",
-                     (unsigned int)(material->info.drawSurf.fields.materialSortedIndex,
-                     0,
-                     rgp.sortedMaterials[material->info.drawSurf.fields.materialSortedIndex]));
+                     material->info.drawSurf.fields.materialSortedIndex,
+                     Ptr32_Encode(rgp.sortedMaterials[material->info.drawSurf.fields.materialSortedIndex]),
+                     Ptr32_Encode(material));
         if ( !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_drawsurf.cpp",
                         740,
@@ -913,7 +913,7 @@ void __cdecl R_AddMarkMeshDrawSurf(
     }
     else
     {
-        R_WarnOncePerFrame(R_WARN_NONLIGHTMAP_MARK_MATERIAL, material->info.name);
+        R_WarnOncePerFrame(R_WARN_NONLIGHTMAP_MARK_MATERIAL, (const char *)material->info.name);
     }
 }
 
@@ -986,7 +986,7 @@ char __cdecl R_AddParticleCloudDrawSurf(volatile unsigned int cloudIndex, Materi
     }
     else
     {
-        R_WarnOncePerFrame(R_WARN_NONEMISSIVE_FX_MATERIAL, material->info.name, "UNKNOWN-FX");
+        R_WarnOncePerFrame(R_WARN_NONEMISSIVE_FX_MATERIAL, (const char *)material->info.name, "UNKNOWN-FX");
         return 0;
     }
 }

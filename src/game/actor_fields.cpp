@@ -343,7 +343,7 @@ void __cdecl ActorScr_SetTime(actor_s *pSelf, const actor_fields_s *pField)
         __debugbreak();
     }
     v2 = Scr_GetFloat(0, SCRIPTINSTANCE_SERVER) * 1000.0;
-    *(gentity_s **)((char *)&pSelf->ent + pField->ofs) = (gentity_s *)(int)(v2 + 9.313225746154785e-10);
+    *(gentity_s **)((char *)&pSelf->ent + pField->ofs) = (gentity_s *)Ptr32_Decode((int)(v2 + 9.313225746154785e-10));
 }
 
 void __cdecl ActorScr_GetTime(actor_s *pSelf, const actor_fields_s *pField)
@@ -390,7 +390,7 @@ void __cdecl ActorScr_SetWeapon(actor_s *pSelf, const actor_fields_s *pField)
         Scr_ParamError(0, v2, SCRIPTINSTANCE_SERVER);
     }
     String = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-    *(gentity_s **)((char *)&pSelf->ent + pField->ofs) = (gentity_s *)G_GetWeaponIndexForName(String);
+    *(gentity_s **)((char *)&pSelf->ent + pField->ofs) = (gentity_s *)Ptr32_Decode(G_GetWeaponIndexForName(String));
 }
 
 void __cdecl ActorScr_GetWeapon(actor_s *pSelf, const actor_fields_s *pField)
@@ -1032,7 +1032,7 @@ void __cdecl Cmd_AI_DisplayValue(actor_s *pSelf, unsigned __int8 *pBase, const a
             case F_ENTITY:
                 if ( !*(unsigned int *)&pBase[pField->ofs] )
                     goto LABEL_43;
-                i = (signed int)(*(unsigned int *)&pBase[pField->ofs] - (unsigned int)level.gentities) / 760;
+                i = (signed int)(*(unsigned int *)&pBase[pField->ofs] - (unsigned int)Ptr32_Encode(level.gentities)) / 760;
                 if ( i >= 0x400
                     && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\game\\actor_fields.cpp",
@@ -1110,7 +1110,7 @@ LABEL_46:
                     "ent %i: %s = client %i\n",
                     entnum,
                     pField->name,
-                    (signed int)(*(unsigned int *)&pBase[pField->ofs] - (unsigned int)level.clients) / 10720);
+                    (signed int)(*(unsigned int *)&pBase[pField->ofs] - (unsigned int)Ptr32_Encode(level.clients)) / 10720);
                 break;
             case F_PATHNODE:
                 pNode = *(pathnode_t **)&pBase[pField->ofs];

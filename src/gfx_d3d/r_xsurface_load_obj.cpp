@@ -1443,8 +1443,8 @@ void __cdecl XModelReadSurface_BuildCollisionTree(
     allocSize = 16 * nodeCount + 15;
     v3 = (unsigned __int8 *)Alloc(allocSize);
     alloced = v3;
-    alignedAddr = (unsigned int)(v3 + 15) & 0xFFFFFFF0;
-    tree->nodes = (XSurfaceCollisionNode *)alignedAddr;
+    alignedAddr = (unsigned int)Ptr32_Encode(v3 + 15) & 0xFFFFFFF0;
+    tree->nodes = (XSurfaceCollisionNode *)Ptr32_Decode(alignedAddr);
     if ( ((int)tree->nodes & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_xsurface_load_obj.cpp",

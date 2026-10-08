@@ -275,7 +275,7 @@ char *__cdecl Scr_GetNextCodepos(
                 if (top->type != 9 || gScrVmPub[inst].function_count >= 32)
                     goto LABEL_23;
                 *localId = 0;
-                result = (char *)top->u.intValue;
+                result = (char *)Ptr32_Decode(top->u.intValue);
                 break;
             default:
                 goto LABEL_23;
@@ -852,7 +852,7 @@ const char *__cdecl Scr_GetStackThreadPos(
             {
                 __debugbreak();
             }
-            pos = (const char *)u.intValue;
+            pos = (const char *)Ptr32_Decode(u.intValue);
         }
     }
     if (killThread)
@@ -1119,7 +1119,7 @@ void __cdecl VM_Notify(
                     }
                     tempValue = (VariableUnion *)GetVariableValueAddress(inst, notifyListEntry);
                     stackValue.intValue = tempValue->intValue;
-                    if (*(_BYTE *)(*(_DWORD *)tempValue->intValue - 1) == 119)
+                    if (*(_BYTE *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(tempValue->intValue) - 1) == 119)
                     {
                         size = **(char **)stackValue.intValue;
                         if (size < 0
@@ -1132,18 +1132,18 @@ void __cdecl VM_Notify(
                         {
                             __debugbreak();
                         }
-                        if (size > *(unsigned __int16 *)(stackValue.intValue + 4)
+                        if (size > *(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 4)
                             && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_vm.cpp",
                                 4084,
                                 0,
                                 "size <= stackValue->size\n\t%i, %i",
                                 size,
-                                *(unsigned __int16 *)(stackValue.intValue + 4)))
+                                *(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 4)))
                         {
                             __debugbreak();
                         }
-                        buf = (char *)(stackValue.intValue + 5 * (*(unsigned __int16 *)(stackValue.intValue + 4) - size) + 13);
+                        buf = (char *)Ptr32_Decode(stackValue.intValue + 5 * (*(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 4) - size) + 13);
                         for (currentValue = top; size; --currentValue)
                         {
                             if (currentValue->type == 7
@@ -1211,7 +1211,7 @@ void __cdecl VM_Notify(
                                 goto next;
                             }
                         }
-                        ++ * (_DWORD *)stackValue.intValue;
+                        ++ * (_DWORD *)Ptr32_Decode(stackValue.intValue);
                         bNoStack = 1;
                     }
                     else
@@ -1269,7 +1269,7 @@ void __cdecl VM_Notify(
                         {
                             __debugbreak();
                         }
-                        size = *(unsigned __int16 *)(stackValue.intValue + 4);
+                        size = *(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 4);
                         newSize = size;
                         currentValue = top;
                         do
@@ -1300,19 +1300,19 @@ void __cdecl VM_Notify(
                         }
                         len = 5 * size;
                         bufLen = 5 * newSize + 13;
-                        if (!MT_Realloc(inst, *(unsigned __int16 *)(stackValue.intValue + 6), bufLen))
+                        if (!MT_Realloc(inst, *(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 6), bufLen))
                         {
                             newStackValue = (VariableStackBuffer *)MT_Alloc(bufLen, 1, inst);
                             newStackValue->bufLen = bufLen;
                             newStackValue->pos = *(const char **)stackValue.intValue;
-                            newStackValue->localId = *(_DWORD *)(stackValue.intValue + 8);
-                            memcpy((unsigned __int8 *)newStackValue->buf, (unsigned __int8 *)(stackValue.intValue + 13), len);
-                            MT_Free((uint8*)stackValue.intValue, *(unsigned __int16 *)(stackValue.intValue + 6), inst);
-                            stackValue.intValue = (int)newStackValue;
-                            tempValue->intValue = (int)newStackValue;
+                            newStackValue->localId = *(_DWORD *)Ptr32_Decode(stackValue.intValue + 8);
+                            memcpy((unsigned __int8 *)newStackValue->buf, (unsigned __int8 *)Ptr32_Decode(stackValue.intValue + 13), len);
+                            MT_Free((uint8*)Ptr32_Decode(stackValue.intValue), *(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 6), inst);
+                            stackValue.intValue = (int)Ptr32_Encode(newStackValue);
+                            tempValue->intValue = (int)Ptr32_Encode(newStackValue);
                         }
-                        *(_WORD *)(stackValue.intValue + 4) = newSize;
-                        buf = (char *)(stackValue.intValue + len + 13);
+                        *(_WORD *)Ptr32_Decode(stackValue.intValue + 4) = newSize;
+                        buf = (char *)Ptr32_Decode(stackValue.intValue + len + 13);
                         newSize -= size;
                         if (!newSize
                             && !Assert_MyHandler(
@@ -1343,7 +1343,7 @@ void __cdecl VM_Notify(
                             buf += 4;
                             --newSize;
                         } while (newSize);
-                        if (&buf[-stackValue.intValue] != (char *)bufLen
+                        if (&buf[-stackValue.intValue] != (char *)Ptr32_Decode(bufLen)
                             && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_vm.cpp",
                                 4217,
@@ -1483,7 +1483,7 @@ void __cdecl Scr_TerminateWaitThread(scriptInstance_t inst, unsigned int localId
     {
         __debugbreak();
     }
-    stackValue = (VariableStackBuffer *)GetVariableValueAddress(inst, stackId)->next;
+    stackValue = (VariableStackBuffer *)Ptr32_Decode(GetVariableValueAddress(inst, stackId)->next);
     if (gScrVarPub[inst].developer)
         Scr_GetStackThreadPos(inst, localId, stackValue, 1);
     RemoveObjectVariable(inst, id, startLocalId);
@@ -1609,7 +1609,7 @@ void __cdecl Scr_TerminateWaittillThread(scriptInstance_t inst, unsigned int loc
         {
             __debugbreak();
         }
-        stackValue = (VariableStackBuffer *)GetVariableValueAddress(inst, stackId)->next;
+        stackValue = (VariableStackBuffer *)Ptr32_Decode(GetVariableValueAddress(inst, stackId)->next);
         if (gScrVarPub[inst].developer)
             Scr_GetStackThreadPos(inst, localId, stackValue, 1);
         VM_CancelNotifyInternal(inst, notifyListOwnerId, startLocalId, notifyListId, notifyNameListId, stringValue);
@@ -1635,7 +1635,7 @@ void __cdecl Scr_TerminateWaittillThread(scriptInstance_t inst, unsigned int loc
         {
             __debugbreak();
         }
-        stackValue = (VariableStackBuffer *)GetVariableValueAddress(inst, stackIda)->next;
+        stackValue = (VariableStackBuffer *)Ptr32_Decode(GetVariableValueAddress(inst, stackIda)->next);
         if (gScrVarPub[inst].developer)
             Scr_GetStackThreadPos(inst, localId, stackValue, 1);
         RemoveVariable(inst, startLocalId, 0x17FFFu);
@@ -1723,7 +1723,7 @@ void __cdecl Scr_CancelNotifyList(scriptInstance_t inst, unsigned int notifyList
         }
         if ( GetValueType(inst, stackId) == 10 )
         {
-            stackValuea = (VariableStackBuffer *)GetVariableValueAddress(inst, stackId)->next;
+            stackValuea = (VariableStackBuffer *)Ptr32_Decode(GetVariableValueAddress(inst, stackId)->next);
             Scr_CancelWaittill(inst, startLocalId);
             VM_TrimStack(inst, startLocalId, stackValuea, 0);
         }
@@ -1757,8 +1757,8 @@ void __cdecl Scr_CancelNotifyList(scriptInstance_t inst, unsigned int notifyList
                     __debugbreak();
                 }
                 VariableValueAddress = GetVariableValueAddress(inst, stackIda);
-                stackValue = (VariableStackBuffer *)VariableValueAddress->next;
-                if ( *(unsigned int *)VariableValueAddress->next )
+                stackValue = (VariableStackBuffer *)Ptr32_Decode(VariableValueAddress->next);
+                if ( *(unsigned int *)Ptr32_Decode(VariableValueAddress->next) )
                 {
                     if ( !Assert_MyHandler(
                                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_vm.cpp",
@@ -1827,7 +1827,7 @@ void __cdecl VM_TrimStack(
                     Scr_SetThreadNotifyName(inst, startLocalId, 0);
                     stackValue->pos = 0;
                     tempValue.type = 10;
-                    tempValue.u.intValue = (int)stackValue;
+                    tempValue.u.intValue = (int)Ptr32_Encode(stackValue);
                     NewVariable = GetNewVariable(inst, startLocalId, 0x17FFFu);
                     SetNewVariableValue(inst, NewVariable, &tempValue);
                 }
@@ -2115,7 +2115,7 @@ const char *__cdecl Scr_ReadCodePos(scriptInstance_t inst, const char **pos)
 
     v3 = *(unsigned int *)*pos;
     *pos += 4;
-    return (const char *)v3;
+    return (const char *)Ptr32_Decode(v3);
 }
 
 unsigned int __cdecl GetDummyObject(scriptInstance_t inst)
@@ -2189,7 +2189,7 @@ VariableStackBuffer *__cdecl VM_ArchiveStack(scriptInstance_t inst, function_sta
     *((_DWORD *)stackValue + 2) = localId;
     *((_WORD *)stackValue + 2) = size;
     *((_WORD *)stackValue + 3) = bufLen;
-    *(_DWORD *)stackValue = (DWORD)stack->pos;
+    *(_DWORD *)stackValue = (DWORD)Ptr32_Encode(stack->pos);
     stackValue[12] = gScrVarPub[inst].time;
     gScrVmPub[inst].localVars -= stack->localVarCount;
     buf = &stackValue[5 * size + 13];
@@ -2200,7 +2200,7 @@ VariableStackBuffer *__cdecl VM_ArchiveStack(scriptInstance_t inst, function_sta
         {
             --gScrVmPub[inst].function_count;
             --gScrVmPub[inst].function_frame;
-            *(_DWORD *)bufa = (DWORD)gScrVmPub[inst].function_frame->fs.pos;
+            *(_DWORD *)bufa = (DWORD)Ptr32_Encode(gScrVmPub[inst].function_frame->fs.pos);
             gScrVmPub[inst].localVars -= gScrVmPub[inst].function_frame->fs.localVarCount;
             localId = GetParentLocalId(inst, localId);
         }
@@ -2837,7 +2837,7 @@ void __cdecl VM_TerminateTime(scriptInstance_t inst, unsigned int timeId)
         {
             __debugbreak();
         }
-        stackValue = (VariableStackBuffer *)GetVariableValueAddress(inst, stackId)->next;
+        stackValue = (VariableStackBuffer *)Ptr32_Decode(GetVariableValueAddress(inst, stackId)->next);
         RemoveObjectVariable(inst, timeId, startLocalId);
         Scr_ClearWaitTime(inst, startLocalId);
         VM_TerminateStack(inst, startLocalId, startLocalId, stackValue);
@@ -3104,8 +3104,8 @@ void __cdecl Scr_GetVector(unsigned int index, float *vectorValue, scriptInstanc
         value = &gScrVmPub[inst].top[-(int)index];
         if (value->type == 4)
         {
-            intValue = (float *)value->u.intValue;
-            *vectorValue = *(float *)value->u.intValue;
+            intValue = (float *)Ptr32_Decode(value->u.intValue);
+            *vectorValue = *(float *)Ptr32_Decode(value->u.intValue);
             vectorValue[1] = intValue[1];
             vectorValue[2] = intValue[2];
             return;
@@ -3147,7 +3147,7 @@ unsigned int __cdecl Scr_GetFunc(unsigned int index, scriptInstance_t inst)
     {
         __debugbreak();
     }
-    return value->u.intValue - (unsigned int)gScrVarPub[inst].programBuffer;
+    return value->u.intValue - (unsigned int)Ptr32_Encode(gScrVarPub[inst].programBuffer);
 }
 
 scr_entref_t __cdecl Scr_GetEntityRef(unsigned int index, scriptInstance_t inst)
@@ -3427,7 +3427,7 @@ void __cdecl Scr_AddVector(float *value, scriptInstance_t inst)
 {
     IncInParam(inst);
     gScrVmPub[inst].top->type = 4;
-    gScrVmPub[inst].top->u.intValue = (int)Scr_AllocVector(inst, value);
+    gScrVmPub[inst].top->u.intValue = (int)Ptr32_Encode(Scr_AllocVector(inst, value));
 }
 
 void __cdecl Scr_MakeArray(scriptInstance_t inst)
@@ -4084,7 +4084,7 @@ void __cdecl VM_Resume(scriptInstance_t inst, unsigned int timeId)
         {
             __debugbreak();
         }
-        stackValue = (VariableStackBuffer *)GetVariableValueAddress(inst, stackId)->next;
+        stackValue = (VariableStackBuffer *)Ptr32_Decode(GetVariableValueAddress(inst, stackId)->next);
         RemoveObjectVariable(inst, timeId, startLocalId);
         VM_UnarchiveStack(inst, startLocalId, stackValue);
         v2 = VM_Execute_0(inst);
@@ -4166,7 +4166,7 @@ void __cdecl VM_UnarchiveStack(scriptInstance_t inst, unsigned int startLocalId,
         }
         else
         {
-            top->u.intValue = (int)*bufa;
+            top->u.intValue = (int)Ptr32_Encode(*bufa);
         }
         buf = (char *)(bufa + 1);
     }
@@ -5007,9 +5007,9 @@ thread_return:
 
             v3 = Scr_EvalVariable(inst, gScrVmPub[inst].localVars[-(unsigned __int8)*localFs.pos]);
             v97 = v3;
-            v3.type = (int)localFs.top;
+            v3.type = (int)Ptr32_Encode(localFs.top);
             localFs.top[1].u.intValue = v3.u.intValue;
-            *(_DWORD *)(v3.type + 12) = v97.type;
+            *(_DWORD *)Ptr32_Decode(v3.type + 12) = v97.type;
             ++localFs.top;
             ++localFs.pos;
             continue;
@@ -5190,9 +5190,9 @@ thread_return:
             localFs.pos += 2;
             VariableField = Scr_FindVariableField(inst, objectId, v77);
             v94 = VariableField;
-            VariableField.type = (int)localFs.top;
+            VariableField.type = (int)Ptr32_Encode(localFs.top);
             localFs.top[1].u.intValue = VariableField.u.intValue;
-            *(_DWORD *)(VariableField.type + 12) = v94.type;
+            *(_DWORD *)Ptr32_Decode(VariableField.type + 12) = v94.type;
             ++localFs.top;
             continue;
         case OP_EvalLevelFieldVariableRef:
@@ -6063,7 +6063,7 @@ function_call:
             iassert(GetObjectType(inst, tempValue.u.pointerValue) != VAR_DEAD_THREAD);
 
             stackValue.type = VAR_STACK;
-            stackValue.u.intValue = (int)VM_ArchiveStack(inst, &localFs);
+            stackValue.u.intValue = (int)Ptr32_Encode(VM_ArchiveStack(inst, &localFs));
             v64 = stringValue;
             v34 = GetVariable(inst, tempValue.u.stringValue, 0x17FFEu);
             Array = GetArray(inst, v34);

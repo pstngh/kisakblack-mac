@@ -182,7 +182,7 @@ void __cdecl UI_BuildServerDisplayList(int localClientNum, uiInfo_s *uiInfo, int
                             if (atoi(v13) != ui_browserHardcore->current.integer)
                                 goto LABEL_64;
                         }
-                        if ((*(char*)ui_browserGameMode->current.integer == 48
+                        if ((*(char*)Ptr32_Decode(ui_browserGameMode->current.integer) == 48
                             || (v14 = Info_ValueForKey(info, "gametype"), !I_stricmp(ui_browserGameMode->current.string, v14)))
                             && (ui_browserMap->current.integer <= 0
                                 || ui_browserMap->current.integer >= sharedUiInfo.mapCount + 1

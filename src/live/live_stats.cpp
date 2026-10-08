@@ -715,7 +715,7 @@ void __cdecl LiveStats_SetDInt64Stat(int controllerIndex, ddlState_t *searchStat
         if ( !v3 && searchState->member->permission == 2 )
             buffer = LiveStorage_GetStatsBuffer(0, STATS_LOCATION_GLOBAL, 1);
         if ( !DDL_SetInt64(searchState, value, (char *)buffer) )
-            DDL_PrintError("DDL: Could not set stat '%s'", searchState->member->name);
+            DDL_PrintError("DDL: Could not set stat '%s'", (const char *)searchState->member->name);
     }
 }
 
@@ -1522,12 +1522,12 @@ void __cdecl LiveStats_PublishNews(int controllerIndex)
                 {
                     targetValue = StringTable_GetColumnValueForRow(statsMilestonestable, rowNum, 2);
                     name = s_statsMilestonesCompleted[controllerIndex][j].name;
-                    v17 = (unsigned int)&name[strlen(name) + 1];
+                    v17 = (unsigned int)Ptr32_Encode(&name[strlen(name) + 1]);
                     v14 = (char *)&newRank + 3;
                     while ( *++v14 )
                         ;
                     v15 = s_statsMilestonesCompleted[controllerIndex][j].name;
-                    memcpy(v14, v15, v17 - (unsigned int)v15);
+                    memcpy(v14, v15, v17 - (unsigned int)Ptr32_Encode(v15));
                     v11 = va(
                                     "userPublishNews TICKER_STATSMILESTONEUPDATE %s %s %s\n",
                                     localized_weaponname_string,
@@ -2094,7 +2094,7 @@ char __cdecl LiveStats_UpdatePersonalBest(
             "Negative delta, %u currentvalue, %u lastvalue, stat %s %i\n",
             currentValue,
             lastValue,
-            searchStateStats->member->name,
+            (const char *)searchStateStats->member->name,
             searchStateStats->member->offset);
         return 0;
     }

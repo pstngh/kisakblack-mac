@@ -84,7 +84,7 @@ unsigned __int8 *__cdecl DB_AllocStreamPos(int alignment)
     {
         __debugbreak();
     }
-    g_streamPos = (unsigned __int8 *)(~alignment & (unsigned int)&g_streamPos[alignment]);
+    g_streamPos = (unsigned __int8 *)(~(uintptr_t)alignment & (uintptr_t)&g_streamPos[alignment]);
     return g_streamPos;
 }
 
@@ -105,12 +105,12 @@ void __cdecl DB_IncStreamPos(int size)
     g_streamPos += size;
 }
 
-const void **__cdecl DB_InsertPointer()
+Ptr32<const void> *__cdecl DB_InsertPointer()
 {
-    const void **pData; // [esp+0h] [ebp-4h]
+    Ptr32<const void> *pData; // [esp+0h] [ebp-4h]
 
     DB_PushStreamPos(4u);
-    pData = (const void **)DB_AllocStreamPos(3);
+    pData = (Ptr32<const void> *)DB_AllocStreamPos(3);
     DB_IncStreamPos(4);
     DB_PopStreamPos();
     return pData;

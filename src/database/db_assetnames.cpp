@@ -363,12 +363,12 @@ void __cdecl DB_ImageSetName(XAssetHeader *header, const char *name)
 
 const char *__cdecl DB_LocalizeEntryGetName(const XAssetHeader *header)
 {
-    return (const char *)header->xmodelPieces->numpieces;
+    return (const char *)Ptr32_Decode(header->xmodelPieces->numpieces);
 }
 
 void __cdecl DB_LocalizeEntrySetName(XAssetHeader *header, const char *name)
 {
-    header->xmodelPieces->numpieces = (int)name;
+    header->xmodelPieces->numpieces = (int)Ptr32_Encode(name);
 }
 
 void __cdecl DB_DDLSetname(XAssetHeader *header, const char *name)

@@ -49,12 +49,12 @@ void __cdecl SND_DebugDrawWorldSounds(int debugDrawStyle)
                 if ((g_snd.voice[idx].alias->flags & 2) >> 1)
                 {
                     if (!snd_solo_alias_substring->current.integer
-                        || !*(_BYTE *)snd_solo_alias_substring->current.integer
+                        || !*(_BYTE *)Ptr32_Decode(snd_solo_alias_substring->current.integer)
                         || (v2 = strstr(g_snd.voice[idx].alias->name, snd_solo_alias_substring->current.string),
                             v2))
                     {
                         if (!snd_mute_alias_substring->current.integer
-                            || !*(_BYTE *)snd_mute_alias_substring->current.integer
+                            || !*(_BYTE *)Ptr32_Decode(snd_mute_alias_substring->current.integer)
                             || (v3 = strstr(g_snd.voice[idx].alias->name, snd_mute_alias_substring->current.string),
                                 !v3))
                         {
@@ -139,7 +139,7 @@ void __cdecl DebugDrawWorldSound3D(
         return;
     case 3:
         fontsize = fontsize * 0.85f;
-        text = va("Details: %s %d", voice->alias->name, entNum);
+        text = va("Details: %s %d", (const char *)voice->alias->name, entNum);
         if (offsets[entNum])
             CL_AddDebugStarWithText(org, starColor, colorWhiteFaded, 0, fontsize, 1);
         else
@@ -264,7 +264,7 @@ int __cdecl SND_GetSoundOverlay(snd_overlay_info *info, int start, int count)
         {
             iassert(voice->alias);
             SND_AliasGetFileName(voice->alias, info[i].pszSampleName, 128);
-            Com_sprintf(info[i].name, 0x40u, "%s", voice->alias->name);
+            Com_sprintf(info[i].name, 0x40u, "%s", (const char *)voice->alias->name);
             info[i].channel |= (voice->alias->flags & 0xC000) >> 14 << 30;
             info[i].fPitch = SND_GetPitch(voice);
             info[i].fDry = SND_LinearToDbSpl(voice->dryLevel);

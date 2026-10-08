@@ -50,7 +50,7 @@ void __cdecl R_AddDelayedStaticModelDrawSurf(
         __debugbreak();
     }
     R_WritePrimDrawSurfInt(delayedCmdBuf, count | (which_lod << 28));
-    R_WritePrimDrawSurfInt(delayedCmdBuf, (unsigned int)xsurf);
+    R_WritePrimDrawSurfInt(delayedCmdBuf, (unsigned int)Ptr32_Encode(xsurf));
     R_WritePrimDrawSurfData(delayedCmdBuf, list, (count + 1) >> 1);
 }
 
@@ -342,11 +342,11 @@ void __cdecl R_AddAllStaticModelSurfacesCamera(
                     }
                 }
             }
-            v17[0] = (unsigned int)mins;
-            v17[1] = (unsigned int)(mins + 3);
-            v18 = *(float *)v17[v51];
-            v19 = *(float *)(v17[v52] + 4);
-            v20 = *(float *)(v17[v56] + 8);
+            v17[0] = (unsigned int)Ptr32_Encode(mins);
+            v17[1] = (unsigned int)Ptr32_Encode(mins + 3);
+            v18 = *(float *)Ptr32_Decode(v17[v51]);
+            v19 = *(float *)Ptr32_Decode(v17[v52] + 4);
+            v20 = *(float *)Ptr32_Decode(v17[v56] + 8);
             v65 = (float)((float)((float)((float)(v18 * p_sunShadow->viewDir[0]) + (float)(v19 * p_sunShadow->viewDir[1]))
                                                     + (float)(v20 * p_sunShadow->viewDir[2]))
                                     - p_sunShadow->viewDirDist) > p_sunShadow->sunShadowDrawDist;
@@ -1026,7 +1026,7 @@ void __cdecl R_StaticModelWriteInfo(int fileHandle, const GfxStaticModelDrawInst
             0x1000u,
             "%d,%s,%.1f,%d,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",
             g_dumpStaticModelCount,
-            model->name,
+            (const char *)model->name,
             model->radius,
             model->numLods,
             v9,
@@ -1321,7 +1321,7 @@ void __cdecl R_SkinStaticModelsShadowForLod(
             if ( !Material_GetTechnique(material, shadowmapBuildTechType) )
             {
                 v7 = RB_LogTechniqueType(shadowmapBuildTechType);
-                Com_Error(ERR_DROP, "material \"%s\" lacks shadow tech %d %s", material->info.name, shadowmapBuildTechType, v7);
+                Com_Error(ERR_DROP, "material \"%s\" lacks shadow tech %d %s", (const char *)material->info.name, shadowmapBuildTechType, v7);
             }
             //drawSurf.fields = (GfxDrawSurfFields)material->info.drawSurf;
             drawSurf.packed = material->info.drawSurf.packed;

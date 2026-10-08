@@ -377,8 +377,8 @@ unsigned int    R_SkinSceneDObjModels(
                 else
                 {
                     ++surfPos2;
-                    surfPos2__->oldSkinnedCachedOffset = (int)&frontEndDataOut->tempSkinBuf[32 * surfPos2__->skinnedCachedOffset
-                        + firstSurf];
+                    surfPos2__->oldSkinnedCachedOffset = (int)Ptr32_Encode(&frontEndDataOut->tempSkinBuf[32 * surfPos2__->skinnedCachedOffset
+                        + firstSurf]);
                     surfPos2__->skinnedCachedOffset = -1;
                 }
             }

@@ -108,7 +108,7 @@ void __cdecl CG_RegisterVehicle(const char *name, __int16 index)
         memset(dst, 0, 0x1DD8u);
         v6 = name;
         v5 = dst;
-        HIDWORD(v4) = (int)dst;
+        HIDWORD(v4) = (int)Ptr32_Encode(dst);
         do
         {
             BYTE3(v4) = *v6;

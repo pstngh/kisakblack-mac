@@ -673,11 +673,11 @@ void __cdecl DestructibleDef_Strcpy(unsigned __int8 *member, const char *keyValu
             *v3++ = *v4++;
         }
         while ( v2 );
-        *(unsigned int *)member = (unsigned int)buf;
+        *(unsigned int *)member = (unsigned int)Ptr32_Encode(buf);
     }
     else
     {
-        *(unsigned int *)member = (unsigned int)"";
+        *(unsigned int *)member = (unsigned int)Ptr32_Encode("");
     }
 }
 
@@ -718,64 +718,64 @@ int __cdecl Destructible_ParseDefSpecificFieldType(unsigned __int8 *pStruct, cha
                                                         if ( iFieldType < 399 || iFieldType > 430 )
                                                         {
                                                             if ( iFieldType >= 431 && iFieldType <= 462 && iFieldType - 431 < *((unsigned int *)pStruct + 3) )
-                                                                *(_WORD *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 431) + 288) = SL_GetLowercaseString(pValue, 0, SCRIPTINSTANCE_SERVER);
+                                                                *(_WORD *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 431) + 288) = SL_GetLowercaseString(pValue, 0, SCRIPTINSTANCE_SERVER);
                                                         }
                                                         else if ( iFieldType - 399 < *((unsigned int *)pStruct + 3) )
                                                         {
-                                                            *(float *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 399) + 264) = (float)atoi(pValue) * 0.0099999998;
+                                                            *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 399) + 264) = (float)atoi(pValue) * 0.0099999998;
                                                         }
                                                     }
                                                     else if ( iFieldType - 367 < *((unsigned int *)pStruct + 3) )
                                                     {
                                                         DestructibleDef_Strcpy(
-                                                            (unsigned __int8 *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 367) + 284),
+                                                            (unsigned __int8 *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 367) + 284),
                                                             pValue);
                                                     }
                                                 }
                                                 else if ( iFieldType - 335 < *((unsigned int *)pStruct + 3) )
                                                 {
-                                                    *(unsigned int *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 335) + 280) = (unsigned int)FX_Register(pValue);
+                                                    *(unsigned int *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 335) + 280) = (unsigned int)Ptr32_Encode(FX_Register(pValue));
                                                 }
                                             }
                                             else if ( !G_ExitAfterToolComplete() && iFieldType - 303 < *((unsigned int *)pStruct + 3) )
                                             {
                                                 DestructibleDef_Strcpy(
-                                                    (unsigned __int8 *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 303) + 276),
+                                                    (unsigned __int8 *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 303) + 276),
                                                     pValue);
                                             }
                                         }
                                         else if ( iFieldType - 271 < *((unsigned int *)pStruct + 3) && pValue && *pValue )
                                         {
-                                            *(unsigned int *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 271) + 268) = (unsigned int)XModel_PhysConstraintsPrecache(pValue, 0);
+                                            *(unsigned int *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 271) + 268) = (unsigned int)Ptr32_Encode(XModel_PhysConstraintsPrecache(pValue, 0));
                                         }
                                     }
                                     else if ( iFieldType - 239 < *((unsigned int *)pStruct + 3) )
                                     {
                                         v4 = atof(pValue);
-                                        *(float *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 239) + 260) = v4;
+                                        *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 239) + 260) = v4;
                                     }
                                 }
                                 else if ( iFieldType - 207 < *((unsigned int *)pStruct + 3) )
                                 {
                                     v5 = atof(pValue);
-                                    *(float *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 207) + 256) = v5;
+                                    *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 207) + 256) = v5;
                                 }
                             }
                             else if ( iFieldType - 175 < *((unsigned int *)pStruct + 3) )
                             {
                                 v6 = atof(pValue);
-                                *(float *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 175) + 252) = v6;
+                                *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 175) + 252) = v6;
                             }
                         }
                         else if ( iFieldType - 143 < *((unsigned int *)pStruct + 3) )
                         {
                             v7 = atof(pValue);
-                            *(float *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 143) + 248) = v7;
+                            *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 143) + 248) = v7;
                         }
                     }
                     else if ( iFieldType - 111 < *((unsigned int *)pStruct + 3) )
                     {
-                        *(float *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 111) + 244) = (float)atoi(pValue) / 100.0;
+                        *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 111) + 244) = (float)atoi(pValue) / 100.0;
                     }
                 }
                 else
@@ -783,9 +783,9 @@ int __cdecl Destructible_ParseDefSpecificFieldType(unsigned __int8 *pStruct, cha
                     v8 = iFieldType - 79;
                     if ( iFieldType - 79 < *((unsigned int *)pStruct + 3) )
                     {
-                        *(_BYTE *)(*((unsigned int *)pStruct + 4) + 312 * v8 + 240) = atoi(pValue);
-                        if ( *(unsigned __int8 *)(*((unsigned int *)pStruct + 4) + 312 * v8 + 240) != 255
-                            && *(unsigned __int8 *)(*((unsigned int *)pStruct + 4) + 312 * v8 + 240) >= *((int *)pStruct + 3)
+                        *(_BYTE *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * v8 + 240) = atoi(pValue);
+                        if ( *(unsigned __int8 *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * v8 + 240) != 255
+                            && *(unsigned __int8 *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * v8 + 240) >= *((int *)pStruct + 3)
                             && !Assert_MyHandler(
                                         "C:\\projects_pc\\cod\\codsrc\\src\\physics\\destructibledef_load_obj.cpp",
                                         854,
@@ -800,12 +800,12 @@ int __cdecl Destructible_ParseDefSpecificFieldType(unsigned __int8 *pStruct, cha
             }
             else if ( iFieldType - 47 < *((unsigned int *)pStruct + 3) )
             {
-                *(unsigned int *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 47) + 272) = atoi(pValue);
+                *(unsigned int *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 47) + 272) = atoi(pValue);
             }
         }
         else
         {
-            DestructiblePieceLoadFile(pValue, (DestructiblePiece *)(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 15)));
+            DestructiblePieceLoadFile(pValue, (DestructiblePiece *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * (iFieldType - 15)));
         }
         return 1;
     }
@@ -893,7 +893,7 @@ DestructibleDef *__cdecl DestructibleDefLoadFile(const char *name, void *(__cdec
                         {
                             count = 312 * *((unsigned int *)pStruct + 3);
                             v4 = Alloc(count);
-                            *((unsigned int *)pStruct + 4) = (unsigned int)v4;
+                            *((unsigned int *)pStruct + 4) = (unsigned int)Ptr32_Encode(v4);
                             memset(*((unsigned __int8 **)pStruct + 4), 0, count);
                             if ( ParseConfigStringToStruct(
                                          pStruct,
@@ -904,25 +904,25 @@ DestructibleDef *__cdecl DestructibleDefLoadFile(const char *name, void *(__cdec
                                          (int (__cdecl *)(unsigned __int8 *, const char *, const int, const int))Destructible_ParseDefSpecificFieldType,
                                          DestructibleDef_Strcpy) )
                             {
-                                model = (XModel *)*((unsigned int *)pStruct + 1);
+                                model = (XModel *)Ptr32_Decode(*((unsigned int *)pStruct + 1));
                                 if ( model )
                                 {
                                     for ( i = 0; i < *((unsigned int *)pStruct + 3); ++i )
                                     {
                                         for ( j = 0; j < 5; ++j )
                                         {
-                                            *(float *)(*((unsigned int *)pStruct + 4) + 312 * i + 48 * j + 4) = *(float *)(312 * i
+                                            *(float *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * i + 48 * j + 4) = *(float *)Ptr32_Decode(312 * i
                                                                                                                                                                                          + *((unsigned int *)pStruct + 4)
                                                                                                                                                                                          + 48 * j
                                                                                                                                                                                          + 4)
                                                                                                                                                                     / 100.0;
-                                            namea = *(unsigned __int16 *)(312 * i + *((unsigned int *)pStruct + 4) + 48 * j);
+                                            namea = *(unsigned __int16 *)Ptr32_Decode(312 * i + *((unsigned int *)pStruct + 4) + 48 * j);
                                             if ( namea )
                                             {
                                                 index = 0;
                                                 if ( XModelGetBoneIndex(model, namea, &index) )
                                                 {
-                                                    if ( *(unsigned int *)(*((unsigned int *)pStruct + 4) + 312 * i + 48 * j + 44) )
+                                                    if ( *(unsigned int *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * i + 48 * j + 44) )
                                                     {
                                                         if ( !XModelGetCollmapForBoneIndex(model, index) )
                                                         {
@@ -943,7 +943,7 @@ DestructibleDef *__cdecl DestructibleDefLoadFile(const char *name, void *(__cdec
                                                                 v13);
                                                         }
                                                     }
-                                                    *(unsigned int *)(*((unsigned int *)pStruct + 4) + 312 * i + 4 * ((int)index >> 5) + 292) = *(unsigned int *)(312 * i + *((unsigned int *)pStruct + 4) + 4 * ((int)index >> 5) + 292) | (0x80000000 >> (index & 0x1F));
+                                                    *(unsigned int *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * i + 4 * ((int)index >> 5) + 292) = *(unsigned int *)Ptr32_Decode(312 * i + *((unsigned int *)pStruct + 4) + 4 * ((int)index >> 5) + 292) | (0x80000000 >> (index & 0x1F));
                                                 }
                                                 else
                                                 {

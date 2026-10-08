@@ -440,7 +440,7 @@ void __cdecl Material_FreeTechniqueSet(XAssetHeader header);
 unsigned __int8 *__cdecl Material_Alloc(unsigned int size);
 void __cdecl Load_CreateMaterialPixelShader(GfxPixelShaderLoadDef *loadDef, MaterialPixelShader *mtlShader);
 void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, MaterialVertexShader *mtlShader);
-void __cdecl Load_BuildVertexDecl(MaterialVertexDeclaration **mtlVertDecl);
+void __cdecl Load_BuildVertexDecl(Ptr32<MaterialVertexDeclaration> *mtlVertDecl);
 IDirect3DVertexDeclaration9 *__cdecl Material_BuildVertexDecl(
                 const MaterialStreamRouting *routingData,
                 int streamCount,

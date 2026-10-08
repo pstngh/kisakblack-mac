@@ -92,14 +92,14 @@ int __cdecl RB_CompareTouchImages(int *e0, int *e1)
 
     image = *e0;
     image_4 = *e1;
-    if ( !*(_BYTE *)(*e1 + 5) )
+    if ( !*(_BYTE *)Ptr32_Decode(*e1 + 5) )
         return -1;
-    if ( !*(_BYTE *)(image + 5) )
+    if ( !*(_BYTE *)Ptr32_Decode(image + 5) )
         return 1;
-    if ( *(unsigned int *)(image_4 + 12) != *(unsigned int *)(image + 12) )
-        return *(unsigned int *)(image_4 + 12) - *(unsigned int *)(image + 12);
-    if ( *(unsigned __int8 *)(image + 5) == *(unsigned __int8 *)(image_4 + 5) )
+    if ( *(unsigned int *)Ptr32_Decode(image_4 + 12) != *(unsigned int *)Ptr32_Decode(image + 12) )
+        return *(unsigned int *)Ptr32_Decode(image_4 + 12) - *(unsigned int *)Ptr32_Decode(image + 12);
+    if ( *(unsigned __int8 *)Ptr32_Decode(image + 5) == *(unsigned __int8 *)Ptr32_Decode(image_4 + 5) )
         return 0;
-    return *(unsigned __int8 *)(image + 5) - *(unsigned __int8 *)(image_4 + 5);
+    return *(unsigned __int8 *)Ptr32_Decode(image + 5) - *(unsigned __int8 *)Ptr32_Decode(image_4 + 5);
 }
 

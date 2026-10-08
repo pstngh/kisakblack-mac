@@ -663,7 +663,7 @@ void    CG_Vehicle_PreControllers(
         else
             v79 = 0.0f;
 
-        LODWORD(v77[1]) = (int)&fc;
+        LODWORD(v77[1]) = (int)Ptr32_Encode(&fc);
         v76 = v77;
         v75 = (float)(v79 * 3.1415927f) - 1.5707964f;
         fc = cosf(v75);

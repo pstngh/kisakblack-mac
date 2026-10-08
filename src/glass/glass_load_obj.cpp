@@ -33,10 +33,10 @@ Glasses *__cdecl GetGlasses()
 {
     bool v1; // [esp+4h] [ebp-8h]
 
-    v1 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.integer;
+    v1 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
     if ( v1 || !useFastFile->current.enabled )
-        return (Glasses *)((int (__cdecl *)(Glasses *(__cdecl *)()))GetGlasses_LoadObj)(GetGlasses_LoadObj);
+        return (Glasses *)Ptr32_Decode(((int (__cdecl *)(Glasses *(__cdecl *)()))GetGlasses_LoadObj)(GetGlasses_LoadObj));
     else
-        return (Glasses *)((int (__cdecl *)(Glasses *(__cdecl *)()))GetGlasses_FastFile)(GetGlasses_FastFile);
+        return (Glasses *)Ptr32_Decode(((int (__cdecl *)(Glasses *(__cdecl *)()))GetGlasses_FastFile)(GetGlasses_FastFile));
 }
 

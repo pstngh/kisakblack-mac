@@ -374,7 +374,7 @@ void __cdecl R_SetPassPixelShaderStableArguments(const GfxCmdBufContext context,
         {
             if ( ++constDef == &material->localConstantTable[material->constantCount] )
             {
-                v3 = va("material '%s' is missing a required named constant", material->info.name);
+                v3 = va("material '%s' is missing a required named constant", (const char *)material->info.name);
                 if ( !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_shade.cpp",
                                 415,
@@ -544,7 +544,7 @@ const MaterialTextureDef *__cdecl R_SetPixelSamplerFromMaterial(
     {
         if ( ++texDef == &material->textureTable[material->textureCount] )
         {
-            v3 = va("material '%s' is missing a required named texture", material->info.name);
+            v3 = va("material '%s' is missing a required named texture", (const char *)material->info.name);
             if ( !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_shade.cpp",
                             749,
@@ -687,7 +687,7 @@ void __cdecl R_SetPassShaderStableArguments(
         {
             if ( ++constDef == &material->localConstantTable[material->constantCount] )
             {
-                v3 = va("material '%s' is missing a required named constant", material->info.name);
+                v3 = va("material '%s' is missing a required named constant", (const char *)material->info.name);
                 if ( !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_shade.cpp",
                                 826,
@@ -880,7 +880,7 @@ void __cdecl R_SetPixelShader(GfxCmdBufState *state, const MaterialPixelShader *
                     0,
                     "%s\n\t(pixelShader->name) = %s",
                     "(pixelShader->prog.ps)",
-                    pixelShader->name) )
+                    (const char *)pixelShader->name) )
     {
         __debugbreak();
     }
@@ -929,8 +929,8 @@ void __cdecl R_UpdateVertexDecl(GfxCmdBufState *state)
             ERR_FATAL,
             "Vertex type %i doesn't have the information used by shader %s in material %s\n",
             state->prim.vertDeclType,
-            pass->vertexShader->name,
-            state->material->info.name);
+            (const char *)pass->vertexShader->name,
+            (const char *)state->material->info.name);
     R_SetVertexShader(state, vertexShader);
 }
 
@@ -950,7 +950,7 @@ void __cdecl R_SetVertexShader(GfxCmdBufState *state, const MaterialVertexShader
                         0,
                         "%s\n\t(vertexShader->name) = %s",
                         "(vertexShader->prog.vs)",
-                        vertexShader->name) )
+                        (const char *)vertexShader->name) )
         {
             __debugbreak();
         }

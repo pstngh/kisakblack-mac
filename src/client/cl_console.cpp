@@ -1796,7 +1796,7 @@ unsigned int __cdecl CL_AddMessageIcon(
     {
         __debugbreak();
     }
-    *(unsigned int *)&msg[msgLenc] = (unsigned int)iconShader;
+    *(unsigned int *)&msg[msgLenc] = (unsigned int)Ptr32_Encode(iconShader);
     msgLend = msgLenc + 4;
     if ( msgLend - msgLen != 8
         && !Assert_MyHandler(

@@ -1054,7 +1054,7 @@ PhysObjUserData * Phys_CreateUserBody(float *position, int id, PhysicsGeomType g
             userData->body = body;
             userData->refcount = 1;
             userData->id = (int)id;
-            bodyId = (int)userData;
+            bodyId = (int)Ptr32_Encode(userData);
             for (j = 0; j < 16; ++j)
             {
                 if (!physGlob.userRigidBodies[j])
@@ -1064,7 +1064,7 @@ PhysObjUserData * Phys_CreateUserBody(float *position, int id, PhysicsGeomType g
                 }
             }
             Sys_LeaveCriticalSection(CRITSECT_PHYSICS);
-            return (PhysObjUserData *)bodyId;
+            return (PhysObjUserData *)Ptr32_Decode(bodyId);
         }
         else
         {
@@ -1157,7 +1157,7 @@ PhysObjUserData * Phys_CreateBodyFromState(
             if (&physGlob == (PhysGlob *)i.m_ptr)
                 break;
             userData = (PhysObjUserData *)&i.m_ptr[2];
-            if (i.m_ptr[29].m_next_T_internal == (phys_free_list<PhysObjUserData>::T_internal_base *)state->id)
+            if (i.m_ptr[29].m_next_T_internal == (phys_free_list<PhysObjUserData>::T_internal_base *)Ptr32_Decode(state->id))
             {
                 destroy_gjk_geom(gjk_geom_list);
                 ++userData->refcount;
@@ -1228,7 +1228,7 @@ PhysObjUserData * Phys_CreateBodyFromState(
     m2w.w.y = state->position[1];
     m2w.w.z = state->position[2];
 
-    bodyId = (int)userData;
+    bodyId = (int)Ptr32_Encode(userData);
 
     userData->m_gjk_geom_list.m_first_geom = gjk_geom_list->m_first_geom;
     userData->m_gjk_geom_list.m_geom_count = gjk_geom_list->m_geom_count;
@@ -1324,7 +1324,7 @@ PhysObjUserData * Phys_CreateBodyFromState(
 
     Sys_LeaveCriticalSection(CRITSECT_PHYSICS);
 
-    return (PhysObjUserData *)bodyId;
+    return (PhysObjUserData *)Ptr32_Decode(bodyId);
 }
 
 void    phys_full_inverse(phys_mat44 *dest, const phys_mat44 *source)
@@ -2393,7 +2393,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                 v36 = (const float *)v47;
             else
                 v36 = v48;
-            v6 = (unsigned int)v40;
+            v6 = (unsigned int)Ptr32_Encode(v40);
             XModell = DObjGetXModel(ServerDObj, 0);
             render_xmodel_chull(XModell, v6, &v38, v36);
         }
@@ -2403,7 +2403,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                 v35 = (const float *)v47;
             else
                 v35 = v48;
-            render_brushmodel_chull(v40->s.index.brushmodel, (unsigned int)v40, &v38, v35);
+            render_brushmodel_chull(v40->s.index.brushmodel, (unsigned int)Ptr32_Encode(v40), &v38, v35);
         }
     }
     v34 = Phys_GetMaskFromDVar() == 0x2820011
@@ -2428,7 +2428,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                         v26 = (const float *)v44;
                     else
                         v26 = (const float *)v45;
-                    v7 = (unsigned int)Entity;
+                    v7 = (unsigned int)Ptr32_Encode(Entity);
                     v5 = DObjGetXModel(ClientDObj, 0);
                     render_xmodel_chull(v5, v7, &v28, v26);
                 }
@@ -2438,7 +2438,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                         v25 = (const float *)v44;
                     else
                         v25 = (const float *)v45;
-                    render_brushmodel_chull(Entity->nextState.index.brushmodel, (unsigned int)Entity, &v28, v25);
+                    render_brushmodel_chull(Entity->nextState.index.brushmodel, (unsigned int)Ptr32_Encode(Entity), &v28, v25);
                 }
             }
         }
@@ -2473,15 +2473,15 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                 Phys_Vec3ToNitrousVec(v12->pose.origin, &v10.w);
                 if ( k )
                 {
-                    render_brushmodel_chull(EntityDef->brushModel, (unsigned int)EntityDef, &v10, v46);
+                    render_brushmodel_chull(EntityDef->brushModel, (unsigned int)Ptr32_Encode(EntityDef), &v10, v46);
                 }
                 else
                 {
-                    render_xmodel_chull(EntityDef->xModel, (unsigned int)EntityDef, &v10, v48);
+                    render_xmodel_chull(EntityDef->xModel, (unsigned int)Ptr32_Encode(EntityDef), &v10, v48);
                     if ( XModelHasCollmap(EntityDef->xModel) )
                     {
                         Collmap = XModelGetCollmap(EntityDef->xModel, 0);
-                        collmap_chull = get_collmap_chull(Collmap, (unsigned int)EntityDef);
+                        collmap_chull = get_collmap_chull(Collmap, (unsigned int)Ptr32_Encode(EntityDef));
                         render_chull(collmap_chull, &v10, v46);
                     }
                 }
@@ -2876,7 +2876,7 @@ void __cdecl print_smodel(cStaticModel_s *smodel, int refcount, const float *dim
     Com_Printf(
         20,
         "%-42s\t refs( %4d ) lods( %d ) ncol_tris( %4d )     avr dims( %5.0f, %5.0f, %5.0f )\n",
-        model->name,
+        (const char *)model->name,
         refcount,
         model->numLods,
         ntris,
@@ -2909,16 +2909,16 @@ void __cdecl print_static_models_stats()
         numStaticModels = 0x4000;
     num = numStaticModels;
     for ( i = 0; i < (int)num; ++i )
-        base[i] = (unsigned int) & cm.staticModelList[i];
+        base[i] = (unsigned int) Ptr32_Encode(& cm.staticModelList[i]);
     qsort(base, num, 4u, SortModelsFunc);
     refcount = 1;
-    smodel = (cStaticModel_s *)base[0];
-    dims = *(float *)(base[0] + 68) - *(float *)(base[0] + 56);
-    v11 = *(float *)(base[0] + 72) - *(float *)(base[0] + 60);
-    v12 = *(float *)(base[0] + 76) - *(float *)(base[0] + 64);
+    smodel = (cStaticModel_s *)Ptr32_Decode(base[0]);
+    dims = *(float *)Ptr32_Decode(base[0] + 68) - *(float *)Ptr32_Decode(base[0] + 56);
+    v11 = *(float *)Ptr32_Decode(base[0] + 72) - *(float *)Ptr32_Decode(base[0] + 60);
+    v12 = *(float *)Ptr32_Decode(base[0] + 76) - *(float *)Ptr32_Decode(base[0] + 64);
     for ( j = 1; j < (int)num; ++j )
     {
-        v1 = (cStaticModel_s *)base[j];
+        v1 = (cStaticModel_s *)Ptr32_Decode(base[j]);
         if ( v1->xmodel == smodel->xmodel )
         {
             ++refcount;
@@ -2944,8 +2944,8 @@ void __cdecl print_static_models_stats()
 
 int __cdecl SortModelsFunc(const void *a, const void *b)
 {
-    if ( *(unsigned int *)(*(unsigned int *)a + 4) <= *(unsigned int *)(*(unsigned int *)b + 4) )
-        return *(unsigned int *)(*(unsigned int *)a + 4) < *(unsigned int *)(*(unsigned int *)b + 4);
+    if ( *(unsigned int *)Ptr32_Decode(*(unsigned int *)a + 4) <= *(unsigned int *)Ptr32_Decode(*(unsigned int *)b + 4) )
+        return *(unsigned int *)Ptr32_Decode(*(unsigned int *)a + 4) < *(unsigned int *)Ptr32_Decode(*(unsigned int *)b + 4);
     else
         return -1;
 }
@@ -3014,10 +3014,10 @@ int __cdecl buoyancy_worker()
 
     for ( i = g_pop_iter.m_ptr; g_pop_iter_end.m_ptr != i; i = g_pop_iter.m_ptr )
     {
-        if ( (phys_free_list<PhysObjUserData>::T_internal_base *)_InterlockedCompareExchange(
+        if ( (phys_free_list<PhysObjUserData>::T_internal_base *)Ptr32_Decode(_InterlockedCompareExchange(
                                                                                                                              (volatile unsigned __int32 *)&g_pop_iter,
                                                                                                                              (signed __int32)i->m_next_T_internal,
-                                                                                                                             (signed __int32)i) == i )
+                                                                                                                             (signed __int32)i)) == i )
             Phys_BodyGrabSnapshotNitrous((PhysObjUserData *)&i[2], g_delta_t);
     }
     return 0;
@@ -3401,7 +3401,7 @@ void collide_vehicle_wheels(PhysObjUserData *userData)
                 //rigid_body_constraint_wheel::get_wheel_collide_segment(v33, v41, &rb->m_mat, &v30, &v31);
                 v33->get_wheel_collide_segment(&rb->m_mat, &v30, &v31);
                 v29 = (float)(v30.z - v31.z) * 0.30000001;
-                LODWORD(p0[3]) = (DWORD)&v30.z;
+                LODWORD(p0[3]) = (DWORD)Ptr32_Encode(&v30.z);
                 v30.z = v30.z + v29;
                 Phys_NitrousVecToVec3(&v30, p0);
                 Phys_NitrousVecToVec3(&v31, p1);
@@ -3433,10 +3433,10 @@ void collide_vehicle_wheels(PhysObjUserData *userData)
                     v21.x = v15->x;
                     v21.y = v15->y;
                     v21.z = v15->z;
-                    LODWORD(v14.z) = (DWORD)phys_inv_multiply((phys_vec3 *)&v14.w, &TraceResultsRigidBody->m_mat, &v20);
-                    v20.x = *(float *)LODWORD(v14.z);
-                    v20.y = *(float *)(LODWORD(v14.z) + 4);
-                    v20.z = *(float *)(LODWORD(v14.z) + 8);
+                    LODWORD(v14.z) = (DWORD)Ptr32_Encode(phys_inv_multiply((phys_vec3 *)&v14.w, &TraceResultsRigidBody->m_mat, &v20));
+                    v20.x = *(float *)Ptr32_Decode(LODWORD(v14.z));
+                    v20.y = *(float *)Ptr32_Decode(LODWORD(v14.z) + 4);
+                    v20.z = *(float *)Ptr32_Decode(LODWORD(v14.z) + 8);
                     //rigid_body_constraint_wheel::set_collision(v33, TraceResultsRigidBody, &v21, &v20);
                     v33->set_collision(TraceResultsRigidBody, &v21, &v20);
                     LODWORD(v14.y) = (traceResults.sflags & 0x3F00000) >> 20;
@@ -3514,10 +3514,10 @@ int __cdecl wheel_collision_worker(jqBatch *__)
 
     for (i = g_wpop_iter.m_ptr; g_wpop_iter_end.m_ptr != i; i = g_wpop_iter.m_ptr)
     {
-        if ((phys_free_list<PhysObjUserData>::T_internal_base *)_InterlockedCompareExchange(
+        if ((phys_free_list<PhysObjUserData>::T_internal_base *)Ptr32_Decode(_InterlockedCompareExchange(
             (volatile unsigned __int32 *)&g_wpop_iter,
             (signed __int32)i->m_next_T_internal,
-            (signed __int32)i) == i)
+            (signed __int32)i)) == i)
             collide_vehicle_wheels((PhysObjUserData *)&i[2]);
     }
     return 0;

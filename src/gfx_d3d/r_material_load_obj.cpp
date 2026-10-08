@@ -1393,7 +1393,7 @@ MaterialTechnique *__cdecl Material_LoadTechnique(char *name)
             nameSize = strlen(name) + 1;
             technique = Material_Alloc(nameSize + 24 * passCount + 8);
             stateMapForPass = (MaterialStateMap **)&technique[20 * passCount + 8];
-            *(unsigned int *)technique = (unsigned int)&stateMapForPass[passCount];
+            *(unsigned int *)technique = (unsigned int)Ptr32_Encode(&stateMapForPass[passCount]);
             memcpy(*(unsigned __int8 **)technique, (unsigned __int8 *)name, nameSize);
 
             *((_WORD *)technique + 2) = techFlags;
@@ -2606,7 +2606,7 @@ MaterialVertexShader *__cdecl Material_LoadVertexShader(char *shaderName)
     v4 = shader;
     v2 = (unsigned __int8 *)shader->GetBufferPointer();
     //v2 = (unsigned __int8 *)((int (__thiscall *)(ID3DXBuffer *))shader->GetBufferPointer)(shader);
-    memcpy((unsigned __int8 *)program, v2, (unsigned int)v4);
+    memcpy((unsigned __int8 *)program, v2, (unsigned int)Ptr32_Encode(v4));
     hr = dx.device->CreateVertexShader((const DWORD*)program, &mtlShader->prog.vs);
     //hr = ((int (__stdcall *)(IDirect3DDevice9 *, unsigned int *, MaterialVertexShaderProgram *, unsigned int))dx.device->CreateVertexShader)(
     //             dx.device,
@@ -2696,12 +2696,12 @@ LABEL_22:
     if ( v22[0] )
     {
         v13 = 0;
-        v6 = (const char *)(*(int (__stdcall **)(unsigned int))(*(unsigned int *)v22[0] + 12))(v22[0]);
+        v6 = (const char *)Ptr32_Decode((*(int (__stdcall **)(unsigned int))(*(unsigned int *)Ptr32_Decode(v22[0]) + 12))(v22[0]));
         if ( I_stristr(v6, "error") )
             v12 = Com_ScriptError;
         else
             v12 = Com_ScriptWarning;
-        errorMessage = (char *)(*(int (__stdcall **)(unsigned int))(*(unsigned int *)v22[0] + 12))(v22[0]);
+        errorMessage = (char *)Ptr32_Decode((*(int (__stdcall **)(unsigned int))(*(unsigned int *)Ptr32_Decode(v22[0]) + 12))(v22[0]));
         Material_FileIncludeFileAndLineNumber(&prog, errorMessage, &fileName, lineNumber);
         if ( v12 )
         {
@@ -2722,7 +2722,7 @@ LABEL_22:
             Com_SetScriptWarningPrefix(prefix);
             Com_SetScriptErrorPrefix(ScriptErrorPrefix);
         }
-        (*(void (__thiscall **)(unsigned int, unsigned int))(*(unsigned int *)v22[0] + 8))(v22[0], v22[0]);
+        (*(void (__thiscall **)(unsigned int, unsigned int))(*(unsigned int *)Ptr32_Decode(v22[0]) + 8))(v22[0], v22[0]);
     }
     if ( hr < 0 )
     {
@@ -2740,12 +2740,12 @@ LABEL_22:
             Hunk_FreeTempMemory(shaderString);
             return 0;
         }
-        (*(void (__stdcall **)(int))(*(unsigned int *)v18 + 8))(v18);
+        (*(void (__stdcall **)(int))(*(unsigned int *)Ptr32_Decode(v18) + 8))(v18);
         Material_CacheShaderDX(shaderString, shaderTextLen, entryPoint, target, shader, 0);
         goto LABEL_22;
     }
     if ( v18 )
-        (*(void (__stdcall **)(int))(*(unsigned int *)v18 + 8))(v18);
+        (*(void (__stdcall **)(int))(*(unsigned int *)Ptr32_Decode(v18) + 8))(v18);
     Com_ScriptError("%s compilation failed - NULL shader\n", dest);
     Hunk_FreeTempMemory(shaderString);
     return 0;
@@ -4948,7 +4948,7 @@ char __cdecl Material_AddShaderArgumentFromLiteral(
     {
         __debugbreak();
     }
-    arg->u.codeSampler = (unsigned int)literal;
+    arg->u.codeSampler = (unsigned int)Ptr32_Encode(literal);
     return MaterialAddShaderArgument(shaderName, paramName, arg, registerUsage);
 }
 
@@ -5797,13 +5797,13 @@ Material *__cdecl Material_LoadLayered(const char *assetName)
                 Com_PrintError(
                     1,
                     "In layered material, expected material '%s' %s; using default instead.    Recompile the bsp to fix.\n",
-                    mtl[layerCount]->info.name,
+                    (const char *)mtl[layerCount]->info.name,
                     "without a normal map to have one");
             else
                 Com_PrintError(
                     1,
                     "In layered material, expected material '%s' %s; using default instead.    Recompile the bsp to fix.\n",
-                    mtl[layerCount]->info.name,
+                    (const char *)mtl[layerCount]->info.name,
                     "with a normal map to not have one");
             hasError = 1;
         }
@@ -6157,8 +6157,8 @@ unsigned int __cdecl Material_GetCullFlags(Material *material)
                 Com_PrintWarning(
                     8,
                     "Material '%s' uses technique set '%s' with mismatched cull modes.\n",
-                    material->info.name,
-                    techniqueSet->name);
+                    (const char *)material->info.name,
+                    (const char *)techniqueSet->name);
                 break;
             }
             cullFlags = techTypeCullFlags;
@@ -6412,9 +6412,9 @@ char __cdecl Material_ValidatePassArguments(
                 Com_PrintError(
                     8,
                     "material '%s' using technique '%s' from techniqueSet '%s' doesn't expose a '%s' texture\n",
-                    mtl->info.name,
+                    (const char *)mtl->info.name,
                     techniqueName,
-                    mtl->localTechniqueSet->name,
+                    (const char *)mtl->localTechniqueSet->name,
                     argNamea);
                 return 0;
             }
@@ -6425,9 +6425,9 @@ char __cdecl Material_ValidatePassArguments(
             Com_PrintError(
                 8,
                 "material '%s' using technique '%s' from techniqueSet '%s' doesn't expose a '%s' constant\n",
-                mtl->info.name,
+                (const char *)mtl->info.name,
                 techniqueName,
-                mtl->localTechniqueSet->name,
+                (const char *)mtl->localTechniqueSet->name,
                 argName);
             return 0;
         }
@@ -6830,8 +6830,8 @@ MaterialTechniqueSet *__cdecl Material_RegisterLayeredTechniqueSet(const Materia
                     8,
                     "Material '%s' uses technique set '%s' which cannot be used in a layered material; using default instead.    Reco"
                     "mpile the bsp to fix.\n",
-                    mtl[layerIndex]->info.name,
-                    mtl[layerIndex]->localTechniqueSet->name);
+                    (const char *)mtl[layerIndex]->info.name,
+                    (const char *)mtl[layerIndex]->localTechniqueSet->name);
                 return 0;
             }
             layerToken = layerIndex + 48;
@@ -7184,7 +7184,7 @@ void __cdecl Material_BuildStateBitsTable(Material *material, __int16 toolFlags,
         v3 = material->localTechniqueSet->techniques[i];
         if ( v3 )
         {
-            v5 = (int)&v3->passArray[v3->passCount];
+            v5 = (int)Ptr32_Encode(&v3->passArray[v3->passCount]);
             for ( j = 0; j < v3->passCount; ++j )
                 Material_RemapStateBits(
                     material,
@@ -7254,7 +7254,7 @@ void __cdecl Material_ApplyStateBitsRemapRuleSet(
         "No rule in stateMap '%s' rule set %i matched the current material state for material '%s'",
         stateMap->name,
         ruleSetIndex,
-        material->info.name);
+        (const char *)material->info.name);
 }
 
 bool __cdecl Material_FinishLoadingInstance(
@@ -7679,7 +7679,7 @@ bool __cdecl Material_Compare(const Material *mtl0, const Material *mtl1)
     {
         if ( hasLightmap[0] )
         {
-            v3 = va("material '%s' no techlit, but hasLightmap", mtl0->info.name);
+            v3 = va("material '%s' no techlit, but hasLightmap", (const char *)mtl0->info.name);
             if ( !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material_load_obj.cpp",
                             10903,
@@ -7691,7 +7691,7 @@ bool __cdecl Material_Compare(const Material *mtl0, const Material *mtl1)
         }
         if ( hasLightmap[1] )
         {
-            v4 = va("material '%s' no techlit, but hasLightmap", mtl1->info.name);
+            v4 = va("material '%s' no techlit, but hasLightmap", (const char *)mtl1->info.name);
             if ( !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material_load_obj.cpp",
                             10904,

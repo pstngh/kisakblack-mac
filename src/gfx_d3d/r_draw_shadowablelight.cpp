@@ -238,12 +238,12 @@ void    R_SetLightProperties(
         R_UpdateCodeConstant(source, CONST_SRC_CODE_LIGHT_CONE_CONTROL2, light->aAbB[0] * light->aAbB[2], light->aAbB[1] * light->aAbB[3], -2.0, 3.0);
         v42 = light->aAbB[0];
         v41 = light->aAbB[1];
-        updateLight = (GfxLight *)LODWORD(light->aAbB[2]);
+        updateLight = (GfxLight *)Ptr32_Decode(LODWORD(light->aAbB[2]));
         x = light->aAbB[3];
         y = source->input.consts[12];
         source->input.consts[12][0] = v42;
         y[1] = v41;
-        *((_DWORD *)y + 2) = (DWORD)updateLight;
+        *((_DWORD *)y + 2) = (DWORD)Ptr32_Encode(updateLight);
         y[3] = x;
         R_DirtyCodeConstant(source, CONST_SRC_CODE_LIGHT_SPOT_AABB);
         z = light;

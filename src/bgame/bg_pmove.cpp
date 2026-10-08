@@ -170,7 +170,7 @@ const float CorrectSolidDeltas[26][3] =
 
 void __cdecl setup_gjkcc_input(pmove_t *pm, gjkcc_input_t *gjkcc_in)
 {
-    gjkcc_in->gjkcc_id = (unsigned int)pm;
+    gjkcc_in->gjkcc_id = (unsigned int)Ptr32_Encode(pm);
     gjkcc_in->is_server_thread = pm->handler == 1;
     gjkcc_in->proximity_data = &pm->proximity_data;
     gjkcc_in->proximity_mask = 0x3818813;

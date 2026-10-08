@@ -248,7 +248,7 @@ void __cdecl CG_RegisterImpactEffectsForDir(char *dir, EffectFile *effectFile, c
             if ( len >= 0 )
             {
                 Hunk_CheckTempMemoryHighClear();
-                buffer = (void *)Hunk_AllocateTempMemoryHigh(len + 1, "CG_RegisterImpactEffects");
+                buffer = (void *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(len + 1, "CG_RegisterImpactEffects"));
                 FS_Read((unsigned __int8 *)buffer, len, f);
                 FS_FCloseFile(f);
                 *((_BYTE *)buffer + len) = 0;

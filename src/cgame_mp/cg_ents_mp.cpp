@@ -122,7 +122,7 @@ void __cdecl CG_Player_PreControllers(DObj *obj, centity_s *cent)
         BG_Player_DoControllersSetup(&cent->nextState, ci, cgameGlob->frametime);
         for ( i = 0; i < 6; ++i )
             DObjGetBoneIndex(obj, *controller_names[i], &cent->pose.player.tag[i], -1);
-        cent->pose.fx.triggerTime = (int)&ci->control;
+        cent->pose.fx.triggerTime = (int)Ptr32_Encode(&ci->control);
     }
     else
     {
@@ -204,7 +204,7 @@ void __cdecl CG_mg42_PreControllers(DObj *obj, centity_s *cent)
     }
     if ( cent->pose.turret.playerUsing )
     {
-        cent->pose.fx.triggerTime = (int)cgameGlob->predictedPlayerState.viewangles;
+        cent->pose.fx.triggerTime = (int)Ptr32_Encode(cgameGlob->predictedPlayerState.viewangles);
         cent->pose.cullIn = 0;
         cent->pose.turret.barrelPitch = 0.0f;
     }
@@ -2712,9 +2712,9 @@ void __cdecl CG_CreateRagdollObject(int localClientNum, centity_s *cent)
                                              1);
     }
     if ( shareRagdoll )
-        cent->pose.ragdollHandle = (int)RagdollForDObj;
+        cent->pose.ragdollHandle = (int)Ptr32_Encode(RagdollForDObj);
     else
-        cent->pose.killcamRagdollHandle = (int)RagdollForDObj;
+        cent->pose.killcamRagdollHandle = (int)Ptr32_Encode(RagdollForDObj);
     cent->pose.isRagdoll = 1;
 }
 
@@ -3894,7 +3894,7 @@ void __cdecl CG_Item(int localClientNum, centity_s *cent)
                 __debugbreak();
             }
             if ( !weapDef->worldModel[weapModel] )
-                Com_Error(ERR_DROP, "No XModel loaded for item index %i, weap index %i, model %i (%s)", cent->nextState.un3.item, weapIdx, weapModel, weapVariantDef->szDisplayName);
+                Com_Error(ERR_DROP, "No XModel loaded for item index %i, weap index %i, model %i (%s)", cent->nextState.un3.item, weapIdx, weapModel, (const char *)weapVariantDef->szDisplayName);
             obj = CG_PreProcess_GetDObj(
                             localClientNum,
                             cent->nextState.number,

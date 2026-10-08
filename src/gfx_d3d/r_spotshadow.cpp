@@ -382,7 +382,7 @@ void __cdecl R_AddSpotShadowModelEntities(int localClientNum, unsigned int prima
             if ( entnuma != gfxCfg.entnumNone )
             {
                 if ( R_IsEntityVisibleToPrimaryLight(localClientNum, entnuma, primaryLightIndex) )
-                    *(_BYTE *)(scene.dynSModelVisBitsCamera[light->spotShadowIndex - 10] + entnuma) = 1;
+                    *(_BYTE *)Ptr32_Decode(scene.dynSModelVisBitsCamera[light->spotShadowIndex - 10] + entnuma) = 1;
             }
         }
     }

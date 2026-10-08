@@ -1,23 +1,32 @@
 #pragma once
-// ptr32.h — 32-bit pointer fields for structs loaded verbatim from fastfiles.
+// ptr32.h — 32-bit pointers on 64-bit builds.
 //
-// The fastfile loader (db_load.cpp) reads asset structs straight out of the zone
-// stream, so their in-memory layout must match the 32-bit on-disk layout. On a
-// 32-bit build Ptr32<T> is just T*. On a 64-bit build it is a 4-byte handle:
+// The engine is decompiled 32-bit code. Asset structs are read verbatim from
+// fastfiles, the network and script code keep pointers in 32-bit integers, and
+// script bytecode embeds 4-byte code positions. On a 32-bit build everything
+// here is the identity. On a 64-bit build the engine gets a 32-bit address
+// space of its own:
 //
-//   0                          null
-//   [1, PTR32_REGION_LIMIT)    offset from g_ptr32Base, i.e. a pointer into the
-//                              reserved region that zone memory is allocated from
-//   [PTR32_REGION_LIMIT, ...)  index into a handle table, for the few pointers that
-//                              live outside the region (static data, malloc'd
-//                              runtime objects such as GL textures)
-//   [PTR32_SENTINEL_FIRST, ~0] the loader's raw markers ((T *)-1, (T *)-2, ...),
-//                              which decode back to the same pointer values so the
-//                              loader's `ptr == (T *)-1` checks keep working
+//   - The base is the executable's Mach-O header. The image (code, globals)
+//     and a large zero-fill heap array inside it (Ptr32_RegionAlloc) lie within
+//     2 GB above it, so a pointer into any of them encodes as its offset from the
+//     base. Offsets are linear: Encode(p) + n == Encode(p + n).
+//   - Other pointers (system malloc, dylibs) get a slot in a handle table. They
+//     round-trip exactly but are not linear.
+//   - Either way an encoding keeps the pointer's low 4 bits, so alignment checks
+//     on an encoded value (`(int)p & 15`) still hold.
+//   - The fastfile loader's markers ((T *)-1, (T *)-2, ...) encode as themselves.
 //
-// Ptr32<T> converts implicitly to and from T*, so most code that reads or writes
-// these fields compiles unchanged. Code that takes the address of a field (T**),
-// or passes one through varargs, has to say what it means.
+//   0                              null
+//   [1, PTR32_LINEAR_LIMIT)        offset from Ptr32_Base()
+//   [PTR32_LINEAR_LIMIT, SENTINEL) handle-table index
+//   [PTR32_SENTINEL_FIRST, ~0]     loader markers
+//
+// Ptr32<T> is a 4-byte field holding such a value. It converts implicitly to and
+// from T*, so most code that reads or writes these fields compiles unchanged.
+// Code that takes the address of a field (T**), or passes one through varargs,
+// has to say what it means. Ptr32_Encode/Ptr32_Decode convert explicitly where
+// the decompiled code stores a pointer in an int.
 
 #include <cstdint>
 #include <cstddef>
@@ -27,49 +36,58 @@
 
 #define KISAK_PTR32 1
 
-static constexpr uint32_t PTR32_REGION_LIMIT   = 0xC0000000u;
+static constexpr uint32_t PTR32_LINEAR_LIMIT   = 0x80000000u;
 static constexpr uint32_t PTR32_SENTINEL_FIRST = 0xFFFFFF00u;
-static constexpr size_t   PTR32_REGION_SIZE    = PTR32_REGION_LIMIT - 0x10000u;
 
-extern uintptr_t g_ptr32Base;
+// The lowest address of the executable image (a linker-defined symbol, so it
+// is usable before static initialization and costs no memory load).
+#if defined(__APPLE__)
+extern "C" const char kisak_image_base __asm("__mh_execute_header");
+#else
+extern "C" const char kisak_image_base __asm("__executable_start");
+#endif
+inline uintptr_t Ptr32_Base() { return (uintptr_t)&kisak_image_base; }
+
 extern void *const *g_ptr32Handles;
 
 uint32_t Ptr32_EncodeSlow(const void *p);
 
 inline void *Ptr32_Decode(uint32_t v)
 {
-    if (v < PTR32_REGION_LIMIT)
-        return v ? (void *)(g_ptr32Base + v) : nullptr;
+    if (v < PTR32_LINEAR_LIMIT)
+        return v ? (void *)(Ptr32_Base() + v) : nullptr;
     if (v >= PTR32_SENTINEL_FIRST)
         return (void *)(intptr_t)(int32_t)v;
-    return g_ptr32Handles[v - PTR32_REGION_LIMIT];
+    return g_ptr32Handles[(v - PTR32_LINEAR_LIMIT) >> 4];
 }
 
 inline uint32_t Ptr32_Encode(const void *p)
 {
-    uintptr_t d = (uintptr_t)p - g_ptr32Base;
-    if (d - 1 < (uintptr_t)PTR32_REGION_LIMIT - 1)
+    uintptr_t d = (uintptr_t)p - Ptr32_Base();
+    if (d - 1 < (uintptr_t)PTR32_LINEAR_LIMIT - 1)
         return (uint32_t)d;
     return Ptr32_EncodeSlow(p);
 }
 
-// The reserved region. Zone memory (fastfile blocks, the physical-memory pool,
-// hunk) is allocated here so pointers into it encode as plain offsets.
-void Ptr32_InitRegion();
-bool Ptr32_InRegion(const void *p);
+// The heap inside the linear window. Engine allocators (the physical-memory
+// pool, hunk, zone blocks, Z_Malloc) take their memory from here. Allocations
+// are page-granular (16 KB) and zero-filled.
 void *Ptr32_RegionAlloc(size_t size);
 void Ptr32_RegionFree(void *p);
 size_t Ptr32_RegionAllocSize(const void *p);
+bool Ptr32_InRegion(const void *p);
 
-// C-style casts a raw T* would allow and that stay correct for a 32-bit field:
-// dropping const/volatile, and byte or scalar views of the pointee. Casting to a
-// pointer-to-pointer or to an unrelated struct is left an error on purpose: if
-// the pointee holds Ptr32 fields, reading it through native pointer types is a
-// 64-bit bug.
+// General-purpose allocation from the same region (malloc semantics, 16-byte
+// aligned, not zeroed), for the engine's Z_Malloc family.
+void *Ptr32_HeapAlloc(size_t size);
+void Ptr32_HeapFree(void *p);
+
+// C-style casts a raw T* would allow: to another object or scalar type (the
+// decompiled code puns between union members and byte views). Casting to a
+// pointer-to-pointer is left an error on purpose: the pointee here is a 32-bit
+// slot (or an array of them), and reading it as native pointers is a 64-bit bug.
 template <class T, class U>
-inline constexpr bool kPtr32CastOk =
-    std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>> ||
-    std::is_void_v<U> || std::is_arithmetic_v<U>;
+inline constexpr bool kPtr32CastOk = !std::is_pointer_v<U>;
 
 template <class T>
 struct Ptr32
@@ -91,9 +109,32 @@ struct Ptr32
 
 static_assert(sizeof(Ptr32<char>) == 4, "Ptr32 must keep the 32-bit field width");
 
+// The stored 32-bit value (an offset, handle or loader marker), for code that
+// inspects a field's raw contents.
+template <class T>
+inline uint32_t Ptr32_Raw(const Ptr32<T> &p) { return p.v; }
+
+// Store a 32-bit value that is not a pointer (the decompiled structs keep
+// script string indices in pointer-typed fields).
+template <class T>
+inline void Ptr32_SetRaw(Ptr32<T> &p, uint32_t v) { p.v = v; }
+
 #else
 
 template <class T>
 using Ptr32 = T *;
 
+inline void *Ptr32_Decode(uint32_t v) { return (void *)(uintptr_t)v; }
+inline uint32_t Ptr32_Encode(const void *p) { return (uint32_t)(uintptr_t)p; }
+
+template <class T>
+inline uint32_t Ptr32_Raw(T *p) { return (uint32_t)(uintptr_t)p; }
+
+template <class T>
+inline void Ptr32_SetRaw(T *&p, uint32_t v) { p = (T *)(uintptr_t)v; }
+
 #endif
+
+// Function pointers (script builtins, callbacks) are stored in ints too.
+template <class R, class... A>
+inline uint32_t Ptr32_Encode(R (*f)(A...)) { return Ptr32_Encode((const void *)f); }

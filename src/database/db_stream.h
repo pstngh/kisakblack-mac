@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "db_registry.h"
 
 struct StreamPosInfo // sizeof=0x8
@@ -14,7 +15,7 @@ void __cdecl DB_PopStreamPos();
 unsigned __int8 *__cdecl DB_GetStreamPos();
 unsigned __int8 *__cdecl DB_AllocStreamPos(int alignment);
 void __cdecl DB_IncStreamPos(int size);
-const void **__cdecl DB_InsertPointer();
+Ptr32<const void> *__cdecl DB_InsertPointer();
 
 
 extern XBlock *g_streamBlocks;

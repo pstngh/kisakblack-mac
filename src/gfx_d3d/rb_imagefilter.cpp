@@ -217,7 +217,7 @@ int __cdecl RB_PickSymmetricFilterMaterial(int halfTapCount, const Material **ma
     {
         __debugbreak();
     }
-    *material = (const Material *)*((unsigned int *)&rgp.poisonFXMaterial + halfTapCount);
+    *material = (const Material *)Ptr32_Decode(*((unsigned int *)&rgp.poisonFXMaterial + halfTapCount));
     return halfTapCount;
 }
 

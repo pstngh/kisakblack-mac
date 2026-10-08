@@ -428,9 +428,9 @@ void __cdecl render_debug_brushes()
                 if ( num_indices >= 3 )
                 {
                     RB_CheckTessOverflow(num_indices, 3 * (num_indices - 2));
-                    v2 = (int)brush->verts[debug_brush_info->indices[first_vertex_index]];
-                    *(_QWORD *)&verts[0][0] = *(_QWORD *)v2;
-                    verts[0][2] = *(float *)(v2 + 8);
+                    v2 = (int)Ptr32_Encode(brush->verts[debug_brush_info->indices[first_vertex_index]]);
+                    *(_QWORD *)&verts[0][0] = *(_QWORD *)Ptr32_Decode(v2);
+                    verts[0][2] = *(float *)Ptr32_Decode(v2 + 8);
                     v1 = brush->verts[debug_brush_info->indices[first_vertex_index + 1]];
                     verts[1][0] = *v1;
                     verts[1][1] = v1[1];
@@ -543,10 +543,10 @@ void __cdecl render_debug_patches_full()
         {
             debug_patch = &debug_patch_info->patches[i];
             tree = debug_patch->tree;
-            faceColor[0] = (float)(0.5 * (float)((float)((((unsigned int)debug_patch->tree >> 4) & 0xF00) >> 4) / 256.0))
+            faceColor[0] = (float)(0.5 * (float)((float)((((unsigned int)Ptr32_Encode(debug_patch->tree) >> 4) & 0xF00) >> 4) / 256.0))
                                      + 0.5;
-            faceColor[1] = (float)(0.5 * (float)((float)(((unsigned int)tree >> 4) & 0xF0) / 256.0)) + 0.5;
-            faceColor[2] = (float)(0.5 * (float)((float)(unsigned __int8)(16 * (((unsigned int)tree >> 4) & 0xF)) / 256.0))
+            faceColor[1] = (float)(0.5 * (float)((float)(((unsigned int)Ptr32_Encode(tree) >> 4) & 0xF0) / 256.0)) + 0.5;
+            faceColor[2] = (float)(0.5 * (float)((float)(unsigned __int8)(16 * (((unsigned int)Ptr32_Encode(tree) >> 4) & 0xF)) / 256.0))
                                      + 0.5;
             if ( tree->u.firstChildIndex == g_debug_partition )
             {
@@ -756,7 +756,7 @@ void __cdecl render_convex_partition(const CollisionAabbTree *tree)
     float polygonVerts[3][3]; // [esp+20h] [ebp-34h] BYREF
     float faceColor[4]; // [esp+44h] [ebp-10h] BYREF
 
-    calc_color((unsigned int)tree, alpha, faceColor);
+    calc_color((unsigned int)Ptr32_Encode(tree), alpha, faceColor);
     memset(edgeColor, 0, 12);
     edgeColor[3] = 1.0f;
     chull = get_partition_chull(tree);
@@ -974,7 +974,7 @@ void    render_gjk_geom(gjk_base_t *geom, const phys_mat44 *cg2w)
 
     if (geom->get_brush())
     {
-        calc_color((unsigned int)geom->get_brush(), alpha_1, faceColor);
+        calc_color((unsigned int)Ptr32_Encode(geom->get_brush()), alpha_1, faceColor);
         render_brush(geom->get_brush(), cg2w, faceColor, 0, 0, 0, 1, edgeColor);
     }
     else
@@ -987,7 +987,7 @@ void    render_gjk_geom(gjk_base_t *geom, const phys_mat44 *cg2w)
             render_box(geom->get_aabb_mn(), geom->get_aabb_mx(), cg2w, colorMdRed, 0);
             break;
         case GJK_BRUSH:
-            calc_color((unsigned int)geom->get_brush(), alpha_0, &color);
+            calc_color((unsigned int)Ptr32_Encode(geom->get_brush()), alpha_0, &color);
             memset(edgeColor, 0, 12);
             edgeColor[3] = 1.0f;
             render_brush(geom->get_brush(), cg2w, &color, 0, 0, 0, 1, edgeColor);

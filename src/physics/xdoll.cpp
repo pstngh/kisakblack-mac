@@ -35,7 +35,7 @@ void __cdecl XDoll_SetCollides(XDollBone *bone, bool collides)
 
     if ( bone->rigidBody )
     {
-        userData = (PhysObjUserData *)bone->rigidBody;
+        userData = (PhysObjUserData *)Ptr32_Decode(bone->rigidBody);
         if ( userData->m_bpb->is_bpi() )
         {
             //bpi = broad_phase_base::get_bpi(userData->m_bpb);
@@ -422,7 +422,7 @@ char __cdecl XDoll_CreatePhysObj(
             if ( model->collSurfs )
                 surfFlags = model->collSurfs->surfFlags;
             else
-                surfFlags = (int)"t";
+                surfFlags = (int)Ptr32_Encode("t");
             aabb_gjk_geom = create_aabb_gjk_geom(
                                                 model->mins,
                                                 model->maxs,
@@ -433,8 +433,8 @@ char __cdecl XDoll_CreatePhysObj(
         }
         Sys_EnterCriticalSection(CRITSECT_PHYSICS);
         bone->physPreset = physPreset;
-        bone->rigidBody = (int)Phys_ObjCreate(0, origin, quat, vec3_origin, physPreset, &gjk_geom_list, 1, -1);
-        userData = (PhysObjUserData *)bone->rigidBody;
+        bone->rigidBody = (int)Ptr32_Encode(Phys_ObjCreate(0, origin, quat, vec3_origin, physPreset, &gjk_geom_list, 1, -1));
+        userData = (PhysObjUserData *)Ptr32_Decode(bone->rigidBody);
         if ( !userData->m_bpb
             && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\physics\\xdoll.cpp", 327, 0, "%s", "userData->m_bpb") )
         {
@@ -575,7 +575,7 @@ int __cdecl XDoll_CreateXDollForConstraints(
         if ( CG_DObjGetWorldTagMatrix(&cent->pose, obj, body->userBodyBoneHash, mat, origin) )
         {
             UserBody = Phys_CreateUserBody(origin, entity_index, PHYS_GEOM_CAPSULE);
-            body->userBody = (int)UserBody;
+            body->userBody = (int)Ptr32_Encode(UserBody);
             if ( body->userBody )
                 Phys_SetUserBody(body->userBody, origin);
         }
@@ -698,7 +698,7 @@ void    XDoll_CreateConstraint(
     {
         if (rb2 == phys_sys::get_environment_rigid_body() && body->userBody)
         {
-            userData = (PhysObjUserData *)body->userBody;
+            userData = (PhysObjUserData *)Ptr32_Decode(body->userBody);
             rb2 = userData->body;
         }
         if (!rb2 && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\physics\\xdoll.cpp", 489, 0, "%s", "rb2"))

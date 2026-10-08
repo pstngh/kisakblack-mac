@@ -333,7 +333,7 @@ void __cdecl R_ShutdownImages()
         if ( image )
         {
             if ( Image_IsProg(image) )
-                v4[v2++] = (unsigned int)image;
+                v4[v2++] = (unsigned int)Ptr32_Encode(image);
             else
                 Image_Free(imageGlobals.imageHashTable[i]);
         }
@@ -341,7 +341,7 @@ void __cdecl R_ShutdownImages()
     memset(&imageGlobals, 0, 0x2000u);
     for ( j = 0; j < v2; ++j )
     {
-        imagea = (GfxImage *)v4[j];
+        imagea = (GfxImage *)Ptr32_Decode(v4[j]);
         imageGlobals.imageHashTable[Image_GetAvailableHashLocation(imagea->name)] = imagea;
     }
 }
@@ -671,12 +671,12 @@ void __cdecl R_DelayLoadImage(XAssetHeader header, void *data)
     if (image->delayLoadPixels)
     {
         image->delayLoadPixels = 0;
-        externalDataSize = (const char *)image->cardMemory.platform[0];
+        externalDataSize = (const char *)Ptr32_Decode(image->cardMemory.platform[0]);
         image->cardMemory.platform[0] = 0;
         image->cardMemory.platform[1] = 0;
         if (r_loadForRenderer->current.enabled && !Image_LoadFromFile(image, 0))
             Image_AssignDefaultTexture(image);
-        DB_LoadedExternalData((unsigned int)externalDataSize);
+        DB_LoadedExternalData((unsigned int)Ptr32_Encode(externalDataSize));
     }
 }
 
@@ -831,7 +831,7 @@ void __cdecl Load_Texture(GfxTexture *remoteLoadDef, GfxImage *image)
                             "%s\n\t(image->name) = %s",
                             "(static_cast< uint >( image->cardMemory.platform[PICMIP_PLATFORM_USED] ) == Image_GetCardMemoryAmount( loa"
                             "dDef->flags, static_cast< GfxPixelFormat >( loadDef->format ), image->width, image->height, image->depth ))",
-                            image->name) )
+                            (const char *)image->name) )
             {
                 __debugbreak();
             }
@@ -842,7 +842,7 @@ void __cdecl Load_Texture(GfxTexture *remoteLoadDef, GfxImage *image)
                             1,
                             "%s\n\t(image->name) = %s",
                             "(image->texture.basemap == 0)",
-                            image->name) )
+                            (const char *)image->name) )
             {
                 __debugbreak();
             }
@@ -853,7 +853,7 @@ void __cdecl Load_Texture(GfxTexture *remoteLoadDef, GfxImage *image)
                 image->cardMemory.platform[0] = 0;
                 image->cardMemory.platform[1] = 0;
                 if ( !Image_LoadFromFile(image, 0) )
-                    Com_Error(ERR_DROP, "Couldn't load image '%s'\n", image->name);
+                    Com_Error(ERR_DROP, "Couldn't load image '%s'\n", (const char *)image->name);
                 DB_LoadedExternalData(externalDataSize);
             }
         }
@@ -900,7 +900,7 @@ GfxImage *__cdecl Image_FindExisting_FastFile(const char *name)
 GfxImage *__cdecl Image_Register(char *imageName, unsigned __int8 semantic, int imageTrack)
 {
     if ( useFastFile->current.enabled )
-        return (GfxImage *)((int (__cdecl *)(char *, unsigned int, int))Image_Register_FastFile)(imageName, semantic, imageTrack);
+        return (GfxImage *)Ptr32_Decode(((int (__cdecl *)(char *, unsigned int, int))Image_Register_FastFile)(imageName, semantic, imageTrack));
     else
         return Image_Register_LoadObj(imageName, semantic, imageTrack);
 }
@@ -1084,7 +1084,7 @@ void __cdecl Image_Reload(GfxImage *image)
         __debugbreak();
     Image_Release(image);
     if ( !Image_LoadFromFile(image, image->skippedMipLevels == 0) )
-        Com_Error(ERR_DROP, "failed to load image '%s'", image->name);
+        Com_Error(ERR_DROP, "failed to load image '%s'", (const char *)image->name);
 }
 
 void __cdecl R_EnumImages(void (__cdecl *func)(GfxImage *, void *), void *data)
@@ -1287,7 +1287,7 @@ GfxImage *R_InitRawImage()
                                                      1,
                                                      "%s",
                                                      "rgp.rawImage");
-        if ( !(_BYTE)result )
+        if ( !(_BYTE)Ptr32_Encode(result) )
             __debugbreak();
     }
     return result;
@@ -1387,7 +1387,7 @@ GfxImage *R_InitCodeImages()
                                                      1,
                                                      "%s",
                                                      "rgp.r32fWhiteImage");
-        if ( !(_BYTE)result )
+        if ( !(_BYTE)Ptr32_Encode(result) )
             __debugbreak();
     }
     rgp.heatMapImage = 0;
@@ -1525,7 +1525,7 @@ LABEL_30:
             }
             v5[i] += v3;
         }
-        Com_Printf(8, "    %s\t\t%x\n", image->name, image);
+        Com_Printf(8, "    %s\t\t%x\n", (const char *)image->name, image);
     }
     Com_Printf(8, " ---------\n");
     Com_Printf(8, " %i total images\n", imageList.count);

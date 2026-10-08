@@ -3453,7 +3453,7 @@ void __cdecl Bot_DrawDebug(const ScreenPlacement *scrPlace)
                 v22 = (float *)colorWhiteFaded;
             else
                 v22 = (float *)colorWhite;
-            v17 = va("WEAPON: %s", weapVariantDef->szInternalName);
+            v17 = va("WEAPON: %s", (const char *)weapVariantDef->szInternalName);
             Bot_DrawString(scrPlace, v17, *(float *)&x, &y, v22);
             if ( dead )
                 v21 = (float *)colorWhiteFaded;

@@ -312,7 +312,7 @@ void LiveStorage_InitCustomClassesNames()
         {
             __debugbreak();
         }
-        if ( *(_BYTE *)customclass[i]->current.integer )
+        if ( *(_BYTE *)Ptr32_Decode(customclass[i]->current.integer) )
             allUnitialized = 0;
     }
     if ( allUnitialized )

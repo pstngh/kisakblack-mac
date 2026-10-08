@@ -1,4 +1,5 @@
 #include "db_registry.h"
+#include <new>
 #include <universal/profile.h>
 #include <clientscript/cscr_parsetree.h>
 #include <gfx_d3d/rb_resource.h>
@@ -214,34 +215,44 @@ XAssetHeader(__cdecl *DB_AllocXAssetHeaderHandler[43])(void *) =
 };
 
 
-XAssetPool<XModelPieces, POOLSIZE_XMODELPIECES>         g_XModelPiecesPool;
-XAssetPool<PhysPreset, POOLSIZE_PHYSPRESET>             g_PhysPresetPool;
-XAssetPool<PhysConstraints, POOLSIZE_PHYSCONSTRAINTS>   g_PhysConstraintsPool;
-XAssetPool<DestructibleDef, POOLSIZE_DESTRUCTIBLEDEF>   g_DestructibleDefPool;
-XAssetPool<XAnimParts, POOLSIZE_XANIM>                  g_XAnimPartsPool;
-XAssetPool<XModel, POOLSIZE_XMODEL>                     g_XModelPool;
-XAssetPool<Material, POOLSIZE_MATERIAL>                 g_MaterialPool;
-XAssetPool<MaterialTechniqueSet, POOLSIZE_TECHSET>      g_MaterialTechniqueSetPool;
-XAssetPool<GfxImage, POOLSIZE_IMAGE>                    g_GfxImagePool;
-XAssetPool<SndBank, POOLSIZE_SOUND>                     g_SoundPool;
-XAssetPool<snd_alias_list_t, POOLSIZE_SOUND_PATCH>      g_SoundPatchPool;
-XAssetPool<MapEnts, POOLSIZE_MAP_ENTS>                  g_MapEntsPool;
-XAssetPool<GfxLightDef, POOLSIZE_LIGHTDEF>              g_GfxLightDefPool;
-XAssetPool<Font_s, POOLSIZE_FONT>                       g_FontPool;
-XAssetPool<MenuList, POOLSIZE_MENUFILE>                 g_MenuListPool;
-XAssetPool<menuDef_t, POOLSIZE_MENU>                    g_MenuPool;
-XAssetPool<LocalizeEntry, POOLSIZE_LOCALIZE>            g_LocalizeEntryPool;
-XAssetPool<WeaponVariantDef, POOLSIZE_WEAPON>           g_WeaponVariantDefPool;
-XAssetPool<SndDriverGlobals, POOLSIZE_SNDDRIVERGLOBALS> g_SndDriverGlobalsPool;
-XAssetPool<FxEffectDef, POOLSIZE_FX>                    g_FxEffectDefPool;
-XAssetPool<FxImpactTable, POOLSIZE_IMPACTFX>            g_FxImpactTablePool;
-XAssetPool<RawFile, POOLSIZE_RAWFILE>                   g_RawFilePool;
-XAssetPool<StringTable, POOLSIZE_STRINGTABLE>           g_StringTablePool;
-XAssetPool<PackIndex, POOLSIZE_PACKINDEX>               g_PackIndexPool;
-XAssetPool<XGlobals, POOLSIZE_XGLOBALS>                 g_XGlobalsPool;
-XAssetPool<ddlDef_t, POOLSIZE_DDL>                      g_DDLPool;
-XAssetPool<Glasses, POOLSIZE_GLASSES>                   g_GlassesPool;
-XAssetPool<EmblemSet, POOLSIZE_EMBLEMSET>               g_EmblemSetPool;
+#ifdef KISAK_PTR32
+// Asset headers are Ptr32 unions on 64-bit builds. Keeping the pools inside the
+// zone region makes encoding a header pointer an offset computation instead of
+// a handle-table lookup.
+#define KISAK_ASSET_POOL(T, N, name) \
+    XAssetPool<T, N> &name = *new (Ptr32_RegionAlloc(sizeof(XAssetPool<T, N>))) XAssetPool<T, N>
+#else
+#define KISAK_ASSET_POOL(T, N, name) XAssetPool<T, N> name
+#endif
+
+KISAK_ASSET_POOL(XModelPieces, POOLSIZE_XMODELPIECES, g_XModelPiecesPool);
+KISAK_ASSET_POOL(PhysPreset, POOLSIZE_PHYSPRESET, g_PhysPresetPool);
+KISAK_ASSET_POOL(PhysConstraints, POOLSIZE_PHYSCONSTRAINTS, g_PhysConstraintsPool);
+KISAK_ASSET_POOL(DestructibleDef, POOLSIZE_DESTRUCTIBLEDEF, g_DestructibleDefPool);
+KISAK_ASSET_POOL(XAnimParts, POOLSIZE_XANIM, g_XAnimPartsPool);
+KISAK_ASSET_POOL(XModel, POOLSIZE_XMODEL, g_XModelPool);
+KISAK_ASSET_POOL(Material, POOLSIZE_MATERIAL, g_MaterialPool);
+KISAK_ASSET_POOL(MaterialTechniqueSet, POOLSIZE_TECHSET, g_MaterialTechniqueSetPool);
+KISAK_ASSET_POOL(GfxImage, POOLSIZE_IMAGE, g_GfxImagePool);
+KISAK_ASSET_POOL(SndBank, POOLSIZE_SOUND, g_SoundPool);
+KISAK_ASSET_POOL(snd_alias_list_t, POOLSIZE_SOUND_PATCH, g_SoundPatchPool);
+KISAK_ASSET_POOL(MapEnts, POOLSIZE_MAP_ENTS, g_MapEntsPool);
+KISAK_ASSET_POOL(GfxLightDef, POOLSIZE_LIGHTDEF, g_GfxLightDefPool);
+KISAK_ASSET_POOL(Font_s, POOLSIZE_FONT, g_FontPool);
+KISAK_ASSET_POOL(MenuList, POOLSIZE_MENUFILE, g_MenuListPool);
+KISAK_ASSET_POOL(menuDef_t, POOLSIZE_MENU, g_MenuPool);
+KISAK_ASSET_POOL(LocalizeEntry, POOLSIZE_LOCALIZE, g_LocalizeEntryPool);
+KISAK_ASSET_POOL(WeaponVariantDef, POOLSIZE_WEAPON, g_WeaponVariantDefPool);
+KISAK_ASSET_POOL(SndDriverGlobals, POOLSIZE_SNDDRIVERGLOBALS, g_SndDriverGlobalsPool);
+KISAK_ASSET_POOL(FxEffectDef, POOLSIZE_FX, g_FxEffectDefPool);
+KISAK_ASSET_POOL(FxImpactTable, POOLSIZE_IMPACTFX, g_FxImpactTablePool);
+KISAK_ASSET_POOL(RawFile, POOLSIZE_RAWFILE, g_RawFilePool);
+KISAK_ASSET_POOL(StringTable, POOLSIZE_STRINGTABLE, g_StringTablePool);
+KISAK_ASSET_POOL(PackIndex, POOLSIZE_PACKINDEX, g_PackIndexPool);
+KISAK_ASSET_POOL(XGlobals, POOLSIZE_XGLOBALS, g_XGlobalsPool);
+KISAK_ASSET_POOL(ddlDef_t, POOLSIZE_DDL, g_DDLPool);
+KISAK_ASSET_POOL(Glasses, POOLSIZE_GLASSES, g_GlassesPool);
+KISAK_ASSET_POOL(EmblemSet, POOLSIZE_EMBLEMSET, g_EmblemSetPool);
 
 void *DB_XAssetPool[43] =
 {
@@ -594,7 +605,7 @@ void __cdecl DB_RemoveXModel(XAssetHeader header)
     XModelReleaseResources(header.model);
 }
 
-void __cdecl Load_MaterialAsset(Material **material)
+void __cdecl Load_MaterialAsset(Ptr32<Material> *material)
 {
     XAssetHeader asset;
     asset.material = *material;
@@ -859,7 +870,7 @@ void __cdecl Mark_WeaponVariantDefAsset(WeaponVariantDef *weapon)
     DB_GetXAsset(ASSET_TYPE_WEAPON, (XAssetHeader)weapon);
 }
 
-void __cdecl Load_SndDriverGlobalsAsset(SndDriverGlobals **sndDriverGlobals)
+void __cdecl Load_SndDriverGlobalsAsset(Ptr32<SndDriverGlobals> *sndDriverGlobals)
 {
     XAssetHeader header;
     header.sndDriverGlobals = *sndDriverGlobals;
@@ -881,7 +892,7 @@ void __cdecl Mark_FxEffectDefAsset(FxEffectDef *fx)
     DB_GetXAsset(ASSET_TYPE_FX, (XAssetHeader)fx);
 }
 
-void __cdecl Load_FxEffectDefFromName(const char **name)
+void __cdecl Load_FxEffectDefFromName(Ptr32<const char> *name)
 {
     if ( *name )
         *(XAssetHeader *)name = DB_FindXAssetHeader(ASSET_TYPE_FX, (char *)*name, 1, -1);
@@ -4026,10 +4037,10 @@ void __cdecl DB_ModXFileHandle(const char *zoneName, void **zoneFile, FF_DIR *zo
     bool v6; // [esp+4h] [ebp-10Ch]
     char filename[260]; // [esp+8h] [ebp-108h] BYREF
 
-    v6 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.integer;
+    v6 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
     if ( !v6 || I_stricmp(zoneName, "mod") )
     {
-        if ( fs_usermapDir && *(_BYTE *)fs_usermapDir->current.integer )
+        if ( fs_usermapDir && *(_BYTE *)Ptr32_Decode(fs_usermapDir->current.integer) )
         {
             String = Dvar_GetString("fs_usermapDir");
             v4 = va("%s\\%s", String, zoneName);
@@ -4056,7 +4067,7 @@ void __cdecl DB_BuildOSPath_FromSource(const char *zoneName, FF_DIR source, unsi
     {
         if ( source == FFD_MOD_DIR )
         {
-            v4 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.integer;
+            v4 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
             if ( !v4
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\database\\db_registry.cpp",
@@ -4915,7 +4926,7 @@ char __cdecl DB_ModFileExists()
     char filename[256]; // [esp+4h] [ebp-108h] BYREF
     void *zoneFile; // [esp+108h] [ebp-4h]
 
-    if ( !fs_gameDirVar || !*(_BYTE *)fs_gameDirVar->current.integer )
+    if ( !fs_gameDirVar || !*(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer) )
         return 0;
     DB_BuildOSPath_FromSource("mod", FFD_MOD_DIR, 0x100u, filename);
     zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);

@@ -30,7 +30,7 @@ void __cdecl R_AddEntitySurfacesInFrustumCmd(unsigned __int16 *data)
         {
             __debugbreak();
         }
-        planes = (const DpvsPlane *)*((unsigned int *)data + 1);
+        planes = (const DpvsPlane *)Ptr32_Decode(*((unsigned int *)data + 1));
         v2 = data[4];
         minmax = localSceneEnt->cull.mins;
         v5 = 0;
@@ -66,7 +66,7 @@ LABEL_14:
             {
                 __debugbreak();
             }
-            *(_BYTE *)(localSceneEnt->entnum + *((unsigned int *)data + 3)) = 1;
+            *(_BYTE *)Ptr32_Decode(localSceneEnt->entnum + *((unsigned int *)data + 3)) = 1;
         }
         else
         {

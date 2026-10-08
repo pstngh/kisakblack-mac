@@ -1494,7 +1494,7 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                         }
                         else
                         {
-                            Com_Printf(25, "Script spawning dyn ent with model with no physPreset %s\n", model->name);
+                            Com_Printf(25, "Script spawning dyn ent with model with no physPreset %s\n", (const char *)model->name);
                         }
                     }
                     return;
@@ -1872,7 +1872,7 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                     }
                     else if (v98->pose.physObjId && v98->pose.physObjId != -1)
                     {
-                        userData = (PhysObjUserData *)v98->pose.physObjId;
+                        userData = (PhysObjUserData *)Ptr32_Decode(v98->pose.physObjId);
                     }
                     if (userData)
                         userData->m_flags |= 8u;
@@ -1887,7 +1887,7 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                     }
                     else if (v95->pose.physObjId && v95->pose.physObjId != -1)
                     {
-                        m_phys_user_data = (PhysObjUserData *)v95->pose.physObjId;
+                        m_phys_user_data = (PhysObjUserData *)Ptr32_Decode(v95->pose.physObjId);
                     }
                     if (m_phys_user_data)
                         m_phys_user_data->buoyancy = (int)(float)((float)m_phys_user_data->buoyancy * buoyancy_scale);

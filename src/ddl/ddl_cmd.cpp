@@ -54,7 +54,7 @@ LABEL_5:
             DDL_NoCheckPrintf(
                 "%d \t%s[%d] (%d)\n",
                 searchState.absoluteOffset,
-                searchState.member->name,
+                (const char *)searchState.member->name,
                 searchState.arrayIndex,
                 searchState.member->size / searchState.member->arraySize);
             while ( DDL_MoveNext(&searchState, &searchState) )
@@ -65,7 +65,7 @@ LABEL_6:
                 DDL_NoCheckPrintf(
                     "%d \t%s (%d)\n",
                     searchState.absoluteOffset,
-                    searchState.member->name,
+                    (const char *)searchState.member->name,
                     searchState.member->size / searchState.member->arraySize);
             }
         }

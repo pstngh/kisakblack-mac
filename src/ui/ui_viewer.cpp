@@ -244,7 +244,7 @@ void __thiscall UIViewer::LoadMap()
     {
         LoadWorld((char *)comWorld.name);
         R_SortWorldSurfaces();
-        v1 = va("%s", comWorld.name);
+        v1 = va("%s", (const char *)comWorld.name);
         CG_InitExposure(0, v1);
         Material_Sort();
         R_ClearSkyboxModel();
@@ -915,7 +915,7 @@ void __thiscall UIViewer::DrawDobj::Set(
 {
     this->weaponOptions.i = weapParam->weaponOptions.i;
     this->weaponOptions.i = (playerParams->facePatternIndex << 26)
-                                                | ((unsigned int)&objBuf[1758][1] + 3) & this->weaponOptions.i;
+                                                | ((unsigned int)Ptr32_Encode(&objBuf[1758][1]) + 3) & this->weaponOptions.i;
     this->heroLighting = hero;
     this->startTime = cls.realtime;
     this->weaponVariantDef = wvd;
@@ -1064,11 +1064,11 @@ const WeaponVariantDef *__thiscall UIViewer::GetWeaponVariantDef(const UIViewer:
         if ( attachRefs[i] && I_strcmp(attachRefs[i], "none") )
         {
             v7 = va("_%s", attachRefs[i]);
-            v8 = (unsigned int)&v7[strlen(v7) + 1];
+            v8 = (unsigned int)Ptr32_Encode(&v7[strlen(v7) + 1]);
             v6 = (char *)&attachRefs[3] + 3;
             while ( *++v6 )
                 ;
-            memcpy(v6, v7, v8 - (unsigned int)v7);
+            memcpy(v6, v7, v8 - (unsigned int)Ptr32_Encode(v7));
         }
     }
     v4 = (char *)&attachRefs[3] + 3;
@@ -1473,15 +1473,15 @@ void __thiscall UIViewer::AddPlayerToScene(
     if (strcmp(this->playerCameraName, this->playerCameraDvar->current.string))
     {
         if (this->ingame)
-            v7 = UIViewer::SetCameraPos((char*)this->playerCameraDvar->current.integer, (char*)"ingame", animate);
+            v7 = UIViewer::SetCameraPos((char*)Ptr32_Decode(this->playerCameraDvar->current.integer), (char*)"ingame", animate);
         else
-            v7 = UIViewer::SetCameraPos((char *)this->playerCameraDvar->current.integer, (char *)"none", animate);
+            v7 = UIViewer::SetCameraPos((char *)Ptr32_Decode(this->playerCameraDvar->current.integer), (char *)"none", animate);
         if (!v7)
         {
             Dvar_SetString((dvar_s*)this->playerCameraDvar, "player");
-            UIViewer::SetCameraPos((char *)this->playerCameraDvar->current.integer, (char *)"none", animate);
+            UIViewer::SetCameraPos((char *)Ptr32_Decode(this->playerCameraDvar->current.integer), (char *)"none", animate);
         }
-        integer = (char*)this->playerCameraDvar->current.integer;
+        integer = (char*)Ptr32_Decode(this->playerCameraDvar->current.integer);
         playerCameraName = this->playerCameraName;
         do
         {

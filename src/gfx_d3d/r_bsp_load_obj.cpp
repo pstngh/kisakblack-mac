@@ -700,7 +700,7 @@ void __cdecl R_LoadLightmaps(GfxBspLoad *load)
                 __debugbreak();
             }
             if ( newLmapIndex
-                && groupInfo[newLmapIndex].highCount > (int)(&buf_p)[2 * newLmapIndex]
+                && groupInfo[newLmapIndex].highCount > (int)Ptr32_Encode((&buf_p)[2 * newLmapIndex])
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_bsp_load_obj.cpp",
                             1015,
@@ -1097,7 +1097,7 @@ unsigned int __cdecl R_DetermineLightmapCoupling(GfxBspLoad *load, int (*couplin
             origLmapCount = lmapIndex + 1;
     }
     if ( diskLmapCount && diskLmapCount != origLmapCount )
-        Com_Error(ERR_DROP, "LoadMap: funny lump size in %s", s_world.name);
+        Com_Error(ERR_DROP, "LoadMap: funny lump size in %s", (const char *)s_world.name);
     memset(lmapVertCount, 0, sizeof(lmapVertCount));
     memset(coupling, 0, 0x400u);
     for ( materialIndex = 0; materialIndex < load->materialCount; ++materialIndex )
@@ -2517,18 +2517,18 @@ unsigned __int8 *R_LoadWorldLodData()
         s_world.worldLodChains[i].lastDist = *((float *)v2 + 3);
         s_world.worldLodChains[i].firstLodInfo = *((unsigned int *)v2 + 4);
         s_world.worldLodChains[i].lodInfoCount = *((_WORD *)v2 + 10);
-        result = (unsigned __int8 *)(i + 1);
+        result = (unsigned __int8 *)Ptr32_Decode(i + 1);
     }
     for ( j = 0; j < s_world.worldLodInfoCount; ++j )
     {
         s_world.worldLodInfos[j].dist = *(float *)&lodInfos[12 * j];
         s_world.worldLodInfos[j].firstSurf = *(unsigned int *)&lodInfos[12 * j + 4];
         s_world.worldLodInfos[j].surfCount = *(_WORD *)&lodInfos[12 * j + 8];
-        result = (unsigned __int8 *)(j + 1);
+        result = (unsigned __int8 *)Ptr32_Decode(j + 1);
     }
     for ( k = 0; k < s_world.worldLodSurfaceCount; ++k )
     {
-        result = (unsigned __int8 *)k;
+        result = (unsigned __int8 *)Ptr32_Decode(k);
         s_world.worldLodSurfaces[k] = *(unsigned int *)&lodSurfs[4 * k];
     }
     return result;
@@ -2829,7 +2829,7 @@ unsigned int R_CalculateVertexStream2Usage()
             {
                 if ( vertexCount > existingUse->vertexCount )
                     existingUse->vertexCount = vertexCount;
-                tris->stream2ByteOffset = (int)existingUse;
+                tris->stream2ByteOffset = (int)Ptr32_Encode(existingUse);
             }
             else
             {
@@ -2838,7 +2838,7 @@ unsigned int R_CalculateVertexStream2Usage()
                 newUsage.vertexCount = vertexCount;
                 newUsage.next = 0;
                 inserted = InsertNewUsage(&usageList, &newUsage);
-                tris->stream2ByteOffset = (int)inserted;
+                tris->stream2ByteOffset = (int)Ptr32_Encode(inserted);
             }
         }
         else
@@ -2856,7 +2856,7 @@ unsigned int R_CalculateVertexStream2Usage()
     {
         v2 = &s_world.dpvs.surfaces[i];
         if ( v2->tris.stream2ByteOffset )
-            v2->tris.stream2ByteOffset = *(unsigned int *)(v2->tris.stream2ByteOffset + 4);
+            v2->tris.stream2ByteOffset = *(unsigned int *)Ptr32_Decode(v2->tris.stream2ByteOffset + 4);
         else
             v2->tris.stream2ByteOffset = -1;
     }
@@ -2959,10 +2959,10 @@ void __cdecl R_LoadSurfaces(GfxBspLoad *load)
         Com_PrintWarning(8, "Bsp compiled with old version of cod2map.\n");
     R_LoadTriangleSurfaces(load->bspVersion, (DiskTriangleSoup **)&diskSurfaces, &surfCount);
     if ( !surfCount )
-        Com_Error(ERR_DROP, "LoadMap: no surfaces in %s", s_world.name);
+        Com_Error(ERR_DROP, "LoadMap: no surfaces in %s", (const char *)s_world.name);
     vertsDisk = (const DiskGfxVertex *)Com_GetBspLump(LUMP_DRAWVERTS, 0x44u, &vertCount);
     if ( !vertCount )
-        Com_Error(ERR_DROP, "LoadMap: no vertices in %s", s_world.name);
+        Com_Error(ERR_DROP, "LoadMap: no vertices in %s", (const char *)s_world.name);
     s_world.draw.vertexCount = vertCount;
     vertLayerDataDisk = (const unsigned __int8 *)Com_GetBspLump(LUMP_VERTEX_LAYER_DATA, 1u, &vertLayerDataSize);
     if ( !vertLayerDataSize )
@@ -3173,8 +3173,8 @@ void __cdecl R_LoadSurfaces(GfxBspLoad *load)
                 Com_Error(
                     ERR_DROP,
                     "map has at least two different skies: %s and %s\nOnly one sky per map is supported\n",
-                    material->info.name,
-                    skyMaterial->info.name);
+                    (const char *)material->info.name,
+                    (const char *)skyMaterial->info.name);
             skyMaterial = material;
             ++s_world.skySurfCount;
             if ( surface->primaryLightIndex
@@ -3434,7 +3434,7 @@ void __cdecl R_SurfCalculateMagicPortalVerts(
                     0,
                     "%s\n\t%s",
                     "triCount <= ARRAY_COUNT( triFillId )",
-                    material->info.name) )
+                    (const char *)material->info.name) )
     {
         __debugbreak();
     }
@@ -3445,7 +3445,7 @@ void __cdecl R_SurfCalculateMagicPortalVerts(
                     0,
                     "%s\n\t%s",
                     "triCount <= ARRAY_COUNT( centerAccum )",
-                    material->info.name) )
+                    (const char *)material->info.name) )
     {
         __debugbreak();
     }
@@ -3456,7 +3456,7 @@ void __cdecl R_SurfCalculateMagicPortalVerts(
                     0,
                     "%s\n\t%s",
                     "triCount <= ARRAY_COUNT( centerWeight )",
-                    material->info.name) )
+                    (const char *)material->info.name) )
     {
         __debugbreak();
     }
@@ -3616,7 +3616,7 @@ void __cdecl R_MaterialUsage(Material *material, unsigned int firstVertex, int v
         }
         v4 = Z_Malloc(8, "R_MaterialUsage", 0);
         *v4 = firstVertex;
-        v4[1] = (unsigned int)materialUsage->verts;
+        v4[1] = (unsigned int)Ptr32_Encode(materialUsage->verts);
         materialUsage->verts = (VertUsage *)v4;
         materialUsage->memory += 44 * vertexCount;
     }
@@ -3638,8 +3638,8 @@ void __cdecl R_SetSkyImage(const Material *skyMaterial)
                 Com_Error(
                     ERR_DROP,
                     "colorMap '%s' for sky material '%s' is not a cubemap\n",
-                    texdef->u.image->name,
-                    skyMaterial->info.name);
+                    (const char *)texdef->u.image->name,
+                    (const char *)skyMaterial->info.name);
             s_world.skyImage = texdef->u.image;
             s_world.skySamplerState = texdef->samplerState;
             return;
@@ -3667,7 +3667,7 @@ void __cdecl R_ValidateSurfaceLightmapUsage(const GfxSurface *surface)
                             ERR_DROP,
                             "World surface using material '%s' doesn't have a lightmap.    This usually means the map was compiled with a"
                             " different version of this material than you have locally.",
-                            surface->material->info.name);
+                            (const char *)surface->material->info.name);
                 }
             }
         }
@@ -3687,7 +3687,7 @@ GfxBrushModel *R_LoadSubmodels()
     in = (const DiskBrushModel *)Com_GetBspLump(LUMP_MODELS, 0x2Cu, &modelCount);
     out = (GfxBrushModel *)Hunk_Alloc(60 * modelCount, "R_LoadSubmodels", 21);
     s_world.models = out;
-    result = (GfxBrushModel *)modelCount;
+    result = (GfxBrushModel *)Ptr32_Decode(modelCount);
     s_world.modelCount = modelCount;
     for ( modelIndex = 0; modelIndex < modelCount; ++modelIndex )
     {
@@ -4347,7 +4347,7 @@ void __cdecl R_LoadMiscModel(char *(*spawnVars)[2], int spawnVarCount)
         scale = R_FloatForKey("modelscale", 1.0, spawnVars, spawnVarCount);
         if ( scale <= 0.0 )
         {
-            v2 = va("Model %s has negative scale at %g %g %g\n", model->name, origin[0], origin[1], origin[2]);
+            v2 = va("Model %s has negative scale at %g %g %g\n", (const char *)model->name, origin[0], origin[1], origin[2]);
             if ( !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_bsp_load_obj.cpp",
                             4559,
@@ -4813,7 +4813,7 @@ void __cdecl R_LoadCells(unsigned int bspVersion)
         out->maxs[1] = *((float *)in + 4);
         out->maxs[2] = *((float *)in + 5);
         out->aabbTree = &rgl.aabbTrees[*((unsigned __int16 *)in + 12)];
-        out->portals = (GfxPortal *)(68 * *((unsigned int *)in + 7));
+        out->portals = (GfxPortal *)Ptr32_Decode(68 * *((unsigned int *)in + 7));
         out->portalCount = *((unsigned int *)in + 8);
         cullGroupCount = *((unsigned int *)in + 10);
         if ( cullGroupCount )

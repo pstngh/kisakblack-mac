@@ -465,7 +465,7 @@ int __cdecl VEH_ParseSpecificField(unsigned __int8 *pStruct, const char *pValue,
             *(unsigned int *)&pStruct[fieldOffset] = Key_StringToKeynum(pValue);
             return 1;
         case 24:
-            *(unsigned int *)&pStruct[fieldOffset] = (unsigned int)GraphFloat_Load((char*)pValue);
+            *(unsigned int *)&pStruct[fieldOffset] = (unsigned int)Ptr32_Encode(GraphFloat_Load((char*)pValue));
             return 1;
         default:
             v5 = va("Bad vehicle field type %i\n", fieldType);

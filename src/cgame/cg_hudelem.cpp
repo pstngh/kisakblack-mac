@@ -863,7 +863,7 @@ int __cdecl compare_hudelems(const void *pe0, const void *pe1)
 {
     float delta; // [esp+0h] [ebp-Ch]
 
-    delta = *(float *)(*(unsigned int *)pe0 + 56) - *(float *)(*(unsigned int *)pe1 + 56);
+    delta = *(float *)Ptr32_Decode(*(unsigned int *)pe0 + 56) - *(float *)Ptr32_Decode(*(unsigned int *)pe1 + 56);
     if ( delta >= 0.0 )
         return delta > 0.0;
     else

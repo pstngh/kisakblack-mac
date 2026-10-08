@@ -1,4 +1,5 @@
 #pragma once
+#include <universal/ptr32.h>
 #include "cscr_main.h"
 #include "cscr_variable.h"
 
@@ -43,11 +44,13 @@ union sval_u // sizeof=0x4
     unsigned int idValue;
     float floatValue;
     int intValue;
-    sval_u *node;
+    // Pointer members are 32-bit (ptr32.h): the compiler reads them through the
+    // integer members and walks nodes with 4-byte strides.
+    Ptr32<sval_u> node;
     unsigned int sourcePosValue;
-    const char *codePosValue;
-    const char *debugString;
-    scr_block_s *block;
+    Ptr32<const char> codePosValue;
+    Ptr32<const char> debugString;
+    Ptr32<scr_block_s> block;
 };
 
 struct debugger_sval_s // sizeof=0x4

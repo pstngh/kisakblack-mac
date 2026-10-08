@@ -32,9 +32,10 @@ target_compile_options(${BIN_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:C>:-D__cdecl=;-D__stdcall=;-D__fastcall=;-D__int8=char;-D__int16=short;-D__int32=int>
     $<$<COMPILE_LANGUAGE:C>:-w>
     # Warnings stay off (decompiled code), except the ones that are 64-bit bugs:
-    # a Ptr32<T> field passed through varargs (printf etc.) as an object, and an
-    # int that was holding a pointer being cast back to one.
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-everything;-Werror=class-varargs;-Werror=int-to-pointer-cast;-ferror-limit=0>
+    # a Ptr32<T> field passed through varargs (printf etc.) as an object, and a
+    # pointer cast to or from a 32-bit int (-fms-extensions makes the truncating
+    # direction a mere warning).
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-everything;-Werror=class-varargs;-Werror=int-to-pointer-cast;-Werror=pointer-to-int-cast;-ferror-limit=0>
 )
 
 target_link_libraries(${BIN_NAME} PRIVATE

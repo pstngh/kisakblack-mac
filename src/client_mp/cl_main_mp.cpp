@@ -358,25 +358,25 @@ void __cdecl CL_WriteDemoFromContinuousStateBuffer(int localClientNum, int conti
 
     v8 = 0;
     LocalClientConnection = CL_GetLocalClientConnection(localClientNum);
-    v4 = (int)&LocalClientConnection->demoContinuousStateBuffer[continuousStateBufferIndex];
+    v4 = (int)Ptr32_Encode(&LocalClientConnection->demoContinuousStateBuffer[continuousStateBufferIndex]);
     MSG_Init(&buf, data, 4096);
     count = 48;
-    index = *(unsigned int *)(v4 + 16);
-    while ( index != *(unsigned int *)(v4 + 20) )
+    index = *(unsigned int *)Ptr32_Decode(v4 + 16);
+    while ( index != *(unsigned int *)Ptr32_Decode(v4 + 20) )
     {
         //BLOPS_NULLSUB();
-        memcpy((unsigned __int8 *)&dst, (unsigned __int8 *)(*(unsigned int *)(v4 + 12) + count * v8), count);
+        memcpy((unsigned __int8 *)&dst, (unsigned __int8 *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(v4 + 12) + count * v8), count);
         CL_WriteDemoClientArchive(LocalClientConnection->demofile, 1u, &dst, index);
         index = (index + 1) % 256;
         ++v8;
     }
     buffer = 0;
     FS_WriteToDemo(&buffer, 1u, LocalClientConnection->demofile);
-    v6 = *(unsigned int *)v4;
+    v6 = *(unsigned int *)Ptr32_Decode(v4);
     FS_WriteToDemo((char *)&v6, 4u, LocalClientConnection->demofile);
-    v6 = *(unsigned int *)(v4 + 8);
+    v6 = *(unsigned int *)Ptr32_Decode(v4 + 8);
     FS_WriteToDemo((char *)&v6, 4u, LocalClientConnection->demofile);
-    FS_WriteToDemo(*(char **)(v4 + 4), *(unsigned int *)(v4 + 8), LocalClientConnection->demofile);
+    FS_WriteToDemo(*(char **)(v4 + 4), *(unsigned int *)Ptr32_Decode(v4 + 8), LocalClientConnection->demofile);
 }
 
 void __cdecl CL_StopRecord_f()
@@ -1248,7 +1248,7 @@ void __cdecl CL_ResetSkeletonCache(unsigned int localClientNum)
     v1 = &clients[localClientNum];
     if ( !++v1->skelTimeStamp )
         ++v1->skelTimeStamp;
-    v1->skelMemoryStart = (char *)((unsigned int)&v1->skelMemory[15] & 0xFFFFFFF0);
+    v1->skelMemoryStart = (char *)Ptr32_Decode((unsigned int)Ptr32_Encode(&v1->skelMemory[15]) & 0xFFFFFFF0);
     v1->skelMemPos = 0;
 }
 
@@ -1713,7 +1713,7 @@ void __cdecl CL_DownloadsComplete(int localClientNum)
     else
     {
         Com_SyncThreads();
-        if ( fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.integer )
+        if ( fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer) )
         {
             v1 = va("%s/%s", fs_homepath->current.string, fs_gameDirVar->current.string);
             Sys_Mkdir(v1);
@@ -2604,7 +2604,7 @@ void __cdecl AllocatePerLocalClientMemory(int maxLocalClients, int maxClients, u
     CL_FreePerLocalClientMemory();
     mem_needed = 2449480 * maxLocalClients;
     if ( (flags & 1) == 0 )
-        mem_needed += (int)SV_AllocateClientMemory_SizeRequired(maxLocalClients, maxClients);
+        mem_needed += (int)Ptr32_Encode(SV_AllocateClientMemory_SizeRequired(maxLocalClients, maxClients));
     mem_neededa = mem_needed + CG_AllocateClientMemory_SizeRequired(maxLocalClients);
     mem_neededb = mem_neededa + FX_AllocateClientMemory_SizeRequired(maxLocalClients);
     PMem_BeginAlloc(PerLocalClientMemoryName, 1u, TRACK_CLIENT);
@@ -2873,7 +2873,7 @@ unsigned __int8 *__cdecl CL_DemoMemoryPoolAllocate(clientConnection_t *clc, int 
     unsigned __int8 *address; // [esp+4h] [ebp-8h]
     unsigned int newSize; // [esp+8h] [ebp-4h]
 
-    if ( (unsigned int)&clc->demoMemoryPool[clc->demoMemoryPoolEnd] % 4
+    if ( (unsigned int)Ptr32_Encode(&clc->demoMemoryPool[clc->demoMemoryPoolEnd]) % 4
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_main_mp.cpp",
                     644,
@@ -4598,7 +4598,7 @@ int __cdecl CL_UpdateDirtyPings(int localClientNum, unsigned int source)
     if ( cls.lastServerPinged >= *count )
         cls.lastServerPinged = 0;
     firstPingedIndex = cls.lastServerPinged;
-    if ( cls.lastServerPinged >= (unsigned int)count
+    if ( cls.lastServerPinged >= (unsigned int)Ptr32_Encode(count)
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_main_mp.cpp",
                     8050,
@@ -4616,7 +4616,7 @@ int __cdecl CL_UpdateDirtyPings(int localClientNum, unsigned int source)
         slot = cls.lastServerPinged++;
         if ( cls.lastServerPinged >= *count )
             cls.lastServerPinged = 0;
-        if ( slot >= (unsigned int)count
+        if ( slot >= (unsigned int)Ptr32_Encode(count)
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_main_mp.cpp",
                         8062,

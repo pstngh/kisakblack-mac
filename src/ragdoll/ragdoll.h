@@ -203,7 +203,7 @@ void __cdecl Ragdoll_Shutdown();
 
 inline RagdollBody *__cdecl Ragdoll_HandleBody(int handle)
 {
-    return (RagdollBody *)handle;
+    return (RagdollBody *)Ptr32_Decode(handle);
 }
 
 extern const dvar_t *ragdoll_enable;

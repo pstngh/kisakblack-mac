@@ -27,7 +27,7 @@ void __cdecl R_GetPixelLiteralConsts(
             {
                 if ( ++constDef == &mtl->localConstantTable[mtl->constantCount] )
                 {
-                    v3 = va("material '%s' is missing a required named constant", mtl->info.name);
+                    v3 = va("material '%s' is missing a required named constant", (const char *)mtl->info.name);
                     if ( !Assert_MyHandler(
                                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material_consts.cpp",
                                     59,

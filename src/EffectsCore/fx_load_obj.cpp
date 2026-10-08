@@ -1478,7 +1478,7 @@ const FxEffectDef *__cdecl FX_LoadFailed(const char *name)
     baseBytesNeeded = fx_load.defaultEffect->totalSize - (v5 - fx_load.defaultEffect->name);
     effectDef = FX_AllocMem(fx_load.defaultEffect->totalSize - (v5 - (fx_load.defaultEffect->name + 1)) + strlen(name));
     memcpy(effectDef, (unsigned __int8 *)fx_load.defaultEffect, baseBytesNeeded);
-    *(unsigned int *)effectDef = (unsigned int) & effectDef[baseBytesNeeded];
+    *(unsigned int *)effectDef = (unsigned int) Ptr32_Encode(& effectDef[baseBytesNeeded]);
     v4 = name;
     v3 = *(_BYTE **)effectDef;
     do
@@ -1491,9 +1491,9 @@ const FxEffectDef *__cdecl FX_LoadFailed(const char *name)
     *((unsigned int *)effectDef + 7) += effectDef - (unsigned __int8 *)fx_load.defaultEffect;
     for ( elemIndex = 0; elemIndex < *((unsigned int *)effectDef + 5) + *((unsigned int *)effectDef + 4); ++elemIndex )
     {
-        v7 = (unsigned int *)(*((unsigned int *)effectDef + 7) + 292 * elemIndex + 188);
+        v7 = (unsigned int *)Ptr32_Decode(*((unsigned int *)effectDef + 7) + 292 * elemIndex + 188);
         *v7 += relocationDistance;
-        v6 = (unsigned int *)(*((unsigned int *)effectDef + 7) + 292 * elemIndex + 192);
+        v6 = (unsigned int *)Ptr32_Decode(*((unsigned int *)effectDef + 7) + 292 * elemIndex + 192);
         *v6 += relocationDistance;
     }
     return (const FxEffectDef *)effectDef;

@@ -333,7 +333,7 @@ void __cdecl GScr_SetScriptsForPathNode(scriptInstance_t inst, pathnode_t *loadN
                 {
                     __debugbreak();
                 }
-                loadNode->constant.animscriptfunc = (int)Hunk_FindDataForFile(1, animscript);
+                loadNode->constant.animscriptfunc = (int)Ptr32_Encode(Hunk_FindDataForFile(1, animscript));
                 if ( !loadNode->constant.animscriptfunc )
                 {
                     Com_sprintf(filename, 0x40u, "maps/mp/animscripts/traverse/%s", animscript);
@@ -341,7 +341,7 @@ void __cdecl GScr_SetScriptsForPathNode(scriptInstance_t inst, pathnode_t *loadN
                     Hunk_SetDataForFile(
                         1,
                         animscript,
-                        (void *)loadNode->constant.animscriptfunc,
+                        (void *)Ptr32_Decode(loadNode->constant.animscriptfunc),
                         (void *(__cdecl *)(int))GScr_AnimscriptAlloc);
                 }
                 if ( !loadNode->constant.animscriptfunc )
@@ -1077,7 +1077,7 @@ int __cdecl Scr_GetArrayValues_Vector(
                 return 0;
             }
             v8 = &(*vector_array)[3 * vector_array_index];
-            next = (float *)entry_value->u.next;
+            next = (float *)Ptr32_Decode(entry_value->u.next);
             *v8 = *next;
             v8[1] = next[1];
             v8[2] = next[2];
@@ -15549,9 +15549,9 @@ void print_0()
         for (i = 0; ; i = (const dvar_s *)((char *)i + 1))
         {
             result = i;
-            if ((int)i >= num)
+            if ((int)Ptr32_Encode(i) >= num)
                 break;
-            DebugString = Scr_GetDebugString((unsigned int)i, SCRIPTINSTANCE_SERVER);
+            DebugString = Scr_GetDebugString((unsigned int)Ptr32_Encode(i), SCRIPTINSTANCE_SERVER);
             Com_Printf(level.scriptPrintChannel, "%s", DebugString);
         }
     }

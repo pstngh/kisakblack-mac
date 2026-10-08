@@ -103,7 +103,7 @@ ddlMemberDef_t *__cdecl DDL_Lookup_FindMemberDef(const char *memberName, ddlStru
             low = mid + 1;
         }
     }
-    DDL_PrintError("DDL: Could not find '%s' in '%s'.\n", memberName, structDef->name);
+    DDL_PrintError("DDL: Could not find '%s' in '%s'.\n", memberName, (const char *)structDef->name);
     return 0;
 }
 
@@ -237,7 +237,7 @@ int __cdecl DDL_Lookup_MoveTo(const ddlState_t *searchState, const char *name, d
         {
             DDL_PrintError(
                 "DDL: Trying to move into a leaf member. '%s' expected to be a struct.\n",
-                searchState->member->name);
+                (const char *)searchState->member->name);
             return 0;
         }
         else
