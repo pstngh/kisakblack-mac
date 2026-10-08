@@ -20,6 +20,16 @@
 #include <xmmintrin.h>
 #include <mmintrin.h>
 
+// MSVC's __m128 is a union (brace-of-brace init, .m128_u32 members); GCC/Clang's is a
+// vector type. These keep the code identical on both.
+#ifdef _MSC_VER
+#define SSE_M128(a, b, c, d) { { a, b, c, d } }
+#else
+#define SSE_M128(a, b, c, d) { a, b, c, d }
+#endif
+#define SSE_LANE_U32(v, i) (((const unsigned int *)&(v))[i])
+#define SSE_LANE_M64(v)    (*(const __m64 *)&(v))
+
 // ---------------------------------------------------------------------------
 // SSE / MMX vertex skinning.
 //
@@ -37,15 +47,15 @@
 // ---------------------------------------------------------------------------
 
 // blend weights are uint16 in [0, 65535]; 1/65536 normalizes them to [0, 1)
-static const __m128 sse_weightScale = { { 1.0f / 65536.0f, 1.0f / 65536.0f, 1.0f / 65536.0f, 1.0f / 65536.0f } };
+static const __m128 sse_weightScale = SSE_M128(1.0f / 65536.0f, 1.0f / 65536.0f, 1.0f / 65536.0f, 1.0f / 65536.0f);
 
 // packed unit vectors decode as (packed - shift) / scale, encode as packed * scale + shift
-static const __m128 sse_encodeShift = { { 127.0f, 127.0f, 127.0f, -192.0f } };
-static const __m128 sse_encodeScale = { { 127.0f, 127.0f, 127.0f, 255.0f } };
+static const __m128 sse_encodeShift = SSE_M128(127.0f, 127.0f, 127.0f, -192.0f);
+static const __m128 sse_encodeScale = SSE_M128(127.0f, 127.0f, 127.0f, 255.0f);
 
 // Black Ops binormal-sign normalization: keep xyz fully, keep only the sign bit of w, then OR in 1.0
 static const __declspec(align(16)) unsigned int k_binormalSignMask[4] = { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0x80000000u };
-static const __m128 sse_wOne = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+static const __m128 sse_wOne = SSE_M128(0.0f, 0.0f, 0.0f, 1.0f);
 
 // ---------------------------------------------------------------------------
 // intrinsic helpers
@@ -140,7 +150,7 @@ static __forceinline __m64 Sse_SkinVertex(const GfxPackedVertex *src, const uint
 {
     const __m128 *v = (const __m128 *)src;
     __m128 position = LoadSkinPosition(v[0]);
-    __m64 colorTexCoord = *(const __m64 *) & v[1].m128_u64[0];
+    __m64 colorTexCoord = SSE_LANE_M64(v[1]);
 
     const DObjSkelMat *bone0 = BoneAt(boneMatrix, blend[0]);
     __m128 pos0 = PackXyzW(TransformPoint(bone0, position), position);
@@ -152,8 +162,8 @@ static __forceinline __m64 Sse_SkinVertex(const GfxPackedVertex *src, const uint
         outPos = _mm_add_ps(outPos, _mm_mul_ps(DecodeWeight(blend[2 * w]), _mm_sub_ps(bonePos, pos0)));
     }
 
-    __m64 normalTangent = PackNormalTangent(SkinUnitVec(bone0, v[1].m128_u32[2]),
-        SkinUnitVec(bone0, v[1].m128_u32[3]));
+    __m64 normalTangent = PackNormalTangent(SkinUnitVec(bone0, SSE_LANE_U32(v[1], 2)),
+        SkinUnitVec(bone0, SSE_LANE_U32(v[1], 3)));
     _mm_stream_ps((float *)dst, outPos);
     _mm_stream_pi(dst + 2, colorTexCoord);
     _mm_stream_pi(dst + 3, normalTangent);
@@ -169,7 +179,7 @@ static __forceinline void Sse_SkinVertexSimple(const GfxPackedVertex *src, const
 {
     const __m128 *v = (const __m128 *)src;
     __m128 position = LoadSkinPosition(v[0]);
-    __m64 colorTexCoord = *(const __m64 *) & v[1].m128_u64[0];
+    __m64 colorTexCoord = SSE_LANE_M64(v[1]);
 
     const DObjSkelMat *bone0 = BoneAt(boneMatrix, blend[0]);
     __m128 pos0 = PackXyzW(TransformPoint(bone0, position), position);
@@ -192,11 +202,11 @@ static __forceinline __m64 Sse_SkinVertexRigid(const DObjSkelMat *bone, const Gf
 {
     const __m128 *v = (const __m128 *)src;
     __m128 srcPos = v[0];
-    __m64 colorTexCoord = *(const __m64 *) & v[1].m128_u64[0];
+    __m64 colorTexCoord = SSE_LANE_M64(v[1]);
 
     __m128 outPos = PackXyzW(TransformPoint(bone, srcPos), srcPos);
-    __m64 normalTangent = PackNormalTangent(SkinUnitVec(bone, v[1].m128_u32[2]),
-        SkinUnitVec(bone, v[1].m128_u32[3]));
+    __m64 normalTangent = PackNormalTangent(SkinUnitVec(bone, SSE_LANE_U32(v[1], 2)),
+        SkinUnitVec(bone, SSE_LANE_U32(v[1], 3)));
     _mm_stream_ps((float *)dst, outPos);
     _mm_stream_pi(dst + 2, colorTexCoord);
     _mm_stream_pi(dst + 3, normalTangent);
@@ -208,7 +218,7 @@ static __forceinline void Sse_SkinVertexRigidSimple(const DObjSkelMat *bone, con
 {
     const __m128 *v = (const __m128 *)src;
     __m128 srcPos = v[0];
-    __m64 colorTexCoord = *(const __m64 *) & v[1].m128_u64[0];
+    __m64 colorTexCoord = SSE_LANE_M64(v[1]);
 
     __m128 outPos = PackXyzW(TransformPoint(bone, srcPos), srcPos);
     _mm_stream_ps((float *)dst, outPos);

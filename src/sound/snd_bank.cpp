@@ -458,10 +458,10 @@ void __cdecl SND_PatchValue(unsigned int table, char *asset, unsigned int field,
                 *(uint *)ptr = value;
                 break;
             case SND_CSV_BYTE:
-                *(byte *)ptr = value;
+                *(unsigned char *)ptr = value;
                 break;
             case SND_CSV_ENUM_BYTE:
-                *(byte *)ptr = value;
+                *(unsigned char *)ptr = value;
                 break;
             case SND_CSV_SHORT:
                 *(ushort *)ptr = value;
