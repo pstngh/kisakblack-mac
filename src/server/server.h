@@ -5,9 +5,6 @@
 #include <server_mp/sv_snapshot_mp.h>
 #include <server_mp/sv_voice_mp.h>
 
-#ifdef KISAK_DEMON 
-#define KISAK_STATS
-#endif
 
 #define ALL_STATS_PACKETS_RECEIVED 0x7FFFFFFFF
 

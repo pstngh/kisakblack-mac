@@ -421,11 +421,7 @@ void __cdecl SVC_Status(netadr_t from, bdSecurityID *secID)
     *(bdSecurityID *)&dst[1] = *secID;
     v17 = &dst[9];
     memcpy(&dst[9], (unsigned __int8 *)&s, &v12[strlen(&s)] - v12);
-#ifdef KISAK_LIVE
-    dwRawSendTo(&from, dst, &v12[strlen(&s)] - v12 + 9);
-#else
     NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
-#endif
 }
 
 void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
@@ -520,11 +516,7 @@ void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
     *(bdSecurityID *)&dst[1] = *secID;
     v18 = &dst[9];
     memcpy(&dst[9], tempServerMsgBuf, count);
-#ifdef KISAK_LIVE
-    dwRawSendTo(&from, dst, strlen((const char *)tempServerMsgBuf) + 9);
-#else
     NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
-#endif
 }
 
 void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
@@ -738,11 +730,7 @@ void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
             (unsigned __int8 *)&response[9],
             (unsigned __int8 *)infostring,
             &infostring[strlen(infostring) + 1] - &infostring[1] + 1);
-#ifdef KISAK_LIVE
-        dwRawSendTo(&from, (unsigned __int8 *)response, &infostring[strlen(infostring) + 1] - &infostring[1] + 10);
-#else
         NET_OutOfBandPrint(NS_SERVER, from, response); // this should work, it's still used in other places in the codebase
-#endif
     }
 }
 
@@ -820,12 +808,6 @@ void __cdecl SV_ConnectionlessPacket(netadr_t from, msg_t *msg)
         //}
         SV_DirectConnect(from);
     }
-#ifdef KISAK_DW
-    else if (!I_stricmp(c, "dwcr"))
-    {
-        SV_HandleDWChallengeResponse(from, msg);
-    }
-#endif
     else if (!I_stricmp(c, "steamauth"))
     {
         SV_SteamAuthClient(from, msg);
@@ -1050,9 +1032,6 @@ void __cdecl SV_CheckTimeouts()
             Com_Printf(15, "Going from CS_ZOMBIE to CS_FREE for client #%i\n", clientNum);
             drop->header.state = CS_FREE;
             drop->lastPacketTime = 0;
-#ifdef KISAK_LIVE // why is this here? I dont see this in kcod4
-            dwCloseConnection(&drop->header.netchan.remoteAddress);
-#endif
         }
         else if ( drop->header.state == CS_ACTIVE && drop->lastPacketTime < droppoint )
         {

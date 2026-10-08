@@ -57,25 +57,6 @@ void __cdecl PCache_Init()
     int index; // [esp+0h] [ebp-4h]
     int indexa; // [esp+0h] [ebp-4h]
 
-#ifdef KISAK_LIVE_SERVICE
-    if ( live_service->current.enabled )
-    {
-        memset(s_entries, 0, sizeof(s_entries));
-        for ( index = 0; index < 2; ++index )
-            memset(
-                (unsigned __int8 *)s_componentPools[index].array,
-                0,
-                s_componentPools[index].componentSize * s_componentPools[index].count);
-        for ( indexa = 0; indexa < 256; ++indexa )
-        {
-            v0 = indexa;
-            LODWORD(s_entries[v0].xuid) = 0;
-            *(unsigned int *)(v0 * 32 + 173170852) = 0;
-        }
-        PCache_ProfileInit();
-        Cmd_AddCommandInternal("pcacherank", PCache_GetRank_f, &PCache_GetRank_f_VAR);
-    }
-#endif
 }
 
 void __cdecl PCache_GetRank_f()

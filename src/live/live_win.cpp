@@ -120,11 +120,7 @@ bool __cdecl Live_IsUserSignedInToLive()
 
 bool __cdecl Live_IsUserSignedInToDemonware(int controllerIndex)
 {
-#ifdef KISAK_LIVE
-    return dwGetLogOnStatus(controllerIndex) == 4;
-#else
     return false;
-#endif
 }
 
 char __cdecl Live_RequireUserToPlayOnline()
@@ -194,14 +190,6 @@ int __cdecl CL_ControllerIndex_GetSignInState(int controllerIndex)
 
 void __cdecl Live_InitiateDemonWareConnect_f()
 {
-#ifdef KISAK_LIVE_SERVICE
-    if ( dwGetLogOnStatus(0) == 2 )
-    {
-        dword_33267DC[0] = 0;
-        dw_disconnect_detected = 0;
-        dwLogOnStart(0);
-    }
-#endif
 }
 
 void __cdecl Live_SendInvite_f()
@@ -562,39 +550,7 @@ bool __cdecl Live_HandleDWChallengeResponse(
                 unsigned __int8 *message,
                 unsigned int messageSize)
 {
-#ifdef KISAK_LIVE
-    unsigned int nonce; // [esp+4h] [ebp-44h] BYREF
-    msg_t in_msg; // [esp+8h] [ebp-40h] BYREF
-    unsigned int serverchallenge; // [esp+38h] [ebp-10h] BYREF
-    bool retval; // [esp+3Fh] [ebp-9h]
-    unsigned int clientchallenge; // [esp+40h] [ebp-8h] BYREF
-    unsigned __int8 messagetype; // [esp+47h] [ebp-1h]
-
-    retval = 0;
-    clientchallenge = 0;
-    serverchallenge = 0;
-    nonce = 0;
-    MSG_InitReadOnly(&in_msg, message, messageSize);
-    MSG_BeginReading(&in_msg);
-    messagetype = MSG_ReadByte(&in_msg);
-    if ( messagetype == 1 )
-    {
-        MSG_ReadData(&in_msg, (unsigned __int8 *)&nonce, 4);
-        MSG_ReadData(&in_msg, (unsigned __int8 *)&clientchallenge, 4);
-        MSG_ReadData(&in_msg, (unsigned __int8 *)&serverchallenge, 4);
-        Com_DPrintf(
-            14,
-            "CHALLENGERESPONSE: Read out nonce %u, clientchallenge %u, serverchallenge %u\n",
-            nonce,
-            clientchallenge,
-            serverchallenge);
-        CL_HandleSVDWChallenge(nonce, serverchallenge, clientchallenge);
-        return 1;
-    }
-    return retval;
-#else
     return 1;
-#endif
 }
 
 int __cdecl Live_GetControllerFromXUID(unsigned __int64 player)
@@ -644,89 +600,18 @@ taskCompleteResults __cdecl Live_SetPlayerTeamRankComplete(int slot)
 
 taskCompleteResults __cdecl Live_SetPlayerTeamRanksComplete(int slot)
 {
-#ifdef KISAK_LIVE
-    overlappedTask *statsWriteOverlapped; // [esp+0h] [ebp-8h]
-    taskCompleteResults res; // [esp+4h] [ebp-4h]
-
-    statsWriteOverlapped = &overlappedTasks_3[slot];
-    if ( !overlappedTasks_3[slot].active
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    1811,
-                    0,
-                    "%s",
-                    "overlappedTasks[slot].active") )
-    {
-        __debugbreak();
-    }
-    if ( overlappedTasks_3[slot].type != 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    1812,
-                    0,
-                    "%s",
-                    "overlappedTasks[slot].type == TASK_WRITESTATS") )
-    {
-        __debugbreak();
-    }
-    res = dwWritePerformanceStatsComplete(statsWriteOverlapped->controllerIndex, statsWriteOverlapped);
-    if ( res == TASK_COMPLETE )
-        Com_Printf(16, "Performance stats write complete\n");
-    if ( res )
-        TaskManager_ClearTask(statsWriteOverlapped);
-    if ( res == TASK_ERROR )
-        Com_PrintError(16, "Error writing performance stats.\n");
-    return res;
-#else
     return TASK_COMPLETE;
-#endif
 }
 
 unsigned __int64 g_fakeXUID; // KISAKTODO: value?
 char __cdecl XUserGetXUID(int controllerIndex, unsigned __int64 *xuid)
 {
-#ifdef KISAK_LIVE
-    if ( dwGetLogOnStatus(0) == 4 )
-        return dwGetOnlineUserID(controllerIndex, xuid);
-    *xuid = g_fakeXUID << controllerIndex;
     return 1;
-#else
-    return 1;
-#endif
 }
 
 char __cdecl Live_UserGetName(int controllerIndex, char *buf, int bufsize)
 {
-#ifdef KISAK_LIVE
-    char *v3; // eax
-    char *v4; // eax
-    char ok; // [esp+3h] [ebp-1h]
-
-    ok = dwGetOnlineUserName(controllerIndex, buf, bufsize);
-    if ( !ok && dwGetLogOnStatus(0) != 4 )
-    {
-        if ( controllerIndex )
-        {
-            if ( !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                            2681,
-                            0,
-                            "No multiple controllers on PC") )
-                __debugbreak();
-            v4 = UI_SafeTranslateString("EXE_DEFAULT_PLAYER");
-            _snprintf(buf, bufsize, "%s %d", v4, controllerIndex + 1);
-        }
-        else
-        {
-            v3 = UI_SafeTranslateString("EXE_DEFAULT_PLAYER");
-            _snprintf(buf, bufsize, v3);
-        }
-        return 1;
-    }
-    return ok;
-#else
     return 1;
-#endif
 }
 
 bool __cdecl Live_UserSignedInLocally(int controllerIndex, char **disconnectMessage)
@@ -917,20 +802,6 @@ int __cdecl Live_GetUploadSpeed()
 
 void __cdecl Live_GetOurUploadBandwidth(int localControllerIndex)
 {
-#ifdef KISAK_LIVE_STUBS
-    struct bdLobbyService *Lobby; // eax
-
-    if ( s_uploadBitsPerSec <= 0 )
-    {
-        Lobby = dwGetLobby(localControllerIndex);
-        if ( bdBandwidthTestClient::init(g_bandwidthTestClient, Lobby) )
-        {
-            bdBandwidthTestClient::start(g_bandwidthTestClient, BD_UPLOAD_TEST);
-            if ( bdBandwidthTestClient::getErrorCode(g_bandwidthTestClient) != BD_START_TASK_FAILED )
-                TaskManager_GetOpenTaskSlot(overlappedTasks_3, localControllerIndex, 3);
-        }
-    }
-#endif
 }
 
 char __cdecl Live_BandwidthTestInProgress()
@@ -989,235 +860,26 @@ void __cdecl Live_CheckOngoingTasks()
 
 int __cdecl Live_GetBandwidthTestComplete(int slot)
 {
-#ifdef KISAK_LIVE_STUBS
-    bdBandwidthTestResults *UploadResults; // eax
-    bdBandwidthTestResults *v2; // eax
-    double Bandwidth; // st7
-    bdBandwidthTestResults *DownloadResults; // eax
-    double v5; // st7
-    enum bdLobbyErrorCode ErrorCode; // eax
-    overlappedTask *bandwidthTestOverlappedIO; // [esp+10h] [ebp-4h]
-
-    bandwidthTestOverlappedIO = &overlappedTasks_3[slot];
-    if ( !bandwidthTestOverlappedIO->active
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    3114,
-                    0,
-                    "%s",
-                    "bandwidthTestOverlappedIO->active") )
-    {
-        __debugbreak();
-    }
-    if ( bandwidthTestOverlappedIO->type != 3
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    3115,
-                    0,
-                    "%s",
-                    "bandwidthTestOverlappedIO->type == TASK_BANDWIDTHTEST") )
-    {
-        __debugbreak();
-    }
-    bdBandwidthTestClient::pump(g_bandwidthTestClient);
-    if ( bdBandwidthTestClient::getErrorCode(g_bandwidthTestClient) )
-    {
-        ErrorCode = bdBandwidthTestClient::getErrorCode(g_bandwidthTestClient);
-        Com_PrintError(16, "Error '%i' trying to measure upload bandwidth\n", ErrorCode);
-        bdBandwidthTestClient::stop(g_bandwidthTestClient);
-        bdBandwidthTestClient::quit(g_bandwidthTestClient);
-        s_uploadBitsPerSec = -1;
-        TaskManager_ClearTask(bandwidthTestOverlappedIO);
-        return 1;
-    }
-    else if ( bdBandwidthTestClient::getStatus(g_bandwidthTestClient) == BD_BANDWIDTH_TEST )
-    {
-        UploadResults = bdBandwidthTestClient::getUploadResults(g_bandwidthTestClient);
-        s_uploadBitsPerSec = (int)(bdBandwidthTestResults::getBandwidth(UploadResults) * 1000.0);
-        v2 = bdBandwidthTestClient::getUploadResults(g_bandwidthTestClient);
-        Bandwidth = bdBandwidthTestResults::getBandwidth(v2);
-        Com_Printf(16, "Upload Bandwidth: %.2f Kbits/s\n", Bandwidth);
-        DownloadResults = bdBandwidthTestClient::getDownloadResults(g_bandwidthTestClient);
-        v5 = bdBandwidthTestResults::getBandwidth(DownloadResults);
-        Com_Printf(16, "Download Bandwidth: %.2f Kbits/s\n", v5);
-        bdBandwidthTestClient::stop(g_bandwidthTestClient);
-        bdBandwidthTestClient::quit(g_bandwidthTestClient);
-        TaskManager_ClearTask(bandwidthTestOverlappedIO);
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-#else
     return 0;
-#endif
 }
 
 taskCompleteResults __cdecl Live_QoSProbeComplete(int slot)
 {
-#ifdef KISAK_LIVE_STUBS
-    overlappedTask *qosOverlappedIO; // [esp+0h] [ebp-Ch]
-    dwQoSMultiProbeListener *listener; // [esp+4h] [ebp-8h]
-    taskCompleteResults res; // [esp+8h] [ebp-4h]
-
-    qosOverlappedIO = &overlappedTasks_3[slot];
-    if ( !overlappedTasks_3[slot].active
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    3232,
-                    0,
-                    "%s",
-                    "overlappedTasks[slot].active") )
-    {
-        __debugbreak();
-    }
-    if ( overlappedTasks_3[slot].type != 1
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    3233,
-                    0,
-                    "%s",
-                    "overlappedTasks[slot].type == TASK_QOSPROBE") )
-    {
-        __debugbreak();
-    }
-    listener = (dwQoSMultiProbeListener *)TaskManager_GetTaskData(qosOverlappedIO);
-    res = dwQoSMultiProbeListener::complete(listener);
-    if ( Live_QoSProbeEarlyComplete(listener) )
-        res = TASK_COMPLETE;
-    if ( res == TASK_COMPLETE )
-    {
-        if ( party_simulateLongQoS->current.enabled )
-        {
-            R_BeginRemoteScreenUpdate();
-            NET_Sleep(0x7530u);
-            R_EndRemoteScreenUpdate(0);
-        }
-        dwQoSMultiProbeListener::clean(listener);
-        TaskManager_ClearTask(qosOverlappedIO);
-        if ( Live_BandwidthTestInProgress() )
-            Com_Printf(16, "QoS test complete - Not doing anything now because we're still getting our bandwidth numbers\n");
-        else
-            Com_Printf(16, "QoS test complete - Not doing anything now because lobby isn't active\n");
-    }
-    else if ( res )
-    {
-        dwQoSMultiProbeListener::clean(listener);
-        TaskManager_ClearTask(qosOverlappedIO);
-    }
-    return res;
-#else
     return TASK_NOTCOMPLETE;
-#endif
 }
 
 bool __cdecl Live_QoSProbeEarlyComplete(dwQoSMultiProbeListener *listener)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned inttime; // [esp+0h] [ebp-4h]
-
-    if ( !listener->m_numSuccesses )
-        return 0;
-    g_msgTime = Sys_Milliseconds();
-    if ( g_qosStatus.prevNumSuccesses != listener->m_numSuccesses )
-    {
-        if ( !g_qosStatus.firstMS )
-            g_qosStatus.firstMS = g_msgTime;
-        g_qosStatus.updateMS = g_msgTime;
-        g_qosStatus.prevNumSuccesses = listener->m_numSuccesses;
-    }
-    if ( !listener->m_numSuccesses )
-        return 0;
-    if ( listener->m_numProbes < listener->m_numSuccesses
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    3214,
-                    0,
-                    "%s",
-                    "listener->m_numProbes >= listener->m_numSuccesses") )
-    {
-        __debugbreak();
-    }
-    if ( 100 * listener->m_numSuccesses < 25 * listener->m_numProbes )
-        return 0;
-    if ( (int)(g_msgTime - g_qosStatus.firstMS) >= 1000 )
-        return (int)(g_msgTime - g_qosStatus.updateMS) >= 250;
     return 0;
-#else
-    return 0;
-#endif
 }
 
 void __cdecl PC_InitSigninState()
 {
-#ifdef KISAK_LIVE_STUBS
-    int LicenseType; // eax
-    MatchMakingInfo *matched; // [esp+8h] [ebp-24h]
-    bdLogSubscriber *v2; // [esp+Ch] [ebp-20h]
-    MatchMakingInfo *v3; // [esp+14h] [ebp-18h]
-    bdLogSubscriber *v4; // [esp+18h] [ebp-14h]
-
-    if ( !live_service
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp", 3551, 0, "%s", "live_service") )
-    {
-        __debugbreak();
-    }
-    bdCore::init(1);
-    v4 = (bdLogSubscriber *)operator new(0x24u);
-    if ( v4 )
-        v2 = bdLogSubscriber::bdLogSubscriber(v4);
-    else
-        v2 = 0;
-    g_logSubscriber = v2;
-    bdLogSubscriber::addChannel(v2, "warn");
-    bdLogSubscriber::addChannel(g_logSubscriber, "err");
-    v3 = (MatchMakingInfo *)bdMemory::allocate(0x228u);
-    if ( v3 )
-        matched = MatchMakingInfo::MatchMakingInfo(v3);
-    else
-        matched = 0;
-    g_matchmakingInfo = matched;
-    dwNetStart(1);
-    DWDedicatedLogon();
-    LicenseType = SV_GetLicenseType();
-    Dvar_SetIntByName("sv_ranked", LicenseType);
-#endif
 }
 
 bool __cdecl Live_UserSignedOut(int controllerIndex)
 {
-#ifdef KISAK_LIVE_STUBS
-    int v1; // eax
-    int localClientNum; // [esp+0h] [ebp-8h]
-
-    GamerProfile_LogOutProfile(controllerIndex);
-    byte_A61C02C[80 * controllerIndex] = 0;
-    xenonUserData[controllerIndex].signinState = 0;
-    byte_A61C058[80 * controllerIndex] = 0;
-    v1 = 20 * controllerIndex;
-    dword_A61C050[v1] = 0;
-    dword_A61C054[v1] = 0;
-    Dvar_SetString((dvar_s *)name, &byte_A61C02C[80 * controllerIndex]);
-    byte_A61C069[80 * controllerIndex] = 0;
-    dword_A61C06C[20 * controllerIndex] = 0;
-    localClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    LiveStorage_NewUser(controllerIndex);
-    LiveStorage_FileShare_GetFileShareData(FILESHARE_BUFFER_PRIMARY)->valid = 0;
-    LiveStorage_FileShare_GetFileShareData(FILESHARE_BUFFER_SECONDARY)->valid = 0;
-    if ( Com_LocalClient_IsBeingUsed(localClientNum) )
-    {
-        Flame_GetLocalClientSourceRange();
-        CL_GetLocalClientConnectionState(localClientNum);
-        //BLOPS_NULLSUB();
-        Com_LocalClient_SetBeingUsed(localClientNum, 0);
-        if ( (s_signInRequirement[controllerIndex] & 7) == 0 )
-            Com_Printf(16, "Controller #%i signed out\n", controllerIndex);
-    }
     return 0;
-#else
-    return 0;
-#endif
 }
 
 void __cdecl Live_DelayedComError(const char *comErrorString)
@@ -1240,79 +902,11 @@ int __cdecl Live_FetchPartyPerformanceValuesComplete()
 
 taskCompleteResults __cdecl Live_UpdatePerformanceValuesComplete(int slot)
 {
-#ifdef KISAK_LIVE
-    unsigned __int64 v2; // [esp-8h] [ebp-224h]
-    int RegisteredUser; // [esp+0h] [ebp-21Ch]
-    int i; // [esp+4h] [ebp-218h]
-    taskCompleteResults result; // [esp+Ch] [ebp-210h]
-    overlappedTask *updatePerformanceOverlappedIO; // [esp+10h] [ebp-20Ch]
-    PlayerRank playerRanks[32]; // [esp+14h] [ebp-208h] BYREF
-    int numPlayerRanks; // [esp+218h] [ebp-4h] BYREF
-
-    updatePerformanceOverlappedIO = &overlappedTasks_3[slot];
-    if ( !overlappedTasks_3[slot].active
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    5080,
-                    0,
-                    "%s",
-                    "overlappedTasks[slot].active") )
-    {
-        __debugbreak();
-    }
-    if ( overlappedTasks_3[slot].type != 6
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    5081,
-                    0,
-                    "%s",
-                    "overlappedTasks[slot].type == TASK_UPDATEPERFORMANCE") )
-    {
-        __debugbreak();
-    }
-    numPlayerRanks = 32;
-    result = dwFetchPerformanceValuesComplete(updatePerformanceOverlappedIO, playerRanks, &numPlayerRanks);
-    if ( result == TASK_COMPLETE )
-    {
-        for ( i = 0; i < numPlayerRanks; ++i )
-        {
-            HIDWORD(v2) = HIDWORD(playerRanks[i].xuid);
-            LODWORD(v2) = playerRanks[i].xuid;
-            RegisteredUser = Session_FindRegisteredUser(&g_serverSession, v2);
-            if ( RegisteredUser >= 0 )
-                g_serverSession.registeredUsers[RegisteredUser].performanceValue = playerRanks[i].rank;
-        }
-    }
-    if ( result )
-    {
-        TaskManager_ClearTask(updatePerformanceOverlappedIO);
-        if ( !TaskManager_TaskIsInProgress(overlappedTasks_3, 6) )
-            Live_UpdateAveragePerformance();
-    }
-    if ( result == TASK_ERROR )
-        Com_PrintError(16, "Unable to retreive performance value\n");
-    return result;
-#else
     return TASK_COMPLETE;
-#endif
 }
 
 void Live_UpdateAveragePerformance()
 {
-#ifdef KISAK_LIVE_SERVICE
-    int avgPerformance; // [esp+0h] [ebp-4h]
-
-    if (g_matchmakingInfo->m_active)
-    {
-        avgPerformance = Live_GetAveragePerformance();
-        if (g_matchmakingInfo->m_memberSKILL != avgPerformance)
-        {
-            Com_Printf(16, "Setting new session performance value %i\n", avgPerformance);
-            g_matchmakingInfo->m_dirty = 1;
-            g_matchmakingInfo->m_memberSKILL = avgPerformance;
-        }
-    }
-#endif
 }
 
 int __cdecl Live_GetAveragePerformance()
@@ -1383,70 +977,6 @@ bool __cdecl Live_CanViewContentFromUser(int controllerIndex, unsigned __int64 x
 
 void __cdecl Live_SendInvite(const char *friendName)
 {
-#ifdef KISAK_LIVE_STUBS
-    const struct bdSessionID *SessionID; // eax
-    int LocalClientNum; // eax
-    const struct bdSessionID *v3; // eax
-    int v4; // eax
-    const struct bdSessionID *v5; // eax
-    int v6; // eax
-    bdSessionID v7[2]; // [esp-Ch] [ebp-20h] BYREF
-    unsigned __int64 friendID; // [esp+Ch] [ebp-8h] BYREF
-
-    friendID = 0;
-    if ( Friend_GetByName(0, friendName, &friendID) )
-    {
-        SessionID = dwGetSessionID();
-        bdSessionID::bdSessionID(v7, SessionID);
-        dwMatchMaking_InviteDWUserToSession(friendID, v7[0]);
-        *(unsigned int *)&v7[0].m_sessionID.ab[4] = 2700;
-        *(unsigned int *)v7[0].m_sessionID.ab = UI_SafeTranslateString("MENU_SENT_CAPS");
-        v7[0].__vftable = (bdSessionID_vtbl *)"";
-        LocalClientNum = Com_ControllerIndex_GetLocalClientNum(0);
-        UI_OpenToastPopup(
-            LocalClientNum,
-            "menu_mp_killstreak_select",
-            (const char *)v7[0].__vftable,
-            *(const char **)v7[0].m_sessionID.ab,
-            *(int *)&v7[0].m_sessionID.ab[4]);
-    }
-    else if ( s_selectedPlayerXUID )
-    {
-        v3 = dwGetSessionID();
-        bdSessionID::bdSessionID(v7, v3);
-        dwMatchMaking_InviteDWUserToSession(s_selectedPlayerXUID, v7[0]);
-        *(unsigned int *)&v7[0].m_sessionID.ab[4] = 2700;
-        *(unsigned int *)v7[0].m_sessionID.ab = UI_SafeTranslateString("MENU_SENT_CAPS");
-        v7[0].__vftable = (bdSessionID_vtbl *)"";
-        v4 = Com_ControllerIndex_GetLocalClientNum(0);
-        UI_OpenToastPopup(
-            v4,
-            "menu_mp_killstreak_select",
-            (const char *)v7[0].__vftable,
-            *(const char **)v7[0].m_sessionID.ab,
-            *(int *)&v7[0].m_sessionID.ab[4]);
-    }
-    else if ( __PAIR64__(s_selectedMetPlayerXUID, 0) == HIDWORD(s_selectedMetPlayerXUID) )
-    {
-        Com_PrintWarning(0, "Couldn't find friend %s\n", friendName);
-    }
-    else
-    {
-        v5 = dwGetSessionID();
-        bdSessionID::bdSessionID(v7, v5);
-        dwMatchMaking_InviteDWUserToSession(s_selectedMetPlayerXUID, v7[0]);
-        *(unsigned int *)&v7[0].m_sessionID.ab[4] = 2700;
-        *(unsigned int *)v7[0].m_sessionID.ab = UI_SafeTranslateString("MENU_SENT_CAPS");
-        v7[0].__vftable = (bdSessionID_vtbl *)"";
-        v6 = Com_ControllerIndex_GetLocalClientNum(0);
-        UI_OpenToastPopup(
-            v6,
-            "menu_mp_killstreak_select",
-            (const char *)v7[0].__vftable,
-            *(const char **)v7[0].m_sessionID.ab,
-            *(int *)&v7[0].m_sessionID.ab[4]);
-    }
-#endif
 }
 
 void __cdecl Live_DumpFavourites()
@@ -1462,200 +992,31 @@ void __cdecl Live_DumpFavourites()
 
 void __cdecl Live_FindFavouriteServersSuccess(TaskRecord *task)
 {
-#ifdef KISAK_LIVE_STUBS
-    int HeaderSize; // eax
-    bdReference<bdRemoteTask> dwtask; // [esp+24h] [ebp-4h] BYREF
-
-    dwtask.m_ptr = task->nestedTask->remoteTask.m_ptr;
-    if ( dwtask.m_ptr )
-    {
-        InterlockedIncrement(&dwtask.m_ptr->m_refCount);
-    }
-    else if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp", 5560, 0, "%s", "NULL != dwtask") )
-    {
-        __debugbreak();
-    }
-    if ( bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)dwtask.m_ptr) )
-    {
-        HeaderSize = bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)dwtask.m_ptr);
-        CL_ServersResponsePacket(s_favouritesInfo, HeaderSize, 1);
-    }
-    bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *)&dwtask);
-#endif
 }
 
 bool __cdecl Live_FindFavouritesInProgress()
 {
-#ifdef KISAK_LIVE_STUBS
-    return TaskManager2_TaskIsInProgress(task_LiveFavouriteServers);
-#else
     return false;
-#endif
 }
 
 void __cdecl Live_FindFavouriteServers()
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *task; // [esp+4h] [ebp-160h]
-    TaskRecord *nestedTask; // [esp+8h] [ebp-15Ch]
-    unsigned int i; // [esp+Ch] [ebp-158h]
-    signed int j; // [esp+10h] [ebp-154h]
-    unsigned __int64 entityIDs[42]; // [esp+14h] [ebp-150h] BYREF
-
-    memset(entityIDs, 0, sizeof(entityIDs));
-    j = 0;
-    for ( i = 0; i < 0x2A; ++i )
-    {
-        if ( LODWORD(s_favourites[i].uid) || HIDWORD(s_favourites[i].uid) )
-        {
-            LODWORD(entityIDs[j]) = s_favourites[i].uid;
-            HIDWORD(entityIDs[j++]) = HIDWORD(s_favourites[i].uid);
-        }
-    }
-    if ( j <= 0 )
-    {
-        Com_DPrintf(23, "No favourites to get details for!\n");
-    }
-    else
-    {
-        nestedTask = dwFindSessionsByEntityIDs(entityIDs, j, s_favouritesInfo);
-        if ( nestedTask )
-        {
-            task = TaskManager2_CreateTask(task_LiveFavouriteServers, 0, nestedTask, 0);
-            if ( task )
-                TaskManager2_StartTask(task);
-            else
-                Com_DPrintf(0, "Couldn't start find favourites task, connected ok?\n");
-        }
-    }
-#endif
 }
 
 void __cdecl Live_FindFriendServersSuccess(TaskRecord *task)
 {
-#ifdef KISAK_LIVE_STUBS
-    int HeaderSize; // eax
-
-    if ( !task->nestedTask->remoteTask.m_ptr
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    5615,
-                    0,
-                    "%s",
-                    "task->nestedTask->remoteTask") )
-    {
-        __debugbreak();
-    }
-    if ( bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr) )
-    {
-        HeaderSize = bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
-        CL_ServersResponsePacket(s_friendServersInfo, HeaderSize, 1);
-    }
-#endif
 }
 
 void __cdecl Live_FindFriendServers()
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *task; // [esp+Ch] [ebp-814h]
-    TaskRecord *nestedTask; // [esp+10h] [ebp-810h]
-    int k; // [esp+14h] [ebp-80Ch]
-    int i; // [esp+18h] [ebp-808h]
-    signed int j; // [esp+1Ch] [ebp-804h]
-    unsigned __int64 entityIDs[256]; // [esp+20h] [ebp-800h] BYREF
-
-    memset(entityIDs, 0, sizeof(entityIDs));
-    j = 0;
-    for ( i = 0; i < 256; ++i )
-    {
-        if ( LODWORD(s_friendsServers[i].serverID) || HIDWORD(s_friendsServers[i].serverID) )
-        {
-            for ( k = j;
-                        k >= 0
-                 && (LODWORD(entityIDs[k]) != LODWORD(s_friendsServers[i].serverID)
-                    || HIDWORD(entityIDs[k]) != HIDWORD(s_friendsServers[i].serverID));
-                        --k )
-            {
-                ;
-            }
-            if ( k == -1 )
-            {
-                LODWORD(entityIDs[j]) = s_friendsServers[i].serverID;
-                HIDWORD(entityIDs[j++]) = HIDWORD(s_friendsServers[i].serverID);
-            }
-        }
-    }
-    if ( j <= 0 )
-    {
-        Com_DPrintf(23, "No friends to get details for!\n");
-    }
-    else
-    {
-        nestedTask = dwFindSessionsByEntityIDs(entityIDs, j, s_friendServersInfo);
-        if ( nestedTask )
-        {
-            task = TaskManager2_CreateTask(task_LiveFriendServers, 0, nestedTask, 0);
-            if ( task )
-                TaskManager2_StartTask(task);
-        }
-    }
-#endif
 }
 
 void __cdecl Live_FindRecentServersSuccess(TaskRecord *task)
 {
-#ifdef KISAK_LIVE_STUBS
-    int HeaderSize; // eax
-
-    if ( !task->nestedTask->remoteTask.m_ptr
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    5675,
-                    0,
-                    "%s",
-                    "task->nestedTask->remoteTask") )
-    {
-        __debugbreak();
-    }
-    if ( bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr) )
-    {
-        HeaderSize = bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr);
-        CL_ServersResponsePacket(s_recentServersInfo, HeaderSize, 1);
-    }
-#endif
 }
 
 void __cdecl Live_FindRecentServers()
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *task; // [esp+0h] [ebp-100h]
-    TaskRecord *nestedTask; // [esp+4h] [ebp-FCh]
-    int i; // [esp+8h] [ebp-F8h]
-    signed int j; // [esp+Ch] [ebp-F4h]
-    unsigned __int64 entityIDs[30]; // [esp+10h] [ebp-F0h] BYREF
-
-    memset(entityIDs, 0, sizeof(entityIDs));
-    j = 0;
-    for ( i = 0; i < 30 && s_recentServers[i].joinTime; ++i )
-    {
-        LODWORD(entityIDs[j]) = s_recentServers[i].serverID;
-        HIDWORD(entityIDs[j++]) = HIDWORD(s_recentServers[i].serverID);
-    }
-    if ( j <= 0 )
-    {
-        Com_DPrintf(23, "No friends to get details for!\n");
-    }
-    else
-    {
-        nestedTask = dwFindSessionsByEntityIDs(entityIDs, j, s_recentServersInfo);
-        if ( nestedTask )
-        {
-            task = TaskManager2_CreateTask(task_LiveRecentServers, 0, nestedTask, 0);
-            if ( task )
-                TaskManager2_StartTask(task);
-        }
-    }
-#endif
 }
 
 void __cdecl Live_SaveRecentServers()
@@ -1737,73 +1098,11 @@ int __cdecl compareRecentServers(unsigned int *server1, unsigned int *server2)
 
 void __cdecl Live_GetFriendsOnServer(unsigned __int64 serverId, unsigned __int64 *friendIDs, int *numfriends)
 {
-#ifdef KISAK_LIVE_STUBS
-    int v3; // ecx
-    int i; // [esp+Ch] [ebp-8h]
-    int numsteamfriends; // [esp+10h] [ebp-4h]
-
-    numsteamfriends = LiveSteam_GetNumFriends();
-    *numfriends = 0;
-    for ( i = 0; i < numsteamfriends; ++i )
-    {
-        if ( (LODWORD(s_friendsServers[i].friendID) || HIDWORD(s_friendsServers[i].friendID))
-            && serverId == __PAIR64__(HIDWORD(s_friendsServers[i].serverID), s_friendsServers[i].serverID) )
-        {
-            v3 = *numfriends;
-            LODWORD(friendIDs[v3]) = s_friendsServers[i].friendID;
-            HIDWORD(friendIDs[v3]) = HIDWORD(s_friendsServers[i].friendID);
-            ++*numfriends;
-        }
-    }
-#endif
 }
 
 char __cdecl Live_AddFavourite_Ingame(unsigned __int64 serverid, unsigned __int64 serveruid)
 {
-#ifdef KISAK_LIVE_STUBS
-    char *v2; // eax
-    favourite_t *v4; // eax
-    unsigned int v5; // eax
-    char *v6; // eax
-    const char *v7; // eax
-    char *v8; // eax
-    unsigned int i; // [esp+8h] [ebp-4h]
-
-    for ( i = 0; i < 0x2A && (LODWORD(s_favourites[i].uid) || HIDWORD(s_favourites[i].uid)); ++i )
-    {
-        if ( serveruid == __PAIR64__(HIDWORD(s_favourites[i].uid), s_favourites[i].uid) )
-        {
-            v2 = UI_SafeTranslateString("EXE_FAVORITEINLIST");
-            Com_Printf(13, "%s\n", v2);
-            Dvar_SetStringByName("ui_favorite_message", "@EXE_FAVORITEINLIST");
-            return 0;
-        }
-    }
-    if ( i >= 0x2A )
-    {
-        v8 = UI_SafeTranslateString("EXE_FAVORITELISTFULL");
-        Com_Printf(13, "%s\n", v8);
-        Dvar_SetStringByName("ui_favorite_message", "@EXE_FAVORITELISTFULL");
-        return 0;
-    }
-    else
-    {
-        v4 = &s_favourites[i];
-        *(unsigned int *)v4->addressblob = serverid;
-        *(_WORD *)&v4->addressblob[4] = WORD2(serverid);
-        v5 = i;
-        LODWORD(s_favourites[v5].uid) = serveruid;
-        *(unsigned int *)(v5 * 16 + 174313908) = HIDWORD(serveruid);
-        CL_SetFavourites_f();
-        v6 = UI_SafeTranslateString("EXE_FAVORITEADDED");
-        v7 = va("%s\n", v6);
-        Com_Printf(13, v7);
-        Dvar_SetStringByName("ui_favorite_message", "@EXE_FAVORITEADDED");
-        return 1;
-    }
-#else
     return 0;
-#endif
 }
 
 void __cdecl Live_AddFavourite(unsigned __int64 serverid, unsigned __int64 serveruid)
@@ -1912,73 +1211,12 @@ void __cdecl Live_SetPrivateProfileFailure()
 
 TaskRecord *__cdecl Live_GetPrivateProfile()
 {
-#ifdef KISAK_LIVE_STUBS
-    const bdReference<bdCommonAddr> *PrivateInfo; // eax
-    bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-10h] BYREF
-    bdProfiles *profileService; // [esp+20h] [ebp-Ch]
-    bdLobbyService *lobbyService; // [esp+24h] [ebp-8h]
-    TaskRecord *task; // [esp+28h] [ebp-4h]
-
-    task = 0;
-    lobbyService = dwGetLobby(0);
-    if ( lobbyService )
-    {
-        profileService = bdLobbyService::getProfiles(lobbyService);
-        if ( profileService )
-        {
-            task = TaskManager2_CreateTask(task_dwgetprivateprofile, 0, 0, 0);
-            if ( task )
-            {
-                PrivateInfo = (const bdReference<bdCommonAddr> *)bdProfiles::getPrivateInfo(
-                                                                                                                     profileService,
-                                                                                                                     (int)&v2,
-                                                                                                                     &s_profileInfo);
-                bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&task->remoteTask, PrivateInfo);
-                bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
-                TaskManager2_StartTask(task);
-            }
-        }
-    }
-    return task;
-#else
     return NULL;
-#endif
 }
 
 TaskRecord *__cdecl Live_SetPrivateProfile()
 {
-#ifdef KISAK_LIVE_STUBS
-    const bdReference<bdCommonAddr> *v0; // eax
-    bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-10h] BYREF
-    bdProfiles *profileService; // [esp+20h] [ebp-Ch]
-    bdLobbyService *lobbyService; // [esp+24h] [ebp-8h]
-    TaskRecord *task; // [esp+28h] [ebp-4h]
-
-    task = 0;
-    lobbyService = dwGetLobby(0);
-    if ( lobbyService )
-    {
-        profileService = bdLobbyService::getProfiles(lobbyService);
-        if ( profileService )
-        {
-            task = TaskManager2_CreateTask(task_dwsetprivateprofile, 0, 0, 0);
-            if ( task )
-            {
-                s_profileInfo.m_entityID = g_bdUserID;
-                v0 = (const bdReference<bdCommonAddr> *)bdProfiles::setPrivateInfo(
-                                                                                                    profileService,
-                                                                                                    (int)&v2,
-                                                                                                    (int)&s_profileInfo);
-                bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&task->remoteTask, v0);
-                bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
-                TaskManager2_StartTask(task);
-            }
-        }
-    }
-    return task;
-#else
     return NULL;
-#endif
 }
 
 void __cdecl CL_GetFavourites_f()
@@ -2059,339 +1297,42 @@ void __cdecl Live_InitFavourites()
 
 void __cdecl Live_AddRecentPlayers(unsigned __int64 *uids, const char **names, int numIDs)
 {
-#ifdef KISAK_LIVE
-    unsigned __int64 v3; // rax
-    int i; // [esp+10h] [ebp-30h]
-    char namebuf[32]; // [esp+14h] [ebp-2Ch] BYREF
-    unsigned __int64 myXuid; // [esp+38h] [ebp-8h]
-
-    memset(namebuf, 0, sizeof(namebuf));
-    LODWORD(v3) = Live_GetXuid(0);
-    myXuid = v3;
-    for ( i = 0; i < numIDs; ++i )
-    {
-        if ( myXuid != uids[i] && (LODWORD(uids[i]) || HIDWORD(uids[i])) )
-        {
-            Live_GetRecentPlayerName(uids[i], namebuf, 32);
-            if ( namebuf[0] )
-            {
-                LiveMeetPlayer_UpdateMeetPlayerList(0, uids[i], namebuf);
-                memset(namebuf, 0, sizeof(namebuf));
-            }
-            else
-            {
-                LiveMeetPlayer_UpdateMeetPlayerList(0, uids[i], names[i]);
-            }
-        }
-    }
-#endif
 }
 
 unsigned __int64 __cdecl Live_GetServerForFriend(unsigned __int64 friendId)
 {
-#ifdef KISAK_LIVE_STUBS
-    friendonserver_t *friendserver; // [esp+8h] [ebp-Ch]
-    int i; // [esp+Ch] [ebp-8h]
-    int numsteamfriends; // [esp+10h] [ebp-4h]
-
-    numsteamfriends = LiveSteam_GetNumFriends();
-    for ( i = 0; i < numsteamfriends; ++i )
-    {
-        friendserver = &s_friendsServers[i];
-        if ( (LODWORD(friendserver->friendID) || HIDWORD(s_friendsServers[i].friendID))
-            && friendId == friendserver->friendID )
-        {
-            return friendserver->serverID;
-        }
-    }
     return 0;
-#else
-    return 0;
-#endif
 }
 
 void __cdecl Live_JoinSessionInProgressComplete(TaskRecord *task)
 {
-#ifdef KISAK_LIVE_STUBS
-    int ControllerIndex; // eax
-    netadr_t v2; // [esp-10h] [ebp-4Ch]
-    unsigned int v3; // [esp+1Ch] [ebp-20h]
-    int codpoints; // [esp+2Ch] [ebp-10h] BYREF
-    bool wasbasictraining; // [esp+33h] [ebp-9h]
-    int playlistRes; // [esp+34h] [ebp-8h]
-    connstate_t connectionState; // [esp+38h] [ebp-4h]
-
-    if ( bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr) )
-    {
-        connectionState = CL_GetLocalClientConnectionState(0);
-        if ( connectionState > CA_DISCONNECTED
-            && !memcmp((const char *)&dwGetSessionID()->m_sessionID, (const char *)&s_joininprogressinfo.m_sessionID, 8) )
-        {
-            Com_DPrintf(23, "Not joining in progress, already in session!\n");
-            return;
-        }
-        LOWORD(v3) = 0;
-        *(_QWORD *)&v2.type = 4;
-        *(_QWORD *)&v2.port = v3 | 0xFFFFFFFF00000000uLL;
-        CL_InitServerInfo(&s_inviteServerinfo, v2);
-        s_inviteServerinfo.xnkey = *(bdSecurityKey *)s_joininprogressinfo.m_membersecKey;
-        s_inviteServerinfo.xnkid = s_joininprogressinfo.m_sessionID;
-        memcpy(&s_inviteServerinfo, s_joininprogressinfo.m_hostAddr, 0x19u);
-        memcpy(s_inviteServerinfo.hostName, s_joininprogressinfo.m_memberservername, sizeof(s_inviteServerinfo.hostName));
-        Com_DPrintf(23, "GetSessionByID successful, joining session..\n");
-        if ( s_joininprogressinfo.m_memberserverType == 5 || !s_joininprogressinfo.m_memberserverType )
-            goto LABEL_19;
-        playlistRes = Playlist_GetWagerAmount(
-                                        s_joininprogressinfo.m_memberPLAYLIST_VERSION,
-                                        s_joininprogressinfo.m_memberPLAYLIST,
-                                        &s_inviteServerinfo.wagerBet);
-        if ( playlistRes < 0 )
-        {
-            Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerPlaylistIsOld");
-            return;
-        }
-        if ( playlistRes > 0 )
-        {
-            Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerPlaylistIsNew");
-            return;
-        }
-        if ( s_inviteServerinfo.wagerBet <= 0 )
-        {
-LABEL_19:
-            CL_Connect(&s_inviteServerinfo);
-        }
-        else
-        {
-            codpoints = 0;
-            wasbasictraining = xblive_basictraining->current.enabled;
-            Dvar_SetBool((dvar_s *)xblive_basictraining, 0);
-            ControllerIndex = Com_LocalClient_GetControllerIndex(0);
-            LiveStats_GetIntPlayerStat(ControllerIndex, &codpoints, "CODPOINTS");
-            Dvar_SetIntByName("ui_wagerbet", s_inviteServerinfo.wagerBet);
-            if ( codpoints < s_inviteServerinfo.wagerBet )
-            {
-                Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerDeadBeat");
-            }
-            else
-            {
-                Dvar_SetIntByName("ui_joiningwagerfrominvite", 1);
-                if ( CL_GetLocalClientConnectionState(0) == 10 )
-                    Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerConfirmationingame");
-                else
-                    Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerConfirmation");
-                Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerConfirmation");
-            }
-            Dvar_SetBool((dvar_s *)xblive_basictraining, wasbasictraining);
-        }
-    }
-#endif
 }
 
 TaskRecord *__cdecl Live_JoinSessionInProgress(unsigned __int64 uid, bool recent)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int64 ServerForFriend; // [esp+0h] [ebp-1Ch]
-    TaskRecord *nestedTask; // [esp+8h] [ebp-14h]
-    unsigned __int64 serverid; // [esp+Ch] [ebp-10h] BYREF
-    TaskRecord *task; // [esp+18h] [ebp-4h]
-
-    task = 0;
-    if ( recent )
-        ServerForFriend = uid;
-    else
-        ServerForFriend = Live_GetServerForFriend(uid);
-    serverid = ServerForFriend;
-    if ( ServerForFriend )
-    {
-        nestedTask = dwFindSessionsByEntityIDs(&serverid, 1u, &s_joininprogressinfo);
-        if ( nestedTask )
-        {
-            task = TaskManager2_CreateTask(task_joinSessionInProgress, 0, nestedTask, 0);
-            if ( task )
-                TaskManager2_StartTask(task);
-            else
-                Com_PrintError(23, "Join session in progress systemic failure, not connected?\n");
-        }
-    }
-    return task;
-#else
     return NULL;
-#endif
 }
 
 void __cdecl Live_AddFriendServer(unsigned __int64 serverID, unsigned __int64 friendID)
 {
-#ifdef KISAK_LIVE_STUBS
-    int v2; // ecx
-    int v3; // edx
-    int v4; // edx
-    int i; // [esp+4h] [ebp-8h]
-    int numfriends; // [esp+8h] [ebp-4h]
-
-    numfriends = LiveSteam_GetNumFriends();
-    for ( i = 0; i < numfriends; ++i )
-    {
-        if ( __PAIR64__(HIDWORD(s_friendsServers[i].friendID), s_friendsServers[i].friendID) == friendID )
-        {
-            v2 = i;
-            LODWORD(s_friendsServers[v2].serverID) = serverID;
-            *(unsigned int *)(v2 * 16 + 174309628) = HIDWORD(serverID);
-            break;
-        }
-    }
-    if ( i == numfriends )
-    {
-        v3 = s_numfriendsonservers;
-        LODWORD(s_friendsServers[v3].friendID) = friendID;
-        *(unsigned int *)(v3 * 16 + 174309620) = HIDWORD(friendID);
-        v4 = s_numfriendsonservers;
-        LODWORD(s_friendsServers[v4].serverID) = serverID;
-        *(unsigned int *)(v4 * 16 + 174309628) = HIDWORD(serverID);
-        ++s_numfriendsonservers;
-    }
-    Live_FindFriendServers();
-#endif
 }
 
 void __cdecl Live_OnInvite(unsigned __int64 uid, bdSessionID sessionID, const char *password)
 {
-#ifdef KISAK_LIVE_STUBS
-    char *v3; // eax
-    int LocalClientNum; // eax
-    char *v5; // eax
-    int v6; // eax
-    int v7; // edx
-    bdSessionID *p_sessionID; // eax
-    int v9; // ecx
-    int v10; // edx
-    int v11; // ecx
-    bdSessionID *v12; // edx
-    char *v13; // [esp-Ch] [ebp-130h]
-    char *v14; // [esp-Ch] [ebp-130h]
-    __int64 v15; // [esp+0h] [ebp-124h]
-    const char *toastPopupDesc; // [esp+24h] [ebp-100h]
-    char *toastMessage; // [esp+28h] [ebp-FCh]
-    XuidInfo xinfo; // [esp+2Ch] [ebp-F8h] BYREF
-    FriendInfo info; // [esp+5Ch] [ebp-C8h] BYREF
-    int firstfree; // [esp+118h] [ebp-Ch]
-    int i; // [esp+11Ch] [ebp-8h]
-
-    if ( Friends_GetByID(0, uid, &info) )
-    {
-        v3 = UI_SafeTranslateString("MENU_INVITE_RECEIVED_FROM");
-        toastMessage = UI_ReplaceConversionString(v3, info.name);
-        v13 = UI_SafeTranslateString("");
-        LocalClientNum = Com_ControllerIndex_GetLocalClientNum(0);
-        UI_OpenToastPopup(LocalClientNum, "menu_mp_killstreak_select", v13, toastMessage, 2700);
-    }
-    else if ( LiveMeetPlayer_GetRecentPlayerInfoByID(0, uid, &xinfo) )
-    {
-        v5 = UI_SafeTranslateString("MENU_INVITE_RECEIVED_FROM");
-        toastPopupDesc = UI_ReplaceConversionString(v5, xinfo.gamertag);
-        v14 = UI_SafeTranslateString("");
-        v6 = Com_ControllerIndex_GetLocalClientNum(0);
-        UI_OpenToastPopup(v6, "menu_mp_killstreak_select", v14, toastPopupDesc, 2700);
-    }
-    firstfree = -1;
-    if ( CL_GetLocalClientConnectionState(0) == 10
-        && !memcmp((const char *)&sessionID.m_sessionID, (const char *)&dwGetSessionID()->m_sessionID, 8) )
-    {
-        Com_DPrintf(23, "Ignoring invite from %llu, already in session!\n", v15);
-        bdTaskResult::~bdTaskResult(&sessionID);
-    }
-    else
-    {
-        for ( i = 0; i < 256; ++i )
-        {
-            if ( uid == __PAIR64__(HIDWORD(s_invites[i].from), s_invites[i].from) )
-            {
-                v7 = *(unsigned int *)&sessionID.m_sessionID.ab[4];
-                p_sessionID = &s_invites[i].sessionID;
-                *(unsigned int *)p_sessionID->m_sessionID.ab = *(unsigned int *)sessionID.m_sessionID.ab;
-                *(unsigned int *)&p_sessionID->m_sessionID.ab[4] = v7;
-                v9 = i;
-                LODWORD(s_invites[v9].from) = uid;
-                *(unsigned int *)(v9 * 56 + 174495612) = HIDWORD(uid);
-                memcpy(s_invites[i].password, password, sizeof(s_invites[i].password));
-                break;
-            }
-            if ( firstfree == -1 && !LODWORD(s_invites[i].from) && !HIDWORD(s_invites[i].from) )
-                firstfree = i;
-        }
-        if ( i == 256 && firstfree != -1 )
-        {
-            v10 = firstfree;
-            LODWORD(s_invites[v10].from) = uid;
-            *(unsigned int *)(v10 * 56 + 174495612) = HIDWORD(uid);
-            v11 = *(unsigned int *)&sessionID.m_sessionID.ab[4];
-            v12 = &s_invites[firstfree].sessionID;
-            *(unsigned int *)v12->m_sessionID.ab = *(unsigned int *)sessionID.m_sessionID.ab;
-            *(unsigned int *)&v12->m_sessionID.ab[4] = v11;
-            memcpy(s_invites[firstfree].password, password, sizeof(s_invites[firstfree].password));
-        }
-        s_lastInvite = uid;
-        bdTaskResult::~bdTaskResult(&sessionID);
-    }
-#endif
 }
 
 void __cdecl Live_OnRevokeInvite(unsigned __int64 uid)
 {
-#ifdef KISAK_LIVE_STUBS
-    int v1; // edx
-    int i; // [esp+4h] [ebp-4h]
-
-    for ( i = 0; i < 256; ++i )
-    {
-        if ( uid == __PAIR64__(HIDWORD(s_invites[i].from), s_invites[i].from) )
-        {
-            Com_DPrintf(23, "Removing invite from %llu\n", uid);
-            v1 = i;
-            LODWORD(s_invites[v1].from) = 0;
-            *(unsigned int *)(v1 * 56 + 174495612) = 0;
-            break;
-        }
-    }
-    if ( s_lastInvite == uid )
-        s_lastInvite = 0;
-#endif
 }
 
 bool __cdecl Live_RevokeInvite(unsigned __int64 friendID)
 {
-#ifdef KISAK_LIVE_STUBS
-    char msg; // [esp+7h] [ebp-1h] BYREF
-
-    msg = 9;
-    return dwMessaging_SendInstantMessage(friendID, &msg, 1u) != 0;
-#else
     return false;
-#endif
 }
 
 char __cdecl Live_FindInviteFromFriend(unsigned __int64 friendID, bdSessionID *sessionID, char **password)
 {
-#ifdef KISAK_LIVE_STUBS
-    int v3; // edx
-    int i; // [esp+4h] [ebp-8h]
-    bool retval; // [esp+Bh] [ebp-1h]
-
-    retval = 0;
-    for ( i = 0; i < 256; ++i )
-    {
-        if ( friendID == __PAIR64__(HIDWORD(s_invites[i].from), s_invites[i].from) )
-        {
-            v3 = *(unsigned int *)&s_invites[i].sessionID.m_sessionID.ab[4];
-            *(unsigned int *)sessionID->m_sessionID.ab = *(unsigned int *)s_invites[i].sessionID.m_sessionID.ab;
-            *(unsigned int *)&sessionID->m_sessionID.ab[4] = v3;
-            *password = s_invites[i].password;
-            return 1;
-        }
-    }
-    return retval;
-#else
     return false;
-#endif
 }
 
 char __cdecl Live_HandleInviteMessage(unsigned __int64 senderID, char *message)
@@ -2418,211 +1359,33 @@ void __cdecl Live_AcceptInviteAsyncFailure()
 
 void __cdecl Live_JoinWagerFromInvite()
 {
-#ifdef KISAK_LIVE_STUBS
-    CL_Connect(&s_inviteServerinfo);
-#endif
 }
 
 void __cdecl Live_AcceptInviteAsyncComplete(TaskRecord *task)
 {
-#ifdef KISAK_LIVE_STUBS
-    int ControllerIndex; // eax
-    netadr_t v2; // [esp-10h] [ebp-40h]
-    unsigned int v3; // [esp+10h] [ebp-20h]
-    int codpoints; // [esp+20h] [ebp-10h] BYREF
-    bool wasbasictraining; // [esp+27h] [ebp-9h]
-    int playlistRes; // [esp+28h] [ebp-8h]
-    MatchMakingInfo *mminfo; // [esp+2Ch] [ebp-4h]
-
-    if ( (!task->nestedTask || !task->nestedTask->payload)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp",
-                    6413,
-                    0,
-                    "%s",
-                    "task->nestedTask && task->nestedTask->payload") )
-    {
-        __debugbreak();
-    }
-    if ( bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->nestedTask->remoteTask.m_ptr) )
-    {
-        LOWORD(v3) = 0;
-        *(_QWORD *)&v2.type = 4;
-        *(_QWORD *)&v2.port = v3 | 0xFFFFFFFF00000000uLL;
-        CL_InitServerInfo(&s_inviteServerinfo, v2);
-        mminfo = (MatchMakingInfo *)task->nestedTask->payload;
-        s_inviteServerinfo.xnkey = *(bdSecurityKey *)mminfo->m_membersecKey;
-        s_inviteServerinfo.xnkid = mminfo->m_sessionID;
-        memcpy(&s_inviteServerinfo, mminfo->m_hostAddr, 0x19u);
-        memcpy(s_inviteServerinfo.hostName, mminfo->m_memberservername, sizeof(s_inviteServerinfo.hostName));
-        if ( mminfo->m_memberserverType == 5 || !mminfo->m_memberserverType )
-            goto LABEL_19;
-        playlistRes = Playlist_GetWagerAmount(
-                                        mminfo->m_memberPLAYLIST_VERSION,
-                                        mminfo->m_memberPLAYLIST,
-                                        &s_inviteServerinfo.wagerBet);
-        if ( playlistRes < 0 )
-        {
-            Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerPlaylistIsOld");
-            return;
-        }
-        if ( playlistRes > 0 )
-        {
-            Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerPlaylistIsNew");
-            return;
-        }
-        if ( s_inviteServerinfo.wagerBet <= 0 )
-        {
-LABEL_19:
-            Com_DPrintf(23, "Acceptinvite async successful, joining session..\n");
-            CL_Connect(&s_inviteServerinfo);
-        }
-        else
-        {
-            codpoints = 0;
-            wasbasictraining = xblive_basictraining->current.enabled;
-            Dvar_SetBool((dvar_s *)xblive_basictraining, 0);
-            ControllerIndex = Com_LocalClient_GetControllerIndex(0);
-            LiveStats_GetIntPlayerStat(ControllerIndex, &codpoints, "CODPOINTS");
-            Dvar_SetIntByName("ui_wagerbet", s_inviteServerinfo.wagerBet);
-            if ( codpoints < s_inviteServerinfo.wagerBet )
-            {
-                Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerDeadBeat");
-            }
-            else
-            {
-                Dvar_SetIntByName("ui_joiningwagerfrominvite", 1);
-                if ( CL_GetLocalClientConnectionState(0) == 10 )
-                    Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerConfirmationingame");
-                else
-                    Cmd_ExecuteSingleCommand(0, 0, "openmenu WagerConfirmation");
-            }
-            Dvar_SetBool((dvar_s *)xblive_basictraining, wasbasictraining);
-        }
-    }
-    else
-    {
-        Live_AcceptInviteAsyncFailure();
-    }
-#endif
 }
 
 TaskRecord *__cdecl Live_AcceptInviteAsync(bdSessionID sessionID)
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *nestedTask; // [esp+4h] [ebp-Ch]
-    TaskRecord *task; // [esp+8h] [ebp-8h]
-
-    nestedTask = dwMatchMaking_FindSessionByID(&sessionID);
-    task = 0;
-    if ( nestedTask )
-    {
-        task = TaskManager2_CreateTask(task_acceptInvite, 0, nestedTask, 0);
-        if ( task )
-            TaskManager2_StartTask(task);
-    }
-    bdTaskResult::~bdTaskResult(&sessionID);
-    return task;
-#else
     return NULL;
-#endif
 }
 
 void __cdecl Live_AcceptInvite(unsigned __int64 frienduid)
 {
-#ifdef KISAK_LIVE_STUBS
-    bdSessionID v1; // [esp-Ch] [ebp-3Ch] BYREF
-    int v2; // [esp+Ch] [ebp-24h]
-    int v3; // [esp+10h] [ebp-20h]
-    bdSessionID friendSession; // [esp+1Ch] [ebp-14h] BYREF
-    char *password; // [esp+2Ch] [ebp-4h] BYREF
-
-    bdSessionID::bdSessionID(&friendSession);
-    if ( Live_FindInviteFromFriend(frienduid, &friendSession, &password) )
-    {
-        Dvar_SetStringByName("password", password);
-        Live_OnRevokeInvite(frienduid);
-        if ( CL_GetLocalClientConnectionState(0) >= 4 )
-        {
-            v3 = memcmp((const char *)&dwGetSessionID()->m_sessionID, (const char *)&friendSession.m_sessionID, 8);
-            v2 = v3;
-            if ( !v3 )
-            {
-                bdTaskResult::~bdTaskResult(&friendSession);
-                return;
-            }
-        }
-        bdSessionID::bdSessionID(&v1, &friendSession);
-        if ( !Live_AcceptInviteAsync(v1) )
-            Com_PrintError(23, "Accept invite systemic failure, not connected?\n");
-    }
-    bdTaskResult::~bdTaskResult(&friendSession);
-#endif
 }
 
 int __cdecl Live_GetInvitesCount()
 {
-#ifdef KISAK_LIVE_STUBS
-    int i; // [esp+4h] [ebp-8h]
-    int count; // [esp+8h] [ebp-4h]
-
-    count = 0;
-    for ( i = 0; i < 256; ++i )
-    {
-        if ( LODWORD(s_invites[i].from) || HIDWORD(s_invites[i].from) )
-            ++count;
-    }
-    return count;
-#else
     return 0;
-#endif
 }
 
 int __cdecl Live_GetInviteFriend(int index)
 {
-#ifdef KISAK_LIVE_STUBS
-    int i; // [esp+4h] [ebp-8h]
-    int inviteIndex; // [esp+8h] [ebp-4h]
-
-    inviteIndex = 0;
-    for ( i = 0; i < 256; ++i )
-    {
-        if ( LODWORD(s_invites[i].from) || HIDWORD(s_invites[i].from) )
-        {
-            if ( index == inviteIndex )
-                return s_invites[i].from;
-            ++inviteIndex;
-        }
-    }
     return 0;
-#else
-    return 0;
-#endif
 }
 
 void __cdecl Live_ListInvites_f()
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int64 v0; // [esp-Ch] [ebp-D0h]
-    __int64 v1; // [esp-4h] [ebp-C8h]
-    FriendInfo finfo; // [esp+4h] [ebp-C0h] BYREF
-    int i; // [esp+C0h] [ebp-4h]
-
-    Com_Printf(23, "\n*********************\nFriend Name\t\tSessionId\n*********************\n");
-    for ( i = 0; i < 256; ++i )
-    {
-        HIDWORD(v1) = 56 * i;
-        if ( LODWORD(s_invites[i].from) || HIDWORD(s_invites[i].from) )
-        {
-            HIDWORD(v0) = HIDWORD(s_invites[i].from);
-            LODWORD(v0) = s_invites[i].from;
-            Friends_GetByID(0, v0, &finfo);
-            LODWORD(v1) = &s_invites[i].sessionID.m_sessionID;
-            Com_Printf(23, "%s\t\t%llu\n", finfo.name, v1);
-        }
-    }
-    Com_Printf(23, "\n*********************\n");
-#endif
 }
 
 void __cdecl Live_AddPlayerAsFriend_f()
@@ -2649,206 +1412,29 @@ bool __cdecl Live_ShouldBroadcastNewServer()
 
 void __cdecl Live_RespondToSessionRequest(unsigned __int64 from, unsigned __int8 flags)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int8 message[12]; // [esp+8h] [ebp-20h] BYREF
-    unsigned __int64 sessionUid; // [esp+18h] [ebp-10h]
-    unsigned __int8 messageflags; // [esp+27h] [ebp-1h]
-
-    sessionUid = 0;
-    if ( Live_ShouldBroadcastNewServer() )
-    {
-        messageflags = 0;
-        if ( CL_GetLocalClientConnectionState(0) >= 6 )
-            messageflags |= 0x10u;
-        else
-            cls.serveruid = 0;
-        sessionUid = cls.serveruid;
-        if ( (flags & 4) != 0 )
-        {
-            messageflags |= 4u;
-        }
-        else
-        {
-            if ( (flags & 8) == 0 )
-            {
-                Com_PrintWarning(23, "invalid message type from %llu!\n", from);
-                return;
-            }
-            messageflags |= 8u;
-        }
-        message[0] = messageflags | 2;
-        *(_QWORD *)&message[1] = sessionUid;
-        LiveSteam_SendP2PMessage(from, message, 9u);
-    }
-#endif
 }
 
 void __cdecl Live_RequestSessionsFromFriends()
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int64 FriendXuid; // rax
-    int i; // [esp+0h] [ebp-8h]
-    unsigned __int8 message; // [esp+7h] [ebp-1h] BYREF
-
-    message = 5;
-    for ( i = 0; i < LiveSteam_GetNumFriends(); ++i )
-    {
-        FriendXuid = LiveSteam_GetFriendXuid(i);
-        LiveSteam_SendP2PMessage(FriendXuid, &message, 1u);
-    }
-#endif
 }
 
 void __cdecl Live_RequestSessionsFromRecentPlayers()
 {
-#ifdef KISAK_LIVE_STUBS
-    XuidInfo result; // [esp+8h] [ebp-70h] BYREF
-    unsigned __int64 v1[6]; // [esp+38h] [ebp-40h] BYREF
-    unsigned __int64 recentUid; // [esp+68h] [ebp-10h]
-    int i; // [esp+70h] [ebp-8h]
-    unsigned __int8 message; // [esp+77h] [ebp-1h] BYREF
-
-    message = 9;
-    for ( i = 0; i < LiveMeetPlayer_GetNoOfMetPlayers(0); ++i )
-    {
-        memcpy(v1, LiveMeetPlayer_GetMetFriendInfo(&result, 0, i), sizeof(v1));
-        recentUid = v1[0];
-        LiveSteam_SendP2PMessage(v1[0], &message, 1u);
-    }
-#endif
 }
 
 void __cdecl Live_DispatchP2PMessage(unsigned __int8 *message, unsigned int messagesize, unsigned __int64 from)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int64 uid; // [esp+0h] [ebp-10h]
-    unsigned __int8 flags; // [esp+Fh] [ebp-1h]
-
-    if ( dwGetLogOnStatus(0) == 4 )
-    {
-        flags = *message;
-        if ( (*message & 1) != 0 )
-        {
-            Live_RespondToSessionRequest(from, flags);
-        }
-        else if ( (flags & 2) != 0 )
-        {
-            if ( messagesize >= 9 )
-            {
-                uid = *(_QWORD *)(message + 1);
-                if ( flags >= 0x10u )
-                {
-                    if ( (flags & 0x40) != 0 )
-                        uid = 0;
-                }
-                else
-                {
-                    uid = 0;
-                    Live_OnRevokeInvite(from);
-                }
-                if ( (flags & 4) != 0 )
-                {
-                    Live_AddFriendServer(uid, from);
-                }
-                else if ( (flags & 8) != 0 )
-                {
-                    if ( (flags & 0x20) != 0 )
-                    {
-                        uid = 0;
-                        Live_OnRevokeInvite(from);
-                    }
-                    LiveMeetPlayer_UpdatePlayerSession(from, uid);
-                }
-            }
-            else
-            {
-                Com_PrintWarning(14, "Dropped runt p2p message on the floor from %llu\n", from);
-            }
-        }
-    }
-#endif
 }
 
 void __cdecl Live_BroadcastSessionToFriends(unsigned __int64 sessionUID, unsigned __int8 flags)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int64 FriendXuid; // rax
-    int i; // [esp+8h] [ebp-14h]
-    unsigned __int8 message[12]; // [esp+Ch] [ebp-10h] BYREF
-
-    message[0] = flags | 6;
-    *(_QWORD *)&message[1] = sessionUID;
-    for ( i = 0; i < Friends_GetCount(0, 0); ++i )
-    {
-        FriendXuid = LiveSteam_GetFriendXuid(i);
-        LiveSteam_SendP2PMessage(FriendXuid, message, 9u);
-    }
-#endif
 }
 
 void __cdecl Live_BroadcastSessionToRecentPlayers(unsigned __int64 sessionUID, unsigned __int8 flags)
 {
-#ifdef KISAK_LIVE_STUBS
-    XuidInfo result; // [esp+10h] [ebp-A8h] BYREF
-    _BYTE v3[48]; // [esp+40h] [ebp-78h] BYREF
-    XuidInfo recentinfo; // [esp+70h] [ebp-48h] BYREF
-    int i; // [esp+A0h] [ebp-18h]
-    unsigned __int8 message[12]; // [esp+A4h] [ebp-14h] BYREF
-    int numplayers; // [esp+B4h] [ebp-4h]
-
-    message[0] = flags | 0xA;
-    *(_QWORD *)&message[1] = sessionUID;
-    numplayers = LiveMeetPlayer_GetNoOfMetPlayers(0);
-    for ( i = 0; i < numplayers; ++i )
-    {
-        memcpy(v3, LiveMeetPlayer_GetMetFriendInfo(&result, 0, i), sizeof(v3));
-        memcpy(&recentinfo, v3, sizeof(recentinfo));
-        LiveSteam_SendP2PMessage(recentinfo.playerXuids, message, 9u);
-    }
-#endif
 }
 
 void __cdecl Live_BroadcastSessionIfNeeded()
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned __int8 flags; // [esp+0h] [ebp-2h]
-    bool needtobroadcast; // [esp+1h] [ebp-1h]
-
-    if ( (_S1_14 & 1) == 0 )
-    {
-        _S1_14 |= 1u;
-        cachedState = CL_GetLocalClientConnectionState(0);
-    }
-    if ( cachedState != CL_GetLocalClientConnectionState(0) )
-    {
-        needtobroadcast = 0;
-        if ( cachedState != CA_ACTIVE || CL_GetLocalClientConnectionState(0) )
-        {
-            if ( cachedState != CA_ACTIVE && CL_GetLocalClientConnectionState(0) == 10 )
-            {
-                if ( cls.serveruid )
-                    Live_AddRecentServer(cls.serveruid);
-                else
-                    dwGetOnlineUserID(0, &cls.serveruid);
-                if ( !Demo_IsPlaying() )
-                    needtobroadcast = 1;
-            }
-        }
-        else
-        {
-            cls.serveruid = 0;
-            needtobroadcast = 1;
-        }
-        if ( needtobroadcast )
-        {
-            flags = 0;
-            if ( cls.serveruid )
-                flags = 16;
-            Live_BroadcastSessionToFriends(cls.serveruid, flags);
-            Live_BroadcastSessionToRecentPlayers(cls.serveruid, flags);
-        }
-        cachedState = CL_GetLocalClientConnectionState(0);
-    }
-#endif
 }
 

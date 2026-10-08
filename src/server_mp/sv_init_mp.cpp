@@ -376,21 +376,6 @@ void __cdecl SV_Startup(int controllerIndex)
         SV_ResetDWState();
         Dvar_SetBoolByName("r_gfxopt_water_simulation", 0);
 
-#ifdef KISAK_LIVE
-        dwNetStart(1);
-        while (g_dwNetStatus == DW_NET_STARTING_ONLINE)
-            dwNetPump();
-
-        if (g_svdedicatedauthstate != SV_DWAUTHORIZED)
-        {
-            DW_DedicatedLogonStart(controllerIndex);
-            while (g_svdedicatedauthstate == SV_DWAUTHORIZING)
-                DW_DedicatedLogonComplete(0);
-            if (g_svdedicatedauthstate != SV_DWAUTHORIZED)
-                Com_Error(ERR_DROP, "Dedicated server authentication failure.\n");
-            Com_Printf(0, "should be logged in ok\n");
-        }
-#endif
     }
 
     //BLOPS_NULLSUB();
@@ -520,9 +505,6 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
     int i; // [esp+80h] [ebp-4h]
 
     Com_SyncThreads();
-#ifdef KISAK_LIVE
-    MatchRecord_InitMatchData();
-#endif
     iassert(SV_GetServerThreadOwnsGame() == 0);
 
     if ( useFastFile->current.enabled && !mapIsPreloaded )

@@ -295,14 +295,6 @@ static void __cdecl ResetCreateAClassNames(int controllerIndex)
 
 void __cdecl LiveStorage_ReadStats(int __formal, bool validate, bool silent)
 {
-#ifdef KISAK_LIVE_SERVICE
-    if ( live_service->current.enabled )
-    {
-        LiveStorage_ReadBasicTrainingStats(0, validate, silent);
-        LiveStorage_ReadPlayerGlobalBlob();
-        LiveStorage_InitCustomClassesNames();
-    }
-#endif
 }
 
 void LiveStorage_InitCustomClassesNames()
@@ -658,28 +650,10 @@ bool __cdecl SV_MakeClientLBRow(
 
 void __cdecl SV_CommitClientLeaderboardsSuccess()
 {
-#ifdef KISAK_LIVE_STUBS
-    if ( !lbRemoteTask.m_ptr
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp", 1536, 0, "%s", "lbRemoteTask") )
-    {
-        __debugbreak();
-    }
-    if ( lbRemoteTask.m_ptr )
-        bdReference<bdCommonAddr>::operator=(&lbRemoteTask, 0);
-#endif
 }
 
 void __cdecl SV_CommitClientLeaderboardsFailure()
 {
-#ifdef KISAK_LIVE_STUBS
-    if ( !lbRemoteTask.m_ptr
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp", 1545, 0, "%s", "lbRemoteTask") )
-    {
-        __debugbreak();
-    }
-    if ( lbRemoteTask.m_ptr )
-        bdReference<bdCommonAddr>::operator=(&lbRemoteTask, 0);
-#endif
 }
 
 void __cdecl SV_DoTimedStatsForClient(
@@ -1131,313 +1105,14 @@ bool __cdecl SV_MakeClientGlobalLBRow(
 
 void SV_CommitClientLeaderboards()
 {
-#ifdef KISAK_LIVE_STUBS
-    const bdReference<bdCommonAddr> *v1; // eax
-    char *v2; // [esp+0h] [ebp-15F8Ch]
-    char *v3; // [esp+4h] [ebp-15F88h]
-    char *v4; // [esp+8h] [ebp-15F84h]
-    int v5; // [esp+Ch] [ebp-15F80h]
-    bdStatsInfo *n; // [esp+10h] [ebp-15F7Ch]
-    int v7; // [esp+34h] [ebp-15F58h]
-    bdStatsInfo *i; // [esp+38h] [ebp-15F54h]
-    bdReference<bdCommonAddr> v9; // [esp+3Ch] [ebp-15F50h] BYREF
-    signed int m; // [esp+40h] [ebp-15F4Ch]
-    signed int k; // [esp+44h] [ebp-15F48h]
-    bdStats *Stats; // [esp+48h] [ebp-15F44h]
-    int j; // [esp+4Ch] [ebp-15F40h]
-    bool v14; // [esp+53h] [ebp-15F39h]
-    int weeklylbIndex; // [esp+54h] [ebp-15F38h]
-    LeaderBoardRow<10> *row; // [esp+58h] [ebp-15F34h]
-    int lbIndex; // [esp+5Ch] [ebp-15F30h]
-    int monthlylBIndex; // [esp+60h] [ebp-15F2Ch]
-    LeaderBoardRow<10> *monthlyRow; // [esp+64h] [ebp-15F28h]
-    int v20; // [esp+68h] [ebp-15F24h]
-    int clientNum; // [esp+6Ch] [ebp-15F20h]
-    LbType type; // [esp+70h] [ebp-15F1Ch]
-    int integer; // [esp+74h] [ebp-15F18h]
-    char *gameModePrefix; // [esp+78h] [ebp-15F14h]
-    _OWORD v25[5472]; // [esp+7Ch] [ebp-15F10h] BYREF
-    int v26; // [esp+1567Ch] [ebp-910h] BYREF
-    unsigned int v27[577]; // [esp+15684h] [ebp-908h] BYREF
-    signed int v28; // [esp+15F88h] [ebp-4h]
-
-    if ( Com_CanWriteLeaderboards() )
-    {
-        if ( lbRemoteTask.m_ptr
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                        1990,
-                        0,
-                        "%s",
-                        "!lbRemoteTask") )
-        {
-            __debugbreak();
-        }
-        if ( lbRemoteTask.m_ptr )
-        {
-            Com_Printf(0, "Cancelled commmit, commit already in progress.\n");
-        }
-        else
-        {
-            if ( !svs.clients
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                            1996,
-                            0,
-                            "%s",
-                            "svs.clients") )
-            {
-                __debugbreak();
-            }
-            if ( svs.clients )
-            {
-                v7 = 576;
-                for ( i = (bdStatsInfo *)v25; --v7 >= 0; i = (bdStatsInfo *)((char *)i + 152) )
-                {
-                    bdStatsInfo::bdStatsInfo(i);
-                    i->__vftable = (bdStatsInfo_vtbl *)&LeaderBoardRow<10>::`vftable';
-                    i[1].__vftable = 0;
-                    i[1].m_leaderboardID = 0;
-                    LODWORD(i[1].m_entityID) = 0;
-                    HIDWORD(i[1].m_entityID) = 0;
-                    i[1].m_writeType = STAT_WRITE_REPLACE;
-                    *((unsigned int *)&i[1].m_writeType + 1) = 0;
-                    LODWORD(i[1].m_rating) = 0;
-                    HIDWORD(i[1].m_rating) = 0;
-                    LODWORD(i[1].m_rank) = 0;
-                    HIDWORD(i[1].m_rank) = 0;
-                }
-                gameModePrefix = 0;
-                LB_SetGametypeDvar();
-                gameModePrefix = (char *)lbTypeEnum_9[lb_type->current.integer];
-                if ( !gameModePrefix
-                    && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                                2008,
-                                0,
-                                "%s",
-                                "gameModePrefix") )
-                {
-                    __debugbreak();
-                }
-                type = lb_type->current.integer;
-                integer = lb_type->current.integer;
-                if ( integer >= 8 )
-                    integer -= 8;
-                v28 = 0;
-                for ( clientNum = 0; clientNum < com_maxclients->current.integer; ++clientNum )
-                {
-                    if ( svs.clients[clientNum].header.state >= CS_CONNECTED
-                        && svs.clients[clientNum].header.netchan.remoteAddress.type
-                        && svs.clients[clientNum].statsValidated
-                        && svs.clients[clientNum].header.sendAsActive )
-                    {
-                        SV_DWWriteClientStats(&svs.clients[clientNum]);
-                        SV_SetClientStatsForRow(clientNum, gameModePrefix, 0);
-                        v20 = 0;
-                        lbIndex = 0;
-                        v14 = SV_GetTotalMatchesPlayedByGameModeForClient(clientNum, gameModePrefix) >= lbWriteMinRequirementValues_1[0];
-                        if ( v14 )
-                        {
-                            lbIndex = LB_GetLbIndex(type, LB_RESETPERIOD_ALL_TIME, 0, 0);
-                            SV_MakeClientLBRow(
-                                clientNum,
-                                &g_playerStats[clientNum],
-                                integer,
-                                lbIndex,
-                                (LeaderBoardRow<10> *const)&v25[171 * clientNum] + v20,
-                                0);
-                            v4 = (char *)&v25[171 * clientNum] + 152 * v20++;
-                            v27[v28++] = v4;
-                        }
-                        if ( v14 && SV_ArePrestigeLBsEnabledForClient(&svs.clients[clientNum]) )
-                        {
-                            lbIndex = LB_GetLbIndex(type, LB_RESETPERIOD_ALL_TIME, 1, 0);
-                            SV_MakeClientLBRow(
-                                clientNum,
-                                &g_playerStats[clientNum],
-                                integer,
-                                lbIndex,
-                                (LeaderBoardRow<10> *const)&v25[171 * clientNum] + v20,
-                                0);
-                            v3 = (char *)&v25[171 * clientNum] + 152 * v20++;
-                            v27[v28++] = v3;
-                        }
-                        weeklylbIndex = LB_GetLbIndex(type, LB_RESETPERIOD_WEEKLY, 0, 0);
-                        monthlylBIndex = LB_GetLbIndex(type, LB_RESETPERIOD_MONTHLY, 0, 0);
-                        SV_SetClientStatsForRow(clientNum, gameModePrefix, 1);
-                        row = (LeaderBoardRow<10> *)((char *)&v25[171 * clientNum] + 152 * v20++);
-                        monthlyRow = (LeaderBoardRow<10> *)((char *)&v25[171 * clientNum] + 152 * v20++);
-                        SV_MakeClientLBRow(clientNum, &g_playerStats[clientNum], integer, weeklylbIndex, row, 1);
-                        SV_MakeClientLBRow(clientNum, &g_playerStats[clientNum], integer, monthlylBIndex, monthlyRow, 1);
-                        SV_DoTimedStatsForClient(clientNum, gameModePrefix, row, weeklylbIndex, monthlyRow, monthlylBIndex);
-                        if ( SV_GetTotalMatchesPlayedByGameModeForClient(clientNum, gameModePrefix) >= lbWriteMinRequirementValues_1[1] )
-                            v27[v28++] = row;
-                        if ( SV_GetTotalMatchesPlayedByGameModeForClient(clientNum, gameModePrefix) >= lbWriteMinRequirementValues_1[2] )
-                            v27[v28++] = monthlyRow;
-                        SV_SetGlobalLBsForClient(clientNum);
-                        for ( j = 0; j < 4; ++j )
-                        {
-                            SV_MakeClientGlobalLBRow(
-                                clientNum,
-                                &g_playerStats[clientNum],
-                                j,
-                                (LeaderBoardRow<10> *const)&v25[171 * clientNum] + v20);
-                            v2 = (char *)&v25[171 * clientNum] + 152 * v20++;
-                            v27[v28++] = v2;
-                        }
-                    }
-                }
-                if ( v28 )
-                {
-                    Com_DPrintf(22, "DirtyLBnum\tLeaderboardID\tEntityID\n");
-                    for ( k = 0; k < v28; ++k )
-                        Com_DPrintf(22, "%i\t%u\t%llu\n", k, *(unsigned int *)(v27[k] + 4), *(_QWORD *)(v27[k] + 8));
-                    Com_DPrintf(15, "Starting write for %i leaderboards\n", v28);
-                    Stats = dwGetStats(0);
-                    if ( Stats )
-                    {
-                        Com_DPrintf(22, "Writing leaderboards: ");
-                        for ( m = 0; m < v28; ++m )
-                            Com_DPrintf(22, "%u ", *(unsigned int *)(v27[m] + 4));
-                        Com_DPrintf(22, "\n");
-                        dwEnterDeferredCritsec();
-                        v1 = (const bdReference<bdCommonAddr> *)bdStats::writeStats(Stats, (int)&v9, (int)v27, v28);
-                        bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&lbRemoteTask, v1);
-                        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v9);
-                        dwLeaveDeferredCritsec();
-                        if ( lbRemoteTask.m_ptr )
-                        {
-                            if ( bdRemoteTask::getStatus(lbRemoteTask.m_ptr) == BD_PENDING )
-                                TaskManager2_DeferTaskToMainThread(lbRemoteTask.m_ptr, task_writeclientleaderboards, 0);
-                        }
-                    }
-                }
-                v5 = 576;
-                for ( n = (bdStatsInfo *)&v26; --v5 >= 0; bdStatsInfo::~bdStatsInfo(n) )
-                    n = (bdStatsInfo *)((char *)n - 152);
-            }
-        }
-    }
-#endif
 }
 
 void __cdecl SV_SetClientStatsForRow(int clientNum, const char *gameModePrefix, bool delta)
 {
-#ifdef KISAK_LIVE_STUBS
-    int v3; // [esp+0h] [ebp-24h]
-    int TotalMatchesPlayedByGameModeForClient; // [esp+4h] [ebp-20h]
-    int timePlayed; // [esp+10h] [ebp-14h] BYREF
-    int totalScore; // [esp+14h] [ebp-10h] BYREF
-    int statValue; // [esp+18h] [ebp-Ch] BYREF
-    const char *currentStatName; // [esp+1Ch] [ebp-8h]
-    int statId; // [esp+20h] [ebp-4h]
-
-    for ( statId = 0; statId < 17; ++statId )
-    {
-        currentStatName = lbStatStrings[statId];
-        statValue = 0;
-        totalScore = 0;
-        timePlayed = 0;
-        if ( !gameModePrefix || statId == 4 || statId == 5 )
-        {
-            if ( !SV_GetClientDDLStat(clientNum, currentStatName, &statValue) )
-                Com_DPrintf(22, "Warning: unknown mapping %i -> %s, zeroing\n", statId, currentStatName);
-        }
-        else if ( statId )
-        {
-            if ( statId == 3 )
-            {
-                if ( !delta )
-                {
-                    SV_GetIntClientStatByGameMode(clientNum, &totalScore, gameModePrefix, "SCORE");
-                    SV_GetIntClientStatByGameMode(clientNum, &timePlayed, gameModePrefix, "TIME_PLAYED_TOTAL");
-                    if ( timePlayed / 60 > 1 )
-                        v3 = timePlayed / 60;
-                    else
-                        v3 = 1;
-                    timePlayed = v3;
-                    statValue = (int)(float)((float)((float)totalScore * 1000.0) / (float)v3);
-                }
-            }
-            else if ( delta )
-            {
-                if ( !SV_GetIntClientStatMatchDeltaByGameMode(clientNum, &statValue, gameModePrefix, currentStatName) )
-                    Com_DPrintf(22, "Warning: unknown mapping %i -> %s, zeroing\n", statId, currentStatName);
-            }
-            else if ( !SV_GetIntClientStatMatchDeltaByGameMode(clientNum, &statValue, gameModePrefix, currentStatName) )
-            {
-                Com_DPrintf(22, "Warning: unknown mapping %i -> %s, zeroing\n", statId, currentStatName);
-            }
-        }
-        else
-        {
-            if ( delta )
-                TotalMatchesPlayedByGameModeForClient = 1;
-            else
-                TotalMatchesPlayedByGameModeForClient = SV_GetTotalMatchesPlayedByGameModeForClient(clientNum, gameModePrefix);
-            statValue = TotalMatchesPlayedByGameModeForClient;
-        }
-        SV_SetClientLBStat(clientNum, statId, statValue);
-    }
-#endif
 }
 
 void __cdecl SV_ReadClientFileSuccess(TaskRecord *task)
 {
-#ifdef KISAK_LIVE_STUBS
-    client_t *ClientFromFileInfo; // eax
-    dwFileOperationInfo *fileTask; // [esp+0h] [ebp-14h]
-    unsigned __int8 *tempCompressedFileBuffer; // [esp+4h] [ebp-10h]
-    dwFileOperationInfo *fileInfo; // [esp+10h] [ebp-4h]
-
-    if ( task->payload )
-    {
-        fileInfo = (dwFileOperationInfo *)task->payload;
-        if ( fileInfo->isCompressedFile )
-        {
-            LargeLocal tempCompressedFileBuffer_large_local(0x10000); // [esp+8h] [ebp-Ch] BYREF
-
-            //LargeLocal::LargeLocal(&tempCompressedFileBuffer_large_local, 0x10000);
-            tempCompressedFileBuffer = tempCompressedFileBuffer_large_local.GetBuf(); // LargeLocal::GetBuf(&tempCompressedFileBuffer_large_local);
-            fileTask = fileInfo;
-            if ( fileInfo->fileTask.m_bufferSize > 0x10000 )
-            {
-                Com_PrintError(16, "Insufficient space to decompress file %s", fileInfo->fileTask.m_filename);
-                LiveStorage_GetUserFileFailure(task);
-                //LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
-                return;
-            }
-            if ( SV_GetClientFromFileInfo((_QWORD *)task->payload) )
-            {
-                ClientFromFileInfo = SV_GetClientFromFileInfo((uint64*)fileInfo);
-                Com_DPrintf(16, "Decompressing file %s for user %s\n", fileTask->fileTask.m_filename, ClientFromFileInfo->name);
-            }
-            memcpy(
-                tempCompressedFileBuffer,
-                (unsigned __int8 *)fileTask->fileTask.m_buffer,
-                fileTask->fileTask.m_fileData.m_fileSize);
-            if ( !fileTask->fileTask.m_fileData.m_fileSize
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                            2308,
-                            0,
-                            "%s",
-                            "fileTask->m_fileData.m_fileSize") )
-            {
-                __debugbreak();
-            }
-            MSG_DecompressWithZLib(
-                tempCompressedFileBuffer,
-                fileTask->fileTask.m_fileData.m_fileSize,
-                (unsigned __int8 *)fileTask->fileTask.m_buffer,
-                fileTask->fileTask.m_bufferSize);
-            //LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
-        }
-        if ( fileInfo->fileOperationSucessFunction )
-            fileInfo->fileOperationSucessFunction(0, task->payload);
-    }
-#endif
 }
 
 void __cdecl SV_WriteClientFileFailure(TaskRecord *task)
@@ -1466,124 +1141,10 @@ void __cdecl SV_WriteClientFileSuccess(TaskRecord *task)
 
 void __cdecl SV_ReadDWFileDeferred(dwFileOperationInfo *fileInfo)
 {
-#ifdef KISAK_LIVE_STUBS
-    bdReference<bdCommonAddr> v1; // [esp+24h] [ebp-14h] BYREF
-    bdReference<bdCommonAddr> v2; // [esp+28h] [ebp-10h] BYREF
-    dwFileTask *fileTask; // [esp+2Ch] [ebp-Ch]
-    bdRemoteTask *task; // [esp+30h] [ebp-8h]
-    bdStorage *storage; // [esp+34h] [ebp-4h]
-
-    storage = dwGetStorage(0);
-    if ( storage && fileInfo )
-    {
-        fileTask = &fileInfo->fileTask;
-        fileInfo->fileTask.m_buffer = fileInfo->fileBuffer;
-        fileTask->m_bufferSize = fileInfo->bufferSize;
-        fileTask->m_fileData.m_fileData = fileTask->m_buffer;
-        fileTask->m_fileData.m_fileSize = fileTask->m_bufferSize;
-        task = 0;
-        dwEnterDeferredCritsec();
-        if ( LODWORD(fileInfo->ownerID) || HIDWORD(fileInfo->ownerID) )
-        {
-            task = *(bdRemoteTask **)bdStorage::getFile(
-                                                                 storage,
-                                                                 (int)&v2,
-                                                                 (unsigned __int8 *)fileInfo->fileTask.m_filename,
-                                                                 &fileInfo->fileTask.m_fileData,
-                                                                 fileInfo->ownerID);
-            bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
-        }
-        else
-        {
-            task = *(bdRemoteTask **)bdStorage::getPublisherFile(
-                                                                 storage,
-                                                                 (int)&v1,
-                                                                 (unsigned __int8 *)fileInfo->fileTask.m_filename,
-                                                                 &fileInfo->fileTask.m_fileData);
-            bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v1);
-        }
-        dwLeaveDeferredCritsec();
-        if ( task )
-        {
-            if ( bdRemoteTask::getStatus(task) == BD_PENDING )
-                TaskManager2_DeferTaskToMainThread(task, task_svreadclientfile, fileInfo);
-        }
-    }
-#endif
 }
 
 void __cdecl SV_WriteClientFileDeferred(client_t *client, dwFileOperationInfo *fileInfo)
 {
-#ifdef KISAK_LIVE_STUBS
-    bdReference<bdCommonAddr> v2; // [esp+10h] [ebp-20h] BYREF
-    unsigned __int8 (*tempCompressedFileBuffer)[65536]; // [esp+14h] [ebp-1Ch]
-    LargeLocal tempCompressedFileBuffer_large_local; // [esp+18h] [ebp-18h] BYREF
-    bdRemoteTask *task; // [esp+20h] [ebp-10h]
-    int fileSize; // [esp+24h] [ebp-Ch]
-    unsigned __int8 *fileBuffer; // [esp+28h] [ebp-8h]
-    bdStorage *storage; // [esp+2Ch] [ebp-4h]
-
-    storage = dwGetStorage(0);
-    if ( storage && client && fileInfo )
-    {
-        fileSize = fileInfo->bufferSize;
-        fileBuffer = fileInfo->fileBuffer;
-        if ( fileInfo->isCompressedFile )
-        {
-            LargeLocal::LargeLocal(&tempCompressedFileBuffer_large_local, 0x10000);
-            tempCompressedFileBuffer = (unsigned __int8 (*)[65536])LargeLocal::GetBuf(&tempCompressedFileBuffer_large_local);
-            if ( fileInfo->bufferSize > 0x10000u
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                            2408,
-                            0,
-                            "%s",
-                            "sizeof( tempCompressedFileBuffer ) >= fileInfo->bufferSize") )
-            {
-                __debugbreak();
-            }
-            fileBuffer = (unsigned __int8 *)tempCompressedFileBuffer;
-            fileSize = MSG_CompressWithZLib(
-                                     fileInfo->fileBuffer,
-                                     fileInfo->bufferSize,
-                                     (unsigned __int8 *)tempCompressedFileBuffer,
-                                     0x10000u);
-            if ( fileSize <= 0
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                            2413,
-                            0,
-                            "%s",
-                            "fileSize > 0") )
-            {
-                __debugbreak();
-            }
-            if ( fileSize <= 0 || fileSize > fileInfo->bufferSize )
-            {
-                LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
-                return;
-            }
-            LargeLocal::~LargeLocal(&tempCompressedFileBuffer_large_local);
-        }
-        dwEnterDeferredCritsec();
-        task = *(bdRemoteTask **)bdStorage::uploadFile(
-                                                             storage,
-                                                             (int)&v2,
-                                                             (unsigned __int8 *)fileInfo->fileTask.m_filename,
-                                                             fileBuffer,
-                                                             fileSize,
-                                                             0,
-                                                             fileInfo->ownerID,
-                                                             &fileInfo->fileTask.m_fileInfo);
-        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
-        dwLeaveDeferredCritsec();
-        if ( task )
-        {
-            if ( bdRemoteTask::getStatus(task) == BD_PENDING )
-                TaskManager2_DeferTaskToMainThread(task, task_svwriteclientfile, fileInfo);
-        }
-    }
-#endif
 }
 
 void __cdecl SV_DWReadClientStats(client_t *client)
@@ -1840,80 +1401,7 @@ void __cdecl SV_DWWriteClientStats(client_t *client)
     dwFileOperationInfo *fileInfo; // [esp+18h] [ebp-8h]
     int clientStableXP; // [esp+1Ch] [ebp-4h] BYREF
 
-#ifdef KISAK_LIVE
-    if ( Com_CanWriteLeaderboards(v1) )
-    {
-        if ( client && client->dw_userID && !xblive_basictraining->current.enabled )
-        {
-            if ( LODWORD(client->statPacketsReceived) == -1 && HIDWORD(client->statPacketsReceived) == 7 )
-            {
-                Com_DPrintf(15, "Attempting to write stats for client %s\n", client->name);
-                fileInfo = SV_GetFreeFileOp();
-                if ( fileInfo )
-                {
-                    fileInfo->isUserFile = 1;
-                    fileInfo->isCompressedFile = 1;
-                    fileInfo->fileTask.m_filename = (char*)"globalstatsCompressed";
-                    fileInfo->fileBuffer = client->globalStats;
-                    fileInfo->bufferSize = 40168;
-                    fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))SV_DWWriteClientGlobalStatsSuccess;
-                    fileInfo->ownerID = client->dw_userID;
-                    checksum = (int *)client->globalStats;
-                    *(unsigned int *)client->globalStats = LiveStats_ChecksumGamerStats(&client->globalStats[4], 40164);
-                    clientnum = SV_GetClientNumForBdOnlineUserID(client->dw_userID);
-                    clientxp = 0;
-                    clientStableXP = 0;
-                    if ( SV_GetClientDDLStat(clientnum, "RANKXP", &clientxp)
-                        && SV_GetStatFromBlob((char *)client->globalStatsStable, "RANKXP", &clientStableXP) )
-                    {
-                        if ( clientxp < clientStableXP )
-                        {
-                            v2 = va(
-                                         "Client %s has stableXP of %i, but new XP of %i, aborting write!!\n",
-                                         client->name,
-                                         clientStableXP,
-                                         clientxp);
-                            Com_DPrintf(15, v2);
-                            v3 = va(
-                                         "Client %s has stableXP of %i, but new XP of %i, aborting write!!\n",
-                                         client->name,
-                                         clientStableXP,
-                                         clientxp);
-                            SV_SysLog_LogMessage(0, v3);
-                        }
-                        else
-                        {
-                            Com_Printf(0, "Client we're writing stats for has xp of %i\n", clientxp);
-                            SV_WriteClientFileDeferred(client, fileInfo);
-                        }
-                    }
-                    else
-                    {
-                        Com_PrintError(0, "Couldn't get xp stats for client %s, aborting write!\n", client->name);
-                    }
-                }
-                else
-                {
-                    Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
-                }
-            }
-            else
-            {
-                Com_PrintError(0, "Aborting write for %s, don't have stats!\n", client->name);
-            }
-        }
-    }
-    else if ( client )
-    {
-        Com_DPrintf(15, "Not writing stats for %s, don't have permission\n", client->name);
-    }
-    else
-    {
-        Com_DPrintf(15, "Not writing stats for %s, don't have permission\n", "unknown");
-    }
-#else
     Com_DPrintf(15, "[KISAK] Lol this got triggered.");
-#endif
 }
 
 void __cdecl SV_DWWriteClientGlobalStatsSuccess(int controllerIndex, unsigned __int8 **data)
@@ -1943,65 +1431,6 @@ void __cdecl LiveStorage_SendStatsBufferToClient(
                 blobtype_t blobtype,
                 bool sendOK)
 {
-#ifdef KISAK_LIVE_STUBS
-    char *v5; // eax
-    const char *v6; // eax
-    int v7; // [esp+14h] [ebp-9D04h]
-    _WORD payload[20092]; // [esp+18h] [ebp-9D00h] BYREF
-    unsigned __int8 *to; // [esp+9D14h] [ebp-4h]
-
-    memset(payload, 0, 40178);
-    to = (unsigned __int8 *)&payload[5];
-    if ( blobtype )
-    {
-        if ( blobtype != BLOB_TYPE_GLOBAL )
-        {
-            if ( !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                            1299,
-                            0,
-                            "Invalid blob type!\n") )
-                __debugbreak();
-            return;
-        }
-        LOBYTE(payload[0]) = 7;
-    }
-    else
-    {
-        LOBYTE(payload[0]) = 8;
-    }
-    HIBYTE(payload[0]) = sendOK ? 5 : 0;
-    v7 = MSG_CompressWithZLib(buffer, 0x9CE8u, to, 0x9CE8u);
-    if ( v7 <= 0 )
-    {
-        Com_DPrintf(15, "Couldn't compress stats! :(\n");
-        SV_SysLog_LogMessage(0, "Couldn't compress stats! :(\n");
-    }
-    else
-    {
-        *(unsigned int *)&payload[1] = v7;
-        *(unsigned int *)&payload[3] = Com_BlockChecksumKey32(to, v7, 0);
-        if ( (unsigned int)(*(unsigned int *)&payload[1] + 10) > 0x4000 )
-        {
-            v5 = va(
-                         "Attempted to send blob of size %u to %llu, but max size is %u\n",
-                         *(unsigned int *)&payload[1] + 10,
-                         uid,
-                         0x4000);
-            Com_DPrintf(15, v5);
-            v6 = va(
-                         "Attempted to send blob of size %u to %llu, but max size is %u\n",
-                         *(unsigned int *)&payload[1] + 10,
-                         uid,
-                         0x4000);
-            SV_SysLog_LogMessage(0, v6);
-        }
-        else
-        {
-            dwMessaging_SendDeferredInstantMessage(uid, (unsigned __int8 *)payload, *(unsigned int *)&payload[1] + 10);
-        }
-    }
-#endif
 }
 
 char __cdecl SV_CACValidate_SetIntStat(unsigned __int8 *buffer, const char *stat, unsigned int value)
@@ -2513,21 +1942,6 @@ void __cdecl SV_CACValidateSendClientMsgFailure()
 
 void __cdecl SV_CACValidateSendClientMsg(unsigned __int64 uid, unsigned int msg)
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *ptask; // [esp+0h] [ebp-Ch]
-    TaskRecord *childTask; // [esp+4h] [ebp-8h]
-    unsigned __int8 ackBuf[1]; // [esp+Bh] [ebp-1h] BYREF
-
-    Com_DPrintf(15, "CACValidate: Sending opcode %u to client %llu\n", msg, uid);
-    ackBuf[0] = msg;
-    childTask = dwMessaging_SendInstantMessage(uid, (char *)ackBuf, 1u);
-    if ( childTask )
-    {
-        ptask = TaskManager2_CreateTask(task_SVCACValidateSendClientMsg, 0, childTask, 0);
-        if ( ptask )
-            TaskManager2_StartTask(ptask);
-    }
-#endif
 }
 
 void __cdecl SV_CACValidateWriteCAC(unsigned __int64 client, unsigned __int8 *cacblob, unsigned int cacsize)
@@ -2557,18 +1971,6 @@ void __cdecl SV_CACValidateWriteCAC(unsigned __int64 client, unsigned __int8 *ca
 
 void __cdecl SV_CACValidateWriteCACSuccess(int controllerIndex, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    Com_DPrintf(15, "write cac success\n");
-    if ( *operator++(&g_cacvalidateState) == CAC_WRITETWO )
-        g_cacvalidateState = CAC_IDLE;
-    LiveStorage_SendStatsBufferToClient(
-        *((_QWORD *)data + 34),
-        *((unsigned __int8 **)data + 62),
-        40168,
-        BLOB_TYPE_CAC,
-        g_cacvalidateState == CAC_IDLE);
-    SV_ResetFileOp(data);
-#endif
 }
 
 void __cdecl SV_CACValidateWriteCACFailure(int controllerIndex, _QWORD *data)
@@ -2581,62 +1983,10 @@ void __cdecl SV_CACValidateWriteCACFailure(int controllerIndex, _QWORD *data)
 
 void __cdecl SV_CACValidateWriteGlobal(unsigned __int64 client, unsigned __int8 *globalblob, unsigned int globalsize)
 {
-#ifdef KISAK_LIVE_STUBS
-    dwFileOperationInfo *fileInfo; // [esp+4h] [ebp-4h]
-
-    Com_DPrintf(15, "CACValidate: Attempting to write globalblob for client %llu with size %i\n", client, globalsize);
-    fileInfo = SV_GetFreeFileOp();
-    if ( fileInfo )
-    {
-        if ( !globalsize )
-        {
-            LiveStorage_ResetStats(globalblob);
-            globalsize = 40168;
-        }
-        if ( (int)g_newCACBlobSize <= 0
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                        3170,
-                        0,
-                        "%s",
-                        "g_newCACBlobSize > 0") )
-        {
-            __debugbreak();
-        }
-        if ( (int)g_newCACBlobSize > 0 )
-            LiveContracts_SVMergeBuffers(g_newCacBlob, globalblob);
-        fileInfo->isUserFile = 1;
-        fileInfo->isCompressedFile = 1;
-        fileInfo->fileTask.m_filename = "globalstatsCompressed";
-        fileInfo->fileBuffer = globalblob;
-        fileInfo->bufferSize = globalsize;
-        fileInfo->ownerID = client;
-        fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))SV_CACValidateWriteGlobalSuccess;
-        fileInfo->fileOperationFailureFunction = (void (__cdecl *)(const int, void *))SV_CACValidateWriteGlobalFailure;
-        *(unsigned int *)globalblob = LiveStats_ChecksumGamerStats(globalblob + 4, 40164);
-        LiveStorage_WriteDWUserFile(0, fileInfo, client);
-    }
-    else
-    {
-        Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
-    }
-#endif
 }
 
 void __cdecl SV_CACValidateWriteGlobalSuccess(int controllerIndex, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    Com_DPrintf(15, "write global success\n");
-    if ( *operator++(&g_cacvalidateState) == CAC_WRITETWO )
-        g_cacvalidateState = CAC_IDLE;
-    LiveStorage_SendStatsBufferToClient(
-        *((_QWORD *)data + 34),
-        *((unsigned __int8 **)data + 62),
-        40168,
-        BLOB_TYPE_GLOBAL,
-        g_cacvalidateState == CAC_IDLE);
-    SV_ResetFileOp(data);
-#endif
 }
 
 void __cdecl SV_CACValidateWriteGlobalFailure(int controllerIndex, _QWORD *data)
@@ -2689,200 +2039,20 @@ TaskRecord *__cdecl SV_CACValidateReadCAC(unsigned __int64 client, unsigned __in
 
 void __cdecl SV_CACValidateReadCACSuccess(int controllerIndex, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    Com_DPrintf(15, "cac read success\n");
-    if ( !*((unsigned int *)data + 9)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                    3201,
-                    0,
-                    "%s",
-                    "fileTask->m_bufferSize > 0") )
-    {
-        __debugbreak();
-    }
-    g_oldCACBlobSize = *((unsigned int *)data + 9);
-    if ( *operator++(&g_cacvalidateState) == CAC_FETCHTWO )
-    {
-        if ( SV_ValidateClientCAC(
-                     g_oldCACBlob,
-                     *((unsigned int *)data + 9),
-                     g_newCacBlob,
-                     g_newCACBlobSize,
-                     g_cac_globalBlob,
-                     g_globalBlobSize,
-                     *((_QWORD *)data + 34)) )
-        {
-            SV_CACValidateWriteCAC(*((_QWORD *)data + 34), g_newCacBlob, *((unsigned int *)data + 9));
-            SV_CACValidateWriteGlobal(*((_QWORD *)data + 34), g_cac_globalBlob, g_globalBlobSize);
-            operator++(&g_cacvalidateState);
-        }
-        else
-        {
-            SV_CACValidateSendClientMsg(*((_QWORD *)data + 34), 6u);
-            g_cacvalidateState = CAC_IDLE;
-        }
-    }
-    SV_ResetFileOp(data);
-#endif
 }
 
 int __cdecl SV_CACValidateReadCACFailure(int controllerIndex, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    Com_DPrintf(15, "cac read failure\n");
-    if ( !*((unsigned int *)data + 9)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                    3226,
-                    0,
-                    "%s",
-                    "fileTask->m_bufferSize > 0") )
-    {
-        __debugbreak();
-    }
-    g_oldCACBlobSize = 0;
-    if ( *operator++(&g_cacvalidateState) == CAC_FETCHTWO )
-    {
-        if ( SV_ValidateClientCAC(
-                     g_oldCACBlob,
-                     g_oldCACBlobSize,
-                     g_newCacBlob,
-                     g_newCACBlobSize,
-                     g_cac_globalBlob,
-                     g_globalBlobSize,
-                     *((_QWORD *)data + 34)) )
-        {
-            SV_CACValidateWriteCAC(*((_QWORD *)data + 34), g_newCacBlob, *((unsigned int *)data + 9));
-            SV_CACValidateWriteGlobal(*((_QWORD *)data + 34), g_cac_globalBlob, g_globalBlobSize);
-            operator++(&g_cacvalidateState);
-        }
-        else
-        {
-            SV_CACValidateSendClientMsg(*((_QWORD *)data + 34), 6u);
-            g_cacvalidateState = CAC_IDLE;
-        }
-    }
-    SV_ResetFileOp(data);
-    return 1;
-}
-
-TaskRecord *__cdecl SV_CACValidateReadGlobal(
-                unsigned __int64 client,
-                unsigned __int8 *globalblob,
-                unsigned int globalblobsize)
-{
-    dwFileOperationInfo *fileInfo; // [esp+0h] [ebp-8h]
-    TaskRecord *retval; // [esp+4h] [ebp-4h]
-
-    retval = 0;
-    if ( g_cacvalidateState
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                    3343,
-                    0,
-                    "%s",
-                    "CAC_IDLE == g_cacvalidateState") )
-    {
-        __debugbreak();
-    }
-    Com_DPrintf(15, "CACValidate: Attempting to read cacblob for client %llu\n", client);
-    fileInfo = SV_GetFreeFileOp();
-    if ( fileInfo )
-    {
-        fileInfo->isUserFile = 1;
-        fileInfo->isCompressedFile = 1;
-        fileInfo->fileTask.m_filename = "globalstatsCompressed";
-        fileInfo->fileBuffer = globalblob;
-        fileInfo->bufferSize = globalblobsize;
-        fileInfo->ownerID = client;
-        fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))SV_CACValidateReadGlobalSuccess;
-        fileInfo->fileNotFoundFunction = (taskCompleteResults (__cdecl *)(const int, void *))SV_CACValidateReadGlobalFailure;
-        retval = LiveStorage_ReadDWFileByUserID(0, fileInfo, client);
-    }
-    else
-    {
-        Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
-    }
-    if ( !retval )
-        Com_Printf(15, "Couldn't read global immediate for %llu\n", client);
-    return retval;
-#else
     return 0;
-#endif
 }
 
 void __cdecl SV_CACValidateReadGlobalSuccess(int controllerIndex, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    Com_DPrintf(15, "global read success\n");
-    if ( !*((unsigned int *)data + 9)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                    3294,
-                    0,
-                    "%s",
-                    "fileTask->m_bufferSize > 0") )
-    {
-        __debugbreak();
-    }
-    g_globalBlobSize = *((unsigned int *)data + 9);
-    if ( *operator++(&g_cacvalidateState) == CAC_FETCHTWO )
-    {
-        if ( SV_ValidateClientCAC(
-                     g_oldCACBlob,
-                     g_oldCACBlobSize,
-                     g_newCacBlob,
-                     g_newCACBlobSize,
-                     *((unsigned __int8 **)data + 54),
-                     *((unsigned int *)data + 9),
-                     *((_QWORD *)data + 34)) )
-        {
-            SV_CACValidateWriteCAC(*((_QWORD *)data + 34), g_newCacBlob, g_newCACBlobSize);
-            SV_CACValidateWriteGlobal(*((_QWORD *)data + 34), g_cac_globalBlob, g_globalBlobSize);
-            operator++(&g_cacvalidateState);
-        }
-        else
-        {
-            SV_CACValidateSendClientMsg(*((_QWORD *)data + 34), 6u);
-            g_cacvalidateState = CAC_IDLE;
-        }
-    }
-    SV_ResetFileOp(data);
-#endif
 }
 
 int __cdecl SV_CACValidateReadGlobalFailure(int controllerIndex, _QWORD *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    Com_DPrintf(15, "global read failure\n");
-    g_globalBlobSize = 0;
-    if ( *operator++(&g_cacvalidateState) == CAC_FETCHTWO )
-    {
-        if ( SV_ValidateClientCAC(
-                     g_oldCACBlob,
-                     g_oldCACBlobSize,
-                     g_newCacBlob,
-                     g_newCACBlobSize,
-                     g_cac_globalBlob,
-                     g_globalBlobSize,
-                     data[34]) )
-        {
-            SV_CACValidateWriteCAC(data[34], g_newCacBlob, g_newCACBlobSize);
-            SV_CACValidateWriteGlobal(data[34], g_cac_globalBlob, g_globalBlobSize);
-            operator++(&g_cacvalidateState);
-        }
-        else
-        {
-            SV_CACValidateSendClientMsg(data[34], 6u);
-            g_cacvalidateState = CAC_IDLE;
-        }
-    }
-    SV_ResetFileOp(data);
     return 1;
-#else
-    return 1;
-#endif
 }
 
 void __cdecl SV_CACValidateHandleRequest(
@@ -2890,65 +2060,6 @@ void __cdecl SV_CACValidateHandleRequest(
                 unsigned __int8 *compressedcac,
                 unsigned int cacsize)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned intv3; // eax
-    bool ok; // [esp+3h] [ebp-1h]
-
-    if ( (!compressedcac || !cacsize || !clientID)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_win.cpp",
-                    3385,
-                    0,
-                    "%s",
-                    "compressedcac && cacsize && clientID") )
-    {
-        __debugbreak();
-    }
-    if ( (_S1_13 & 1) == 0 )
-    {
-        _S1_13 |= 1u;
-        lastrequest = Sys_Milliseconds() - 1501;
-    }
-    ok = 0;
-    if ( g_cacvalidateState == CAC_IDLE )
-    {
-        if ( (int)(Sys_Milliseconds() - lastrequest) <= 1500 )
-        {
-            v3 = Sys_Milliseconds();
-            Com_DPrintf(15, "Rejecting cac, it's only been %ims since last validate\n", v3 - lastrequest);
-        }
-        else
-        {
-            lastrequest = Sys_Milliseconds();
-            g_globalBlobSize = 0;
-            g_oldCACBlobSize = 0;
-            g_newCACBlobSize = MSG_DecompressWithZLib(compressedcac, cacsize, g_newCacBlob, 0x9CE8u);
-            if ( (int)g_newCACBlobSize <= 0 )
-            {
-                Com_PrintWarning(0, "CACValidate: Couldn't decompress stats blob from %llu\n", clientID);
-            }
-            else
-            {
-                Com_DPrintf(15, "CACValidate: stats decompressed to %i bytes\n", g_newCACBlobSize);
-                if ( SV_CACValidateReadCAC(clientID, g_oldCACBlob, 0x9CE8u)
-                    && SV_CACValidateReadGlobal(clientID, g_cac_globalBlob, 0x9CE8u) )
-                {
-                    operator++(&g_cacvalidateState);
-                    ok = 1;
-                }
-                else
-                {
-                    Com_DPrintf(15, "Couldn't read stats immediate!\n");
-                }
-            }
-        }
-    }
-    if ( !ok )
-    {
-        Com_DPrintf(15, "immediate NACK\n");
-        SV_CACValidateSendClientMsg(clientID, 4u);
-    }
-#endif
 }
 
 void __cdecl Live_OnNewStatsFromServer(unsigned __int8 *compressedblob, unsigned int blobsize, blobtype_t blobtype)
@@ -3131,93 +2242,20 @@ bool __cdecl SV_ShouldMapRotate()
 
 void __cdecl SV_FetchWADDeferred()
 {
-#ifdef KISAK_LIVE
-    bool v0; // [esp+0h] [ebp-4h]
-
-    SV_SetPlaylistFetchedTime();
-    v0 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.integer;
-    if ( !v0 && Dvar_GetBool("playlist_enabled") && !LiveStorage_FetchingOnlineWAD() )
-    {
-        dwEnterDeferredCritsec();
-        LiveStorage_ForceWADFetch();
-        dwLeaveDeferredCritsec();
-    }
-#endif
 }
 
 TaskRecord *__cdecl LiveStorage_ReadPlayerGlobalBlob()
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *nestedTask; // [esp+0h] [ebp-10h]
-    TaskRecord *task; // [esp+4h] [ebp-Ch]
-    dwFileOperationInfo *fileInfo; // [esp+Ch] [ebp-4h]
-
-    if ( TaskManager2_TaskIsInProgressForController(task_FetchGlobalBlob, 0) )
-        return 0;
-    fileInfo = SV_GetFreeFileOp();
-    if ( fileInfo )
-    {
-        fileInfo->retryInfo.lastAttemptTime = 0;
-        fileInfo->retryInfo.lastAttemptInterval = 0;
-        fileInfo->retryInfo.retryCount = 0;
-        task = 0;
-        LiveStats_GetRootDDLState();
-        fileInfo->isUserFile = 1;
-        fileInfo->isCompressedFile = 1;
-        fileInfo->fileTask.m_filename = "globalstatsCompressed";
-        fileInfo->fileBuffer = s_tempGlobalStatsBuffer;
-        fileInfo->bufferSize = 40168;
-        fileInfo->fileTask.m_optional = 1;
-        fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))LiveStorage_GetGlobalBlobSuccess;
-        fileInfo->fileNotFoundFunction = (taskCompleteResults (__cdecl *)(const int, void *))LiveStorage_GetGlobalBlobFileNotFound;
-        fileInfo->menuDef = "popup_fetchstats";
-        nestedTask = LiveStorage_ReadDWFile(0, fileInfo);
-        if ( nestedTask )
-        {
-            task = LiveStorage_SetupNestedTask(task_FetchGlobalBlob, 0, nestedTask, fileInfo);
-            if ( task )
-                LiveStorage_BeginStatsFetch();
-        }
-        return task;
-    }
-    else
-    {
-        Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
-        return 0;
-    }
-#else
     return NULL;
-#endif
 }
 
 void __cdecl LiveStorage_GetGlobalBlobSuccess(int controllerIndex, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    persistentStats *StatsBuffer; // eax
-    unsigned int StatsBufferSize; // [esp-4h] [ebp-4h]
-
-    LiveStorage_FinishStatsFetch();
-    StatsBufferSize = LiveStorage_GetStatsBufferSize();
-    StatsBuffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_GLOBAL, 1);
-    memcpy(StatsBuffer->statsBuffer, s_tempGlobalStatsBuffer, StatsBufferSize);
-    LiveStorage_ReadPlayerStats(0, 0, 0);
-    LiveStats_ValidateGlobalWithDDL(controllerIndex);
-    SV_ResetFileOp(data);
-    CL_GetXP_f();
-    LiveStats_MakeStableGlobalStatsBuffer(controllerIndex);
-#endif
 }
 
 int __cdecl LiveStorage_GetGlobalBlobFileNotFound(int controlleridx, void *data)
 {
-#ifdef KISAK_LIVE_STUBS
-    LiveStorage_ReadPlayerStats(0, 0, 0);
-    LiveStorage_FinishStatsFetch();
-    SV_ResetFileOp(data);
     return 1;
-#else
-    return 1;
-#endif
 }
 
 bool __cdecl LiveStorage_AreWeFetchingStats()
@@ -3277,70 +2315,12 @@ void __cdecl LiveStorage_SaveRecentServersComplete(int controllerindex, void *da
 
 TaskRecord *__cdecl LiveStorage_SaveRecentServers(unsigned __int8 *buffer, int buffSize)
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *nestedTask; // [esp+0h] [ebp-10h]
-    dwFileOperationInfo *fileInfo; // [esp+Ch] [ebp-4h]
-
-    if ( TaskManager2_TaskIsInProgressForController(task_saveRecentServers, 0) )
-        return 0;
-    fileInfo = SV_GetFreeFileOp();
-    if ( fileInfo )
-    {
-        fileInfo->retryInfo.lastAttemptTime = 0;
-        fileInfo->retryInfo.lastAttemptInterval = 0;
-        fileInfo->retryInfo.retryCount = 0;
-        fileInfo->isUserFile = 1;
-        fileInfo->isCompressedFile = 0;
-        fileInfo->fileTask.m_filename = "recentservers.dat";
-        fileInfo->fileBuffer = buffer;
-        fileInfo->bufferSize = buffSize;
-        fileInfo->fileTask.m_optional = 1;
-        fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))LiveStorage_SaveRecentServersComplete;
-        nestedTask = LiveStorage_WriteDWUserFile(0, fileInfo, 0);
-        return LiveStorage_SetupNestedTask(task_saveRecentServers, 0, nestedTask, fileInfo);
-    }
-    else
-    {
-        Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
-        return 0;
-    }
-#else
     return 0;
-#endif
 }
 
 TaskRecord *__cdecl LiveStorage_ReadRecentServers(unsigned __int8 *buf, int bufsize)
 {
-#ifdef KISAK_LIVE_STUBS
-    TaskRecord *nestedTask; // [esp+0h] [ebp-10h]
-    dwFileOperationInfo *fileInfo; // [esp+Ch] [ebp-4h]
-
-    if ( TaskManager2_TaskIsInProgressForController(task_readRecentServers, 0) )
-        return 0;
-    fileInfo = SV_GetFreeFileOp();
-    if ( fileInfo )
-    {
-        fileInfo->retryInfo.lastAttemptTime = 0;
-        fileInfo->retryInfo.lastAttemptInterval = 0;
-        fileInfo->retryInfo.retryCount = 0;
-        fileInfo->isUserFile = 1;
-        fileInfo->isCompressedFile = 0;
-        fileInfo->fileTask.m_filename = "recentservers.dat";
-        fileInfo->fileBuffer = buf;
-        fileInfo->bufferSize = bufsize;
-        fileInfo->fileTask.m_optional = 1;
-        fileInfo->fileOperationSucessFunction = (void (__cdecl *)(const int, void *))LiveStorage_ReadRecentServersSuccess;
-        nestedTask = LiveStorage_ReadDWFile(0, fileInfo);
-        return LiveStorage_SetupNestedTask(task_readRecentServers, 0, nestedTask, fileInfo);
-    }
-    else
-    {
-        Com_DPrintf(15, "Warning: ran out of client fileops. This is bad. Ask Ewan.\n");
-        return 0;
-    }
-#else
     return 0;
-#endif
 }
 
 void __cdecl LiveStorage_ReadRecentServersSuccess(int controllerIndex, void *data)

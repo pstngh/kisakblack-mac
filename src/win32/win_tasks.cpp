@@ -69,9 +69,6 @@ overlappedTask *__cdecl TaskManager_GetOpenTaskSlot(overlappedTask *overlappedTa
 
 void __cdecl TaskManager_ClearTask(overlappedTask *task)
 {
-#ifdef KISAK_LIVE
-    dwClearTask();
-#endif
     if ( task )
     {
         task->overlappedIO.m_ptr = 0;

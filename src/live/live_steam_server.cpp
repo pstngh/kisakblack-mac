@@ -79,22 +79,6 @@ void LiveSteamServer::RunFrame()
 
 void LiveSteamServer::OnSteamServersConnected(SteamServersConnected_t *pLogonSuccess)
 {
-#ifdef KISAK_LIVE_STUBS
-    bdAddr *SecurityKey; // eax
-    bdAddr *Address; // eax
-    bdAddr *v4; // eax
-    bdReference<bdCommonAddr> localAddr; // [esp+1Ch] [ebp-8h] BYREF
-    unsigned int n; // [esp+20h] [ebp-4h] BYREF
-
-    Com_Printf(23, "STEAM: SteamServer connected to Steam successfully\n");
-    dwGetLocalCommonAddr(&localAddr);
-    SecurityKey = (bdAddr *)bdGameInfo::getSecurityKey((bdGameInfo *)localAddr.m_ptr);
-    Address = bdAddr::getAddress(SecurityKey);
-    bdInetAddr::serialize(&Address->m_address, (unsigned __int8 *)&this->serverIP, 4u, 0, &n);
-    v4 = (bdAddr *)bdGameInfo::getSecurityKey((bdGameInfo *)localAddr.m_ptr);
-    bdAddr::getPort(v4);
-    bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&localAddr);
-#endif
 }
 
 void LiveSteamServer::OnSteamServersDisconnected(SteamServersDisconnected_t *pLoggedOff)

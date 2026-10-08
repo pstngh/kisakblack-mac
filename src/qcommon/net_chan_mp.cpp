@@ -779,11 +779,7 @@ void __cdecl NET_SetNetAdrLoopbackIP(netadr_t *src)
     src->ip[1] = 0;
     src->ip[2] = 0;
     src->ip[3] = 1;
-#ifdef KISAK_LIVE
-    src->addrHandleIndex = dwGetLoopbackIndex();
-#else
     src->addrHandleIndex = -1;
-#endif
     src->type = NA_LOOPBACK;
     src->port = 0;
 }

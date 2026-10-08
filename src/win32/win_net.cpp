@@ -652,71 +652,7 @@ void __cdecl NET_OpenIP()
 
 int __cdecl dwPlatformInit(bdNetStartParams *params)
 {
-#ifdef KISAK_LIVE
-    char addrString[16]; // [esp+40h] [ebp-134h] BYREF
-    bdInetAddr firstAddr; // [esp+50h] [ebp-124h] BYREF
-    unsigned int v4; // [esp+54h] [ebp-120h]
-    bdInetAddr forceAddr; // [esp+58h] [ebp-11Ch] BYREF
-    char hostname[260]; // [esp+5Ch] [ebp-118h] BYREF
-    hostent *hostInfo; // [esp+164h] [ebp-10h]
-    bdInetAddr bindAddr; // [esp+168h] [ebp-Ch] BYREF
-    int n; // [esp+16Ch] [ebp-8h]
-    char *p; // [esp+170h] [ebp-4h]
-
-    if ( gethostname(hostname, 256) == -1 )
-        return -1;
-    hostInfo = gethostbyname(hostname);
-    if ( !hostInfo )
-        return -1;
-    Com_Printf(16, "Hostname: %s\n", hostInfo->h_name);
-    n = 0;
-    while ( 1 )
-    {
-        p = hostInfo->h_aliases[n++];
-        if ( !p )
-            break;
-        Com_Printf(16, "Alias: %s\n", p);
-    }
-    if ( hostInfo->h_addrtype != 2 )
-        return -1;
-    //bdInetAddr::bdInetAddr(&bindAddr);
-    if ( ip && I_strcmp(ip->current.string, "localhost") )
-    {
-        params->m_useAnyIP = 0;
-        //bdInetAddr::bdInetAddr(&forceAddr, (char *)ip->current.integer);
-        bindAddr = forceAddr;
-        //bdInetAddr::~bdInetAddr(&forceAddr);
-    }
-    if ( port && port->current.integer )
-        params->m_gamePort = port->current.unsignedInt;
-    //if ( !bdInetAddr::isValid(&bindAddr) )
-    if ( !bindAddr.isValid() )
-    {
-        v4 = **(unsigned int **)hostInfo->h_addr_list;
-        //bdInetAddr::bdInetAddr(&firstAddr, v4);
-        bindAddr = firstAddr;
-        //bdInetAddr::~bdInetAddr(&firstAddr);
-    }
-
-    //if ( !bdInetAddr::isValid(&bindAddr)
-    //    && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\win32\\win_net.cpp", 1167, 0, "%s", "bindAddr.isValid()") )
-    //{
-    //    __debugbreak();
-    //}
-    
-    //if ( bdInetAddr::isValid(&bindAddr) )
-    if ( bindAddr.isValid() )
-    {
-        memset(addrString, 0, sizeof(addrString));
-        bdInetAddr::toString(&bindAddr, addrString, 0x10u);
-        Com_Printf(0, "Binding to %s:%u\n", addrString, params->m_gamePort);
-        bdArray<bdInetAddr>::pushBack(&params->m_localAddresses, &bindAddr);
-    }
-    //bdInetAddr::~bdInetAddr(&bindAddr);
     return 0;
-#else
-    return 0;
-#endif
 }
 
 void __cdecl NET_SocketPool_Init()

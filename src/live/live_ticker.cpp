@@ -44,28 +44,6 @@ char *__cdecl LiveTicker_GetStreamNameTextInternal(streamName_t streamName)
 
 void __cdecl LiveTicker_DumpTickerInternal()
 {
-#ifdef KISAK_LIVE_STUBS
-    char *StreamNameTextInternal; // eax
-    streamName_t j; // [esp+0h] [ebp-8h]
-    int i; // [esp+4h] [ebp-4h]
-
-    Com_Printf(16, "**** Start Ticker Dump ****\n");
-    Com_Printf(16, "Number of streams: %d\n", 5);
-    Com_Printf(16, "Number of messages: %d\n", s_ticker.totalMessageCount);
-    for ( i = 0; i < 5; ++i )
-    {
-        StreamNameTextInternal = LiveTicker_GetStreamNameTextInternal(s_ticker.streams[i].streamName);
-        Com_Printf(
-            16,
-            "Stream %i (%d messages): %s\n",
-            i,
-            s_ticker.streamDisplayOrder[1293 * i - 5174],
-            StreamNameTextInternal);
-        for ( j = TICKER_STREAM_COD; j < s_ticker.streamDisplayOrder[1293 * i - 5174]; ++j )
-            Com_Printf(16, "\t%d: %s\n", j, (const char *)(5172 * i + 516 * j + 174152212));
-    }
-    Com_Printf(16, "**** End Ticker Dump ****\n");
-#endif
 }
 
 void __cdecl LiveTicker_SetDefaultDisplayOrder()
@@ -111,23 +89,6 @@ void __cdecl LiveTicker_InitializeInternal()
 
 void __cdecl LiveTicker_InsertMessageInternal(const char *text, streamName_t streamName)
 {
-#ifdef KISAK_LIVE_STUBS
-    if ( !s_isTickerInitialized )
-        LiveTicker_InitializeInternal();
-    if ( text && *text && I_strncmp(text, "\n", 4) && I_strncmp(text, "\r", 4) )
-    {
-        s_ticker.streams[streamName].streamName = streamName;
-        if ( s_ticker.streamDisplayOrder[1293 * streamName - 5174] < 10 )
-        {
-            I_strncpyz(
-                (char *)(5172 * streamName + 516 * s_ticker.streamDisplayOrder[1293 * streamName - 5174] + 174152212),
-                text,
-                strlen(text) + 1);
-            ++s_ticker.streamDisplayOrder[1293 * streamName - 5174];
-            ++s_ticker.totalMessageCount;
-        }
-    }
-#endif
 }
 
 char __cdecl LiveTicker_IsStreamPopulated(streamName_t streamName)
@@ -296,14 +257,7 @@ char *__cdecl LiveTicker_GetCurrentMessage(
         Dvar_SetIntByName("ticker_menu_context", -1);
     }
 
-#ifdef KISAK_LIVE_SERVICE
-    if ( com_wideScreen && com_wideScreen->current.enabled )
-        xThreshold = tickerWidescreenWidth->current.integer;
-    else
-        xThreshold = tickerStandardWidth->current.integer;
-#else
     xThreshold = 405; // widescreen (HACK, these dvars are null)
-#endif
     if ( s_isTickerInitialized && s_ticker.totalMessageCount >= 1 )
     {
         if ( s_ticker.isHeaderAnimating )

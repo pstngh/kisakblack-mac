@@ -658,14 +658,6 @@ void __cdecl Demo_StreamingSuccessCallback(int controllerIndex, unsigned __int64
     matchRecordBufferSize = 0;
     if ( fileID )
     {
-#ifdef KISAK_LIVE
-        if ( onlinegame->current.enabled )
-        {
-            v3 = Com_LocalClient_GetControllerIndex(0);
-            GenerateRecordedMatchData(v3, &matchRecordBuffer, &matchRecordBufferSize);
-        }
-        else
-#endif
         {
             ClientName = Live_ControllerIndex_GetClientName(controllerIndex);
             I_strncpyz(gamerTag_0, ClientName, 32);

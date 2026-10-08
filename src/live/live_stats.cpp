@@ -2499,13 +2499,6 @@ char __cdecl LiveStats_ProVersionUnlocked(int itemIndex, char *statsBuffer)
 
 void __cdecl LiveStats_CompareStatsVsStableBufferCmd()
 {
-#ifdef KISAK_LIVE
-    if ( !s_statsalreadycompared )
-    {
-        s_statsalreadycompared = 1;
-        LiveStats_CompareStatsVsStableBuffer(0);
-    }
-#endif
 }
 
 void __cdecl LiveStats_SortPercentageCompleted(int type)
@@ -4116,32 +4109,7 @@ char __cdecl LiveStats_SpendCurrency(
                 pointsSpent_t reasonType,
                 int reasonIndex)
 {
-#ifdef KISAK_LIVE
-    int currentCodPoints; // [esp+0h] [ebp-4h]
-
-    currentCodPoints = LiveStats_GetCurrency(controllerIndex);
-    if ( currentCodPoints >= currencyAmount )
-    {
-        LiveStats_SetStatByKey(controllerIndex, MP_PLAYERSTATSKEY_CODPOINTS, currentCodPoints - currencyAmount);
-        LiveStats_TrackSpending(controllerIndex, currencyAmount);
-        if ( currencyAmount < 0 )
-            currencyAmount = -currencyAmount;
-        LiveCounter_IncrementCounterValueByName("global_moneyspent", currencyAmount);
-        if ( recordPointsSpent )
-        {
-            if ( recordPointsSpent->current.enabled )
-                MatchRecordPointsSpent(controllerIndex, currencyAmount, reasonType, reasonIndex);
-        }
-        return 1;
-    }
-    else
-    {
-        Com_PrintError(15, "Item costs %d and you only have %d\n", currencyAmount, currentCodPoints);
-        return 0;
-    }
-#else
     return 0;
-#endif
 }
 
 void __cdecl LiveStats_TrackSpending(int controllerIndex, int currencyAmount)
@@ -4479,16 +4447,6 @@ bool __cdecl LiveStats_GetBasicTrainingState(unsigned __int8 *buffer)
 
 void __cdecl LiveStats_GetNemesisXuid(int controllerIndex, unsigned __int64 *nemesisXuid)
 {
-#ifdef KISAK_LIVE_SERVICE
-    const ddlState_t *RootDDLState; // eax
-    int v3; // edx
-    ddlState_t ddlState; // [esp+0h] [ebp-10h] BYREF
-
-    RootDDLState = LiveStats_GetRootDDLState();
-    DDL_MoveTo(RootDDLState, &ddlState, 2, "AfterActionReportStats", "nemesisXuid");
-    *(unsigned int *)nemesisXuid = LiveStats_GetDInt64Stat(controllerIndex, &ddlState);
-    *((unsigned int *)nemesisXuid + 1) = v3;
-#endif
 }
 
 bool __cdecl LiveStats_PrestigeLeaderboardsEnabled(int controllerIndex)
@@ -4627,146 +4585,6 @@ void __cdecl LiveStats_PresetigeStatsResetCmd()
 
 void __cdecl SV_UpdatePersonalBestsForClient(int clientnum)
 {
-#ifdef KISAK_LIVE
-    char *v1; // eax
-    ddlState_t searchStateGameModeBests; // [esp+4h] [ebp-94h] BYREF
-    const char *gameModeName; // [esp+14h] [ebp-84h]
-    ddlState_t searchStateGameModeCurrentStats; // [esp+18h] [ebp-80h] BYREF
-    int currentGameMode; // [esp+28h] [ebp-70h]
-    int numGameModes; // [esp+2Ch] [ebp-6Ch]
-    unsigned int clanTagFeature; // [esp+30h] [ebp-68h]
-    int proItemIndex; // [esp+34h] [ebp-64h]
-    int oldProUnlocked; // [esp+38h] [ebp-60h]
-    int newProUnlocked; // [esp+3Ch] [ebp-5Ch]
-    unsigned int itemNumber; // [esp+40h] [ebp-58h]
-    client_t *client; // [esp+44h] [ebp-54h]
-    char *liveStatsBuffer; // [esp+48h] [ebp-50h]
-    int newRankXP; // [esp+4Ch] [ebp-4Ch] BYREF
-    ddlState_t searchStateGameModeStats; // [esp+50h] [ebp-48h] BYREF
-    int oldPrestige; // [esp+60h] [ebp-38h] BYREF
-    char *oldStatsBuffer; // [esp+64h] [ebp-34h]
-    int oldRank; // [esp+68h] [ebp-30h]
-    ddlState_t searchStateBests; // [esp+6Ch] [ebp-2Ch] BYREF
-    int oldRankXP; // [esp+7Ch] [ebp-1Ch] BYREF
-    int newRank; // [esp+80h] [ebp-18h]
-    ddlState_t searchStateStats; // [esp+84h] [ebp-14h] BYREF
-    int newPrestige; // [esp+94h] [ebp-4h] BYREF
-
-    if ( (clientnum < 0 || clientnum > com_maxclients->current.integer)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_stats.cpp",
-                    5476,
-                    0,
-                    "clientnum not in [0, com_maxclients->current.integer]\n\t%i not in [%i, %i]",
-                    clientnum,
-                    0,
-                    com_maxclients->current.integer) )
-    {
-        __debugbreak();
-    }
-    client = &svs.clients[clientnum];
-    if ( !client && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_stats.cpp", 5479, 0, "%s", "client") )
-        __debugbreak();
-    if ( client->statsValidated )
-    {
-        liveStatsBuffer = (char *)client->globalStats;
-        oldStatsBuffer = (char *)client->globalStatsStable;
-        oldRankXP = 0;
-        newRankXP = 0;
-        oldRank = 0;
-        newRank = 0;
-        oldPrestige = 0;
-        newPrestige = 0;
-        SV_GetStatFromBlob((char *)client->globalStats, "RANKXP", &newRankXP);
-        newRank = CL_GetRankForXp(newRankXP);
-        SV_GetStatFromBlob((char *)client->globalStats, "PLEVEL", &newPrestige);
-        SV_GetStatFromBlob(oldStatsBuffer, "RANKXP", &oldRankXP);
-        oldRank = CL_GetRankForXp(oldRankXP);
-        SV_GetStatFromBlob(oldStatsBuffer, "PLEVEL", &oldPrestige);
-        for ( itemNumber = 0; itemNumber < 0x100; ++itemNumber )
-        {
-            if ( BG_UnlockablesIsItemValidNotNull(itemNumber) && !BG_UnlockablesIsItemInDefaultClass(itemNumber) )
-            {
-                if ( newRank > oldRank
-                    && !BG_UnlockablesIsItemLockedForRank(newPrestige, newRank, itemNumber)
-                    && BG_UnlockablesIsItemLockedForRank(oldPrestige, oldRank, itemNumber) )
-                {
-                    SV_SetItemNewForClient(liveStatsBuffer, itemNumber, newRank, newPrestige);
-                }
-                v1 = va("%d", itemNumber);
-                if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v1)
-                    && DDL_IterateFirst(&searchStateStats, &searchStateStats) )
-                {
-                    do
-                        LiveStats_UpdateItemPersonalBest(liveStatsBuffer, oldStatsBuffer, &searchStateStats);
-                    while ( DDL_IterateNext(&searchStateStats, &searchStateStats) );
-                }
-                oldProUnlocked = (unsigned __int8)LiveStats_ProVersionUnlocked(itemNumber, oldStatsBuffer);
-                newProUnlocked = (unsigned __int8)LiveStats_ProVersionUnlocked(itemNumber, liveStatsBuffer);
-                if ( newProUnlocked > oldProUnlocked )
-                {
-                    proItemIndex = BG_UnlockablesGetProItem(itemNumber);
-                    if ( proItemIndex != -1 )
-                        SV_SetItemNewForClient(liveStatsBuffer, proItemIndex, newRank, newPrestige);
-                }
-            }
-        }
-        for ( clanTagFeature = 0; clanTagFeature < 0x100; ++clanTagFeature )
-        {
-            if ( BG_UnlockablesGetClanTagFeature(clanTagFeature, CLANTAG_COL_UNLOCKLVL)
-                && newRank > oldRank
-                && !BG_UnlockablesIsClanTagFeatureLockedForRank(newPrestige, newRank, clanTagFeature)
-                && BG_UnlockablesIsClanTagFeatureLockedForRank(oldPrestige, oldRank, clanTagFeature) )
-            {
-                SV_SetClanTagFeatureNewForClient(liveStatsBuffer, newRank, newPrestige, clanTagFeature);
-            }
-        }
-        s_currentPersonalBest[0] = 0;
-        if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 1, "PlayerStatsList")
-            && DDL_MoveTo(&g_statsRootState, &searchStateBests, 1, "PersonalBests")
-            && DDL_IterateFirst(&searchStateStats, &searchStateStats)
-            && DDL_IterateFirst(&searchStateBests, &searchStateBests) )
-        {
-            do
-                LiveStats_UpdatePersonalBest(0, liveStatsBuffer, oldStatsBuffer, &searchStateStats, &searchStateBests);
-            while ( DDL_IterateNext(&searchStateStats, &searchStateStats)
-                     && DDL_IterateNext(&searchStateBests, &searchStateBests) );
-        }
-        LiveStats_UpdatetBestMatchAccuracy(liveStatsBuffer, oldStatsBuffer);
-        LiveStats_UpdatetBestMatchKdRatio(liveStatsBuffer, oldStatsBuffer);
-        if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 1, "PlayerBestStatsByGameMode")
-            && DDL_MoveTo(&g_statsRootState, &searchStateGameModeStats, 1, "PlayerStatsByGameMode") )
-        {
-            numGameModes = searchStateStats.ddl->enumList[searchStateStats.member->enumIndex].memberCount;
-            for ( currentGameMode = 0; currentGameMode < numGameModes; ++currentGameMode )
-            {
-                gameModeName = searchStateStats.ddl->enumList[searchStateStats.member->enumIndex].members[currentGameMode];
-                if ( DDL_MoveTo(&searchStateStats, &searchStateGameModeBests, 2, gameModeName, "stats")
-                    && DDL_IterateFirst(&searchStateGameModeBests, &searchStateGameModeBests) )
-                {
-                    do
-                    {
-                        if ( DDL_MoveTo(
-                                     &searchStateGameModeStats,
-                                     &searchStateGameModeCurrentStats,
-                                     2,
-                                     gameModeName,
-                                     searchStateGameModeBests.ddl->enumList[searchStateGameModeBests.member->enumIndex].members[searchStateGameModeBests.arrayIndex]) )
-                        {
-                            LiveStats_UpdatePersonalBest(
-                                0,
-                                liveStatsBuffer,
-                                oldStatsBuffer,
-                                &searchStateGameModeCurrentStats,
-                                &searchStateGameModeBests);
-                        }
-                    }
-                    while ( DDL_IterateNext(&searchStateGameModeBests, &searchStateGameModeBests) );
-                }
-            }
-        }
-    }
-#endif
 }
 
 cmd_function_s LiveStats_StatSetByNameCmd_VAR;

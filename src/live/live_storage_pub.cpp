@@ -48,72 +48,7 @@ static void NULLSUB_LOCAL(const int, void *)
 
 TaskRecord *__cdecl LiveStorage_FetchOnlineWAD(int controllerIndex)
 {
-#ifdef KISAK_LIVE
-    signed int fileLen; // [esp+0h] [ebp-14h]
-    void *fileBuffer; // [esp+4h] [ebp-10h] BYREF
-    const char *language; // [esp+8h] [ebp-Ch]
-    TaskRecord *nestedTask; // [esp+Ch] [ebp-8h]
-    TaskRecord *task; // [esp+10h] [ebp-4h]
-
-    if ( !SV_IsConnectedToDW() )
-        return 0;
-    task = 0;
-    language = SEH_GetLanguageName(loc_language->current.unsignedInt);
-    Com_sprintf(wadFileName, 0x80u, "%s%s.wad", "online_mp_", language);
-    if ( s_onlineWADFileInfo.fetchCompleted
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_storage_pub.cpp",
-                    315,
-                    0,
-                    "%s",
-                    "s_onlineWADFileInfo.fetchCompleted == false") )
-    {
-        __debugbreak();
-    }
-    if ( cg_readTitleStorageLocally->current.enabled )
-    {
-        s_onlineWADFileInfo.fetchCompleted = 1;
-        fileLen = FS_ReadFile(wadFileName, &fileBuffer);
-        if ( fileLen > 0 )
-        {
-            if ( fileLen <= 0x10000 )
-            {
-                if ( fileBuffer )
-                {
-                    memcpy(s_onlineWADBuffer, (unsigned __int8 *)fileBuffer, fileLen);
-                    FS_FreeFile(fileBuffer);
-                    //BLOPS_NULLSUB();
-                    return 0;
-                }
-            }
-            else
-            {
-                Com_PrintError(16, "The WAD file '%s' file is too large and cannot be loaded!\n", wadFileName);
-            }
-        }
-        Com_PrintError(16, "Unable to load WAD file '%s' locally\n", wadFileName);
-        LiveStorage_FetchOnlineWADNotFound();
-        return 0;
-    }
-    else if ( TaskManager2_TaskIsInProgress(task_LiveFetchOnlineWAD) )
-    {
-        return 0;
-    }
-    else
-    {
-        s_onlineWADFileInfo.isUserFile = 0;
-        s_onlineWADFileInfo.isCompressedFile = 0;
-        s_onlineWADFileInfo.fileTask.m_filename = wadFileName;
-        s_onlineWADFileInfo.fileBuffer = s_onlineWADBuffer;
-        s_onlineWADFileInfo.bufferSize = 0x10000;
-        s_onlineWADFileInfo.fileOperationSucessFunction = NULLSUB_LOCAL;
-        s_onlineWADFileInfo.fileNotFoundFunction = (taskCompleteResults (__cdecl *)(const int, void *))LiveStorage_FetchOnlineWADNotFound;
-        nestedTask = LiveStorage_ReadDWFile(controllerIndex, &s_onlineWADFileInfo);
-        return LiveStorage_SetupNestedTask(task_LiveFetchOnlineWAD, controllerIndex, nestedTask, &s_onlineWADFileInfo);
-    }
-#else
     return 0;
-#endif
 }
 
 int __cdecl LiveStorage_FetchOnlineWADNotFound()

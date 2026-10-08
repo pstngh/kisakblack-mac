@@ -105,9 +105,6 @@ void __thiscall LiveSteamClient::OnRequestEncryptedAppTicket(
         result = pEncryptedAppTicketResponse->m_eResult;
         if ( pEncryptedAppTicketResponse->m_eResult == k_EResultOK )
         {
-#ifdef KISAK_LIVE
-            dwLogonSeAcquiredSteamTicket();
-#endif
         }
         else
         {

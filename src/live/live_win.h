@@ -178,9 +178,6 @@ void __cdecl Live_BroadcastSessionToFriends(unsigned __int64 sessionUID, unsigne
 void __cdecl Live_BroadcastSessionToRecentPlayers(unsigned __int64 sessionUID, unsigned __int8 flags);
 void __cdecl Live_BroadcastSessionIfNeeded();
 
-#ifdef KISAK_DW
-extern MatchMakingInfo *g_matchmakingInfo;
-#endif
 
 extern unsigned __int64 s_selectedPlayerXUID;
 extern unsigned __int64 s_selectedMetPlayerXUID;

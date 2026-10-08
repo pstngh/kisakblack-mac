@@ -1295,20 +1295,6 @@ void __cdecl CL_ClearState(int localClientNum)
 
 void __cdecl CL_UploadStatsForController(int localControllerIndex)
 {
-#ifdef KISAK_LIVE
-    if ( !Demo_IsPlaying() && !Demo_IsShutdownInProgress() )
-    {
-        if ( Com_GameMode_IsPublicOnlineGame() )
-            LB_UploadPlayerStats(localControllerIndex);
-        LiveStats_CompareStatsVsStableBuffer(localControllerIndex);
-        if ( xblive_basictraining )
-        {
-            if ( xblive_basictraining->current.enabled )
-                LiveStorage_UploadStatsForController();
-        }
-        Session_CleanUpStatsWrites();
-    }
-#endif
 }
 
 void __cdecl CL_Disconnect(unsigned int localClientNum, bool deactivateClient)
@@ -1394,21 +1380,6 @@ void __cdecl CL_Disconnect(unsigned int localClientNum, bool deactivateClient)
             CL_WritePacket(localClientNum);
         }
         wasConnected = connstate >= CA_CONNECTING;
-#ifdef KISAK_DW
-        if ( connstate >= CA_CONNECTING && clc )
-        {
-            dwCloseConnection(&clc->serverAddress);
-            dwNetPump();
-            dwNetPump();
-            bdSessionID sessID; // [esp+0h] [ebp-20h] BYREF
-
-            //bdSessionID::bdSessionID(&sessID);
-            *(unsigned int *)sessID.m_sessionID.ab = 0;
-            *(unsigned int *)&sessID.m_sessionID.ab[4] = 0;
-            dwSetSessionID(&sessID);
-            //bdTaskResult::~bdTaskResult(&sessID);
-        }
-#endif
         if ( clc )
         {
             clc->clientChallenge = 0;
@@ -1967,10 +1938,6 @@ void __cdecl CL_CheckForResend(int localClientNum)
     __int64 Uid; // rax
     const char *v6; // eax
     unsigned int RandomUInt; // eax
-#ifdef KISAK_DW
-    bdTrulyRandomImpl *Instance; // eax
-    bdTrulyRandomImpl *v9; // eax
-#endif
     unsigned int v10; // eax
     netsrc_t v11; // eax
     netadr_t v12; // [esp-18h] [ebp-D68h]
@@ -2014,9 +1981,6 @@ void __cdecl CL_CheckForResend(int localClientNum)
             ++clc->connectPacketCount;
             if ( connstate == CA_CONNECTING )
             {
-#ifdef KISAK_DW
-                if ( dwGetAddrHandleConnectionTaskStatus(clc->serverAddress.addrHandleIndex) )
-#endif
                 {
                     //if (net_lanauthorize->current.enabled || !Sys_IsLANAddress(clc->serverAddress))
                     //{
@@ -2067,35 +2031,6 @@ void __cdecl CL_CheckForResend(int localClientNum)
                 }
                 v6 = va("%i", clc->qport);
                 Info_SetValueForKey(info, "qport", v6);
-#ifdef KISAK_LIVE_SERVICE
-                if ( live_service && live_service->current.enabled )
-                {
-                    memset(temp64buff, 0, sizeof(temp64buff));
-                    dwGetOnlineUserID(0, &ourUserID);
-                    Com_DPrintf(14, "CHALLENGERESPONSE: Sending bdOnlineUserID %llu to server\n", ourUserID);
-                    XUIDToString(&ourUserID, temp64buff);
-                    Info_SetValueForKey(info, "bdOnlineUserID", temp64buff);
-                    memset(temp64buff, 0, sizeof(temp64buff));
-                    if ( !clc->nonce )
-                    {
-                        Instance = bdSingleton<bdTrulyRandomImpl>::getInstance();
-                        RandomUInt = bdTrulyRandomImpl::getRandomUInt(Instance);
-                        clc->nonce = RandomUInt;
-                        v9 = bdSingleton<bdTrulyRandomImpl>::getInstance();
-                        v10 = bdTrulyRandomImpl::getRandomUInt(v9);
-                        *(&clc->nonce + 1) = v10;
-                    }
-                    Com_sprintf(temp64buff, 0xB1u, "%u", *(&clc->nonce + 1));
-                    Info_SetValueForKey(info, "nonce", temp64buff);
-                    Com_sprintf(temp64buff, 0xB1u, "%u", clc->nonce);
-                    Info_SetValueForKey(info, "challengeNum", temp64buff);
-                    Com_DPrintf(
-                        14,
-                        "CHALLENGERESPONSE: Sending nonce %u, challengeNum %u to server\n",
-                        *(&clc->nonce + 1),
-                        clc->nonce);
-                }
-#endif
                 memcpy(data, "connect \"", 9);
                 infoLen = &info[strlen(info) + 1] - &info[1];
                 memcpy(&data[9], (unsigned __int8 *)info, infoLen);
@@ -4722,9 +4657,6 @@ int __cdecl CL_UpdateDirtyPings(int localClientNum, unsigned int source)
     }
     while ( sentCount < cl_maxppf->current.integer && cls.lastServerPinged != firstPingedIndex );
     if ( sentCount || (int)Sys_Milliseconds() < latestPingedTime + 2000 
-#ifdef KISAK_DW
-        || dwIsPagedFindInProgress() 
-#endif
         )
         return 1;
     return status;

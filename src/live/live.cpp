@@ -59,18 +59,6 @@ void __cdecl Live_ShowConnectingDialog()
 
 void __cdecl Live_DemonwareDisconnectCleanup(int localControllerIndex)
 {
-#ifdef KISAK_LIVE
-    bdLobbyService *lobbyService; // [esp+0h] [ebp-4h]
-
-    Com_GameMode_ResetGameModes();
-    lobbyService = dwGetLobby(localControllerIndex);
-    DWDisconnectLobby(lobbyService);
-    if ( onlinegame->current.enabled )
-    {
-        Dvar_SetBool((dvar_s *)onlinegame, 0);
-        Com_Error(ERR_DROP, "EXE_DEMONWARE_DISCONNECT");
-    }
-#endif
 }
 
 bool __cdecl Live_IsPublicOnlineMatch()

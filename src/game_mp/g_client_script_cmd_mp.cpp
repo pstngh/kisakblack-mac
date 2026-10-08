@@ -5178,14 +5178,6 @@ void __cdecl PlayerCmd_spawn(scr_entref_t entref)
     Scr_GetVector(0, spawn_origin, SCRIPTINSTANCE_SERVER);
     Scr_GetVector(1u, spawn_angles, SCRIPTINSTANCE_SERVER);
     ClientSpawn(pSelf, spawn_origin, spawn_angles);
-#ifdef KISAK_LIVE // lol lets invent another ifdef name
-    if ( onlinegame->current.enabled
-        && com_sv_running->current.enabled
-        && pSelf->client->sess.sessionState == SESS_STATE_PLAYING )
-    {
-        MatchRecordSpawn(pSelf->client);
-    }
-#endif
 }
 
 void __cdecl PlayerCmd_setEnterTime(scr_entref_t entref)

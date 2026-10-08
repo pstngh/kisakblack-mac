@@ -48,30 +48,7 @@ TaskRecord *__cdecl LiveCounter_IncrementCounters(
                 bdCounterValue *const counterIncrements,
                 unsigned int numEntries)
 {
-#ifdef KISAK_LIVE_STUBS
-    const bdReference<bdCommonAddr> *v5; // eax
-    bdReference<bdCommonAddr> v6; // [esp+1Ch] [ebp-Ch] BYREF
-    TaskRecord *task; // [esp+20h] [ebp-8h]
-    bdCounter *counter; // [esp+24h] [ebp-4h]
-
-    counter = dwGetCounter(controllerIndex);
-    if ( !counter )
-        return 0;
-    task = TaskManager2_TaskGetInProgress(definition);
-    if ( !task )
-    {
-        task = TaskManager2_CreateTask(definition, controllerIndex, 0, 0);
-        v5 = (const bdReference<bdCommonAddr> *)bdCounter::incrementCounters(counter, (int)&v6, (int)counterIncrements, numEntries);
-        bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&task->remoteTask, v5);
-        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v6);
-        s_numEntriesUploaded = numEntries;
-        task->payload = &s_numEntriesUploaded;
-        TaskManager2_StartTask(task);
-    }
-    return task;
-#else
     return NULL;
-#endif
 }
 
 TaskRecord *__cdecl LiveCounter_GetCounterTotals(
@@ -80,63 +57,12 @@ TaskRecord *__cdecl LiveCounter_GetCounterTotals(
                 bdCounterValue *results,
                 unsigned int numCounterIDs)
 {
-#ifdef KISAK_LIVE_STUBS
-    const bdReference<bdCommonAddr> *CounterTotals; // eax
-    bdReference<bdCommonAddr> v6; // [esp+1Ch] [ebp-Ch] BYREF
-    TaskRecord *task; // [esp+20h] [ebp-8h]
-    bdCounter *counter; // [esp+24h] [ebp-4h]
-
-    counter = dwGetCounter(controllerIndex);
-    if ( !counter )
-        return 0;
-    task = TaskManager2_TaskGetInProgress(definition);
-    if ( !task )
-    {
-        task = TaskManager2_CreateTask(definition, controllerIndex, 0, 0);
-        CounterTotals = (const bdReference<bdCommonAddr> *)bdCounter::getCounterTotals(counter, (int)&v6, results, numCounterIDs);
-        bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&task->remoteTask, CounterTotals);
-        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v6);
-        TaskManager2_StartTask(task);
-    }
-    return task;
-#else
     return NULL;
-#endif
 }
 
 TaskRecord *__cdecl LiveCounter_UploadAllCounters(int controllerIndex)
 {
-#ifdef KISAK_LIVE_STUBS
-    unsigned int v1; // eax
-    signed int v3; // eax
-    signed int j; // [esp+4h] [ebp-Ch]
-    int i; // [esp+8h] [ebp-8h]
-    unsigned int uploadCount; // [esp+Ch] [ebp-4h]
-
-    uploadCount = 0;
-    for ( i = 0; i < (int)s_serverCountersTotal; ++i )
-    {
-        if ( LODWORD(s_localCounters[i].m_counterValue) || HIDWORD(s_localCounters[i].m_counterValue) )
-        {
-            s_uploadCounters[uploadCount].m_counterID = s_localCounters[i].m_counterID;
-            v1 = uploadCount;
-            LODWORD(s_uploadCounters[v1].m_counterValue) = s_localCounters[i].m_counterValue;
-            *(unsigned int *)(v1 * 16 + 172781500) = HIDWORD(s_localCounters[i].m_counterValue);
-            ++uploadCount;
-        }
-    }
-    if ( !uploadCount )
-        return 0;
-    for ( j = 0; j < (int)s_serverCountersTotal; ++j )
-    {
-        v3 = j;
-        LODWORD(s_localCounters[v3].m_counterValue) = 0;
-        *(unsigned int *)(v3 * 16 + 172779900) = 0;
-    }
-    return LiveCounter_IncrementCounters(task_uploadAllCounters, controllerIndex, s_uploadCounters, uploadCount);
-#else
     return NULL;
-#endif
 }
 
 void __cdecl LiveCounter_UploadAllCountersComplete()
@@ -349,24 +275,6 @@ void __cdecl LiveCounter_SetupCounters()
 
 void __cdecl LiveCounter_Update(int controllerIndex)
 {
-#ifdef KISAK_LIVE
-    if ( s_countersInit && dwGetLogOnStatus(controllerIndex) == 4 )
-    {
-        if ( (int)Sys_Milliseconds() > s_nextCounterDownloadTime && s_countersRequested )
-        {
-            s_countersRequested = 0;
-            LiveCounter_DownloadAllCounters(controllerIndex);
-            s_nextCounterDownloadTime = 60000 * counterDownloadInterval->current.integer + Sys_Milliseconds();
-        }
-        if ( s_countersReadyForUpload && (int)Sys_Milliseconds() > s_nextCounterUploadTime )
-        {
-            if ( LiveCounter_UploadAllCounters(controllerIndex) )
-                s_countersReadyForUpload = 0;
-            else
-                s_nextCounterUploadTime = 60000 * counterUploadInterval->current.integer + Sys_Milliseconds();
-        }
-    }
-#endif
 }
 
 void __cdecl LiveCounter_Init()

@@ -398,9 +398,7 @@ unsigned int __cdecl SV_GetClientDIntStat(unsigned int clientNum, ddlState_t *se
         __debugbreak();
     }
 
-#ifndef KISAK_STATS
     iassert(0);
-#endif
 
     if (svs.clients[clientNum].statPacketsReceived != ALL_STATS_PACKETS_RECEIVED)
     {
@@ -480,9 +478,7 @@ unsigned int __cdecl SV_GetClientDInt64Stat(unsigned int clientNum, ddlState_t *
         __debugbreak();
     }
 
-#ifndef KISAK_STATS
     iassert(0);
-#endif
 
     iassert(svs.clients[clientNum].statPacketsReceived == ALL_STATS_PACKETS_RECEIVED);
     iassert(svs.clients[clientNum].header.state >= CS_RECONNECTING);
@@ -1023,33 +1019,6 @@ void __cdecl SV_DirectConnect(netadr_t from)
             __debugbreak();
         }
         iassert(!newcl->scriptId);
-#ifdef KISAK_LIVE_SERVICE
-        if (live_service && live_service->current.enabled)
-        {
-            clientChallange = 0;
-            nonce = 0;
-            v17 = Info_ValueForKey(userinfo, "challengeNum");
-            sscanf(v17, "%u", &clientChallange);
-            v18 = Info_ValueForKey(userinfo, "nonce");
-            sscanf(v18, "%u", &nonce);
-            Com_DPrintf(
-                15,
-                "CHALLENGE RESPONSE: Read userID %llu, clientChallenge %u, nonce %u\n",
-                uid,
-                clientChallange,
-                nonce);
-            if (uid && clientChallange && nonce)
-            {
-                v19 = SV_SendClientChallenge(nonce, clientChallange, uid);
-                newcl->dwchallenge = v19;
-                newcl->dw_userID = uid;
-            }
-            else
-            {
-                Com_PrintWarning(15, "Failed to parse userId!\n");
-            }
-        }
-#endif
         if (!newcl->bIsTestClient && !newcl->bIsDemoClient)
             newcl->notifyJoin = 1;
         scriptId = Scr_AllocArray(SCRIPTINSTANCE_SERVER);
@@ -1243,10 +1212,6 @@ void __cdecl SV_DropClient(client_t *drop, const char *reason, bool tellThem, bo
             //}
         }
 
-#ifdef KISAK_STATS
-        if (drop->statPacketsReceived == ALL_STATS_PACKETS_RECEIVED && writeStats)
-            SV_DWWriteClientStats(drop);
-#endif
 
         if (drop->reservedSlot > 0)
             SV_FreeReservedSlot(drop->reservedSlot);
@@ -1264,10 +1229,6 @@ void __cdecl SV_DropClient(client_t *drop, const char *reason, bool tellThem, bo
         {
             __debugbreak();
         }
-#ifdef KISAK_LIVE
-        if (onlinegame->current.enabled && com_sv_running->current.enabled)
-            MatchRecordPlayerDetails(&level.clients[clientNum], reason);
-#endif
         // LWSS ADD
         if (IsDedicatedServer() && !drop->bIsDemoClient)
         {
@@ -1431,23 +1392,8 @@ void __cdecl SV_SendClientGameState(client_t *client)
         }
     }
 
-#ifdef KISAK_STATS
-    // to pass the below check if it's just a testclient/democlient 
-    if (client->bIsTestClient || client->bIsDemoClient)
-    {
-        memset(client->stats, 0, sizeof(client->stats));
-        client->statPacketsReceived = ALL_STATS_PACKETS_RECEIVED;
-    }
-
-    if ( client->statPacketsReceived != ALL_STATS_PACKETS_RECEIVED )
-    {
-        Com_DPrintf(15, "Not sending state to %s, waiting on stats\n", client->name);
-        return;
-    }
-#else
     memset(client->stats, 0, sizeof(client->stats));
     client->statPacketsReceived = ALL_STATS_PACKETS_RECEIVED;
-#endif
 
     memset(&snapInfo, 0, sizeof(snapInfo));
     SV_SetServerStaticHeader();

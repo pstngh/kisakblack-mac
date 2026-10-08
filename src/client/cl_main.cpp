@@ -19,36 +19,6 @@ bool s_dontUnlockControllers;
 static int g_doLiveFrameHack;
 void __cdecl CL_RunNetworkFrame(int localClientNum)
 {
-#ifdef KISAK_LIVE
-    int i; // [esp+0h] [ebp-Ch]
-    int firstSignedInController; // [esp+4h] [ebp-8h]
-
-    Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( g_doLiveFrameHack )
-    {
-        firstSignedInController = -1;
-        for ( i = 0; i < 1; ++i )
-        {
-            //BLOPS_NULLSUB();
-            if ( Live_IsSignedIn(i)
-                && !CG_IsShowingZombieMap()
-                && Flame_GetLocalClientSourceRange()
-                && firstSignedInController == -1 )
-            {
-                firstSignedInController = i;
-            }
-        }
-        Live_Frame();
-#ifdef KISAK_DW
-        dwUpdateLanSession();
-#endif
-    }
-    else
-    {
-        g_doLiveFrameHack = 1;
-    }
-    Live_CheckOngoingTasks();
-#endif
 }
 
 char __cdecl CL_AnyLocalClientsRunning()

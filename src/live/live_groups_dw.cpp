@@ -85,95 +85,14 @@ void __cdecl LiveGroups_SetGroupsComplete(TaskRecord *task)
 
 void __cdecl LiveGroups_SetGroups(int localControllerIndex)
 {
-#ifdef KISAK_DEMON
-    const bdReference<bdCommonAddr> *v1; // eax
-    bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-101Ch] BYREF
-    unsigned int i; // [esp+20h] [ebp-1018h]
-    TaskRecord *task; // [esp+24h] [ebp-1014h]
-    unsigned int v5; // [esp+28h] [ebp-1010h]
-    int v6; // [esp+2Ch] [ebp-100Ch]
-    bdGroup *Group; // [esp+30h] [ebp-1008h]
-    GroupMembership *v8; // [esp+34h] [ebp-1004h]
-    unsigned int v9[1024]; // [esp+38h] [ebp-1000h] BYREF
-
-    if ( localControllerIndex
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_groups_dw.cpp",
-                    122,
-                    0,
-                    "localControllerIndex doesn't index MAX_GPAD_COUNT\n\t%i not in [0, %i)",
-                    localControllerIndex,
-                    1) )
-    {
-        __debugbreak();
-    }
-    Group = dwGetGroup(localControllerIndex);
-    v5 = 0;
-    v8 = &s_groupMembership[localControllerIndex];
-    v6 = _time64(0);
-    if ( Group && v8->dirty > 0 && v6 - v8->updateTime > 60 )
-    {
-        task = TaskManager2_CreateTask(task_setGroups, localControllerIndex, 0, 0);
-        v8->updateTime = v6;
-        v8->dirty = 1;
-        for ( i = 0; i < s_groupCount; ++i )
-        {
-            if ( (v8->bits[i >> 5] & (1 << (i & 0x1F))) != 0 )
-                v9[v5++] = i;
-        }
-        v1 = (const bdReference<bdCommonAddr> *)bdGroup::setGroups(Group, (int)&v2, (int)v9, v5);
-        bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&task->remoteTask, v1);
-        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
-        TaskManager2_StartTask(task);
-    }
-#endif
 }
 
 void __cdecl LiveGroups_GetGroupCountsComplete(TaskRecord *task)
 {
-#ifdef KISAK_DEMON
-    unsigned int idx; // [esp+4h] [ebp-4h]
-
-    memset(s_groupCounts, 0, sizeof(s_groupCounts));
-    for ( idx = 0; idx < bdTaskByteBuffer::getHeaderSize((bdTaskByteBuffer *)task->remoteTask.m_ptr); ++idx )
-        s_groupCounts[*((unsigned int *)&unk_A4E0D04 + 3 * idx)] = dword_A4E0D08[3 * idx];
-#endif
 }
 
 void __cdecl LiveGroups_GetCounts(int localControllerIndex)
 {
-#ifdef KISAK_DEMON
-    const bdReference<bdCommonAddr> *GroupCounts; // eax
-    bdReference<bdCommonAddr> v2; // [esp+1Ch] [ebp-1014h] BYREF
-    TaskRecord *task; // [esp+20h] [ebp-1010h]
-    unsigned int i; // [esp+24h] [ebp-100Ch]
-    int v5; // [esp+28h] [ebp-1008h]
-    bdGroup *Group; // [esp+2Ch] [ebp-1004h]
-    int v7[1024]; // [esp+30h] [ebp-1000h] BYREF
-
-    Group = dwGetGroup(localControllerIndex);
-    v5 = _time64(0);
-    if ( Group && v5 - s_groupUpdateTime > 900 && !TaskManager2_CountTasksInProgress(task_getGroupCounts_0) )
-    {
-        task = TaskManager2_CreateTask(task_getGroupCounts_0, localControllerIndex, 0, 0);
-        s_groupUpdateTime = v5;
-        for ( i = 0; i < s_groupCount; ++i )
-            v7[i] = i;
-        v7[i++] = 490;
-        v7[i++] = 491;
-        v7[i++] = 492;
-        GroupCounts = (const bdReference<bdCommonAddr> *)bdGroup::getGroupCounts(
-                                                                                                             Group,
-                                                                                                             (int)&v2,
-                                                                                                             (int)v7,
-                                                                                                             s_groupCount + 3,
-                                                                                                             &s_bdGroupCounts_0,
-                                                                                                             s_groupCount + 3);
-        bdReference<bdCommonAddr>::operator=((bdReference<bdCommonAddr> *)&task->remoteTask, GroupCounts);
-        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v2);
-        TaskManager2_StartTask(task);
-    }
-#endif
 }
 
 char __cdecl LiveGroups_GetGroupID(char *path, int *offset, GroupSet **gs)

@@ -160,54 +160,10 @@ struct LeaderBoardRow : bdStatsInfo // sizeof=0x98
 
     inline void serialize(bdByteBuffer *buffer)
     {
-#ifdef KISAK_LIVE_STUBS
-        unsigned int i; // [esp+4h] [ebp-4h]
-
-        bdStatsInfo::serialize(buffer);
-        for (i = 0; i < SIZE; ++i)
-            bdByteBuffer::writeInt32(buffer, this->m_columns[i]);
-#endif
     }
     inline bool deserialize(bdReference<bdByteBuffer> buffer)
     {
-#ifdef KISAK_LIVE_STUBS
-        bdReference<bdCommonAddr> v3; // [esp-4h] [ebp-38h] BYREF
-        bool v4; // [esp+3h] [ebp-31h]
-        volatile int m_refCount; // [esp+4h] [ebp-30h]
-        LeaderBoardRow<SIZE> *thisa; // [esp+8h] [ebp-2Ch]
-        bdByteBuffer *v7; // [esp+18h] [ebp-1Ch]
-        bdReference<bdCommonAddr> *v8; // [esp+1Ch] [ebp-18h]
-        bdCommonAddr *m_ptr; // [esp+20h] [ebp-14h]
-        bool v10; // [esp+27h] [ebp-Dh]
-        unsigned int i; // [esp+2Ch] [ebp-8h]
-        bool ok; // [esp+33h] [ebp-1h]
-
-        thisa = this;
-        v8 = &v3;
-        v3.m_ptr = (bdCommonAddr *)buffer.m_ptr;
-
-        if (buffer.m_ptr)
-        {
-            m_ptr = v8->m_ptr;
-            InterlockedIncrement(&m_ptr->m_refCount);
-            m_refCount = m_ptr->m_refCount;
-        }
-
-        v4 = bdStatsInfo::deserialize(v3);
-        ok = v4;
-
-        for (i = 0; ok && i < SIZE; ++i)
-        {
-            v7 = buffer.m_ptr;
-            ok = bdByteBuffer::readInt32(buffer.m_ptr, &thisa->m_columns[i]);
-        }
-
-        v10 = ok;
-        bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>((bdReference<bdCommonAddr> *) & buffer);
-        return v10;
-#else
         return false;
-#endif
     }
 };
 

@@ -3814,15 +3814,6 @@ void __cdecl GetDemoFileID(int localClientNum, itemDef_s *item, OperandStack *da
 
 void __cdecl GetFileShareRating(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-#ifdef KISAK_LIVE
-    Operand result; // [esp+0h] [ebp-8h] BYREF
-
-    result.dataType = VAL_INT;
-    result.internals.intVal = Live_FileShare_GetRating();
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetFileShareRating() = %d\n", result.internals.intVal);
-    AddOperandToStack(dataStack, &result);
-#endif
 }
 
 void __cdecl GetFileShareTotalVotes(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -7319,20 +7310,6 @@ void __cdecl IsPlayerJoinable(int localClientNum, itemDef_s *item, OperandStack 
     //myXuid = v6;
     SourceString = GetSourceString(source);
     selectedPlayerXuid = I_atoi64(SourceString);
-#ifdef KISAK_LIVE
-    if ( selectedPlayerXuid && selectedPlayerXuid != myXuid )
-    {
-        if ( Dvar_GetBool("ui_friendsListOpen") )
-        {
-            if ( Live_GetServerForFriend(selectedPlayerXuid) )
-                result.internals.intVal = 1;
-        }
-        else if ( Dvar_GetBool("ui_playerListOpen") && (LiveMeetPlayer_GetPlayerSessionByID(selectedPlayerXuid) || v5) )
-        {
-            result.internals.intVal = 1;
-        }
-    }
-#endif
     AddOperandToStack(dataStack, &result);
 }
 
@@ -8037,27 +8014,6 @@ void __cdecl GetClanTagAndName(int localClientNum, itemDef_s *item, OperandStack
 
 void __cdecl GetXUID(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-#ifdef KISAK_LIVE
-    __int64 v3; // rax
-    const char *v4; // eax
-    Operand result; // [esp+Ch] [ebp-Ch] BYREF
-    int controllerIndex; // [esp+14h] [ebp-4h]
-
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
-    if ( Live_IsSignedIn(controllerIndex) )
-    {
-        LODWORD(v3) = Live_GetXuid(controllerIndex);
-        v4 = va("%lld", v3);
-        result.internals.intVal = (int)CopyTempString(v4);
-    }
-    else
-    {
-        result.internals.intVal = (int)CopyTempString("0");
-    }
-    AddOperandToStack(dataStack, &result);
-#else
     __int64 v3; // rax
     const char *v4; // eax
     Operand result; // [esp+Ch] [ebp-Ch] BYREF
@@ -8077,7 +8033,6 @@ void __cdecl GetXUID(int localClientNum, itemDef_s *item, OperandStack *dataStac
         result.internals.intVal = (int)CopyTempString("0");
     }
     AddOperandToStack(dataStack, &result);
-#endif
 }
 
 void __cdecl GetSellText(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -8108,19 +8063,6 @@ void __cdecl GetItemPrice(int localClientNum, itemDef_s *item, OperandStack *dat
 
 void __cdecl GetSelfGamertag(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-#ifdef KISAK_LIVE
-    Operand result; // [esp+0h] [ebp-Ch] BYREF
-    int controllerIndex; // [esp+8h] [ebp-4h]
-
-    result.dataType = VAL_STRING;
-    result.internals.intVal = (int)"";
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_IsSignedIn(controllerIndex) )
-        result.internals.intVal = (int)Live_ControllerIndex_GetClientName(controllerIndex);
-    else
-        result.internals.intVal = (int)"";
-    AddOperandToStack(dataStack, &result);
-#else
     Operand result; // [esp+0h] [ebp-Ch] BYREF
     int controllerIndex; // [esp+8h] [ebp-4h]
 
@@ -8132,7 +8074,6 @@ void __cdecl GetSelfGamertag(int localClientNum, itemDef_s *item, OperandStack *
     //else
         result.internals.intVal = (int)"";
     AddOperandToStack(dataStack, &result);
-#endif
 }
 
 void __cdecl GetRankByXUID(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -8305,17 +8246,6 @@ void __cdecl IsProfileSignedIn(int localClientNum, itemDef_s *item, OperandStack
 
 void __cdecl IsSignedIn(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-#ifdef KISAK_LIVE
-    int ControllerIndex; // eax
-    Operand result; // [esp+0h] [ebp-8h] BYREF
-
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    result.internals.intVal = Live_IsSignedIn(ControllerIndex);
-    result.dataType = VAL_INT;
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("IsSignedIn() = %i\n", result.internals.intVal);
-    AddOperandToStack(dataStack, &result);
-#else
     int ControllerIndex; // eax
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
@@ -8325,21 +8255,10 @@ void __cdecl IsSignedIn(int localClientNum, itemDef_s *item, OperandStack *dataS
     if (uiscript_debug && uiscript_debug->current.integer)
         Expression_TraceInternal("IsSignedIn() = %i\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
-#endif
 }
 
 void __cdecl IsSignedInToLive(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-#ifdef KISAK_LIVE
-    Operand result; // [esp+0h] [ebp-8h] BYREF
-
-    Com_LocalClient_GetControllerIndex(localClientNum);
-    result.internals.intVal = Live_IsSignedInToLive();
-    result.dataType = VAL_INT;
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("IsSignedInToLive() = %i\n", result.internals.intVal);
-    AddOperandToStack(dataStack, &result);
-#else
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
     Com_LocalClient_GetControllerIndex(localClientNum);
@@ -8348,7 +8267,6 @@ void __cdecl IsSignedInToLive(int localClientNum, itemDef_s *item, OperandStack 
     if (uiscript_debug && uiscript_debug->current.integer)
         Expression_TraceInternal("IsSignedInToLive() = %i\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
-#endif
 }
 
 void __cdecl AnySignedIn(int localClientNum, itemDef_s *item, OperandStack *dataStack)
@@ -8557,40 +8475,6 @@ void __cdecl GetDStat(int localClientNum, itemDef_s *item, OperandStack *dataSta
 
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-#ifdef KISAK_LIVE
-    searchState = *LiveStats_GetRootDDLState();
-    GetOperandList(dataStack, &list);
-    if ( GetSearchState(&searchState, &list, 0) )
-    {
-        controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-        if ( !searchState.member
-            && !Assert_MyHandler(
-                        "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_expressions_eval.cpp",
-                        7875,
-                        0,
-                        "%s",
-                        "searchState.member") )
-        {
-            __debugbreak();
-        }
-        if ( searchState.member->type == 5 )
-        {
-            result.dataType = VAL_STRING;
-            result.internals.intVal = (int)LiveStats_GetDStringStat(controllerIndex, &searchState);
-        }
-        else if ( searchState.member->type == 3 )
-        {
-            result.dataType = VAL_STRING;
-            LODWORD(v3) = LiveStats_GetDInt64Stat(controllerIndex, &searchState);
-            result.internals.intVal = (int)va("%llu", v3);
-        }
-        else
-        {
-            result.dataType = VAL_INT;
-            result.internals.intVal = LiveStats_GetDIntStat(controllerIndex, &searchState);
-        }
-    }
-#endif
     AddOperandToStack(dataStack, &result);
 }
 

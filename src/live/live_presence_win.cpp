@@ -63,44 +63,10 @@ int __cdecl Live_GetMapCount()
 
 void __cdecl Live_SetPlaylistVersion(int controllerIndex)
 {
-#ifdef KISAK_LIVE
-    int playlistVersion; // [esp+0h] [ebp-4h]
-
-    if ( dw_loggedin && dw_loggedin->current.enabled )
-    {
-        playlistVersion = Playlist_GetVersionNumber();
-        if ( g_matchmakingInfo->m_memberPLAYLIST_VERSION != playlistVersion )
-        {
-            Com_Printf(16, "Setting playlist version to %i for controller %i\n", playlistVersion, controllerIndex);
-            g_matchmakingInfo->m_memberPLAYLIST_VERSION = playlistVersion;
-            g_matchmakingInfo->m_dirty = 1;
-        }
-    }
-#endif
 }
 
 void __cdecl Live_SetPlaylistNum(int controllerIndex, int playlistNum)
 {
-#ifdef KISAK_LIVE
-    int PlaylistIdForNum; // eax
-
-    if ( dw_loggedin && dw_loggedin->current.enabled )
-    {
-        if ( g_matchmakingInfo->m_memberPLAYLIST != Playlist_GetPlaylistIdForNum(controllerIndex, playlistNum) )
-        {
-            PlaylistIdForNum = Playlist_GetPlaylistIdForNum(controllerIndex, playlistNum);
-            Com_Printf(16, "Setting playlistId to %i for controller %i\n", PlaylistIdForNum, controllerIndex);
-            g_matchmakingInfo->m_memberPLAYLIST = Playlist_GetPlaylistIdForNum(controllerIndex, playlistNum);
-            g_matchmakingInfo->m_dirty = 1;
-        }
-        if ( g_matchmakingInfo->m_memberGAME_MODE != playlistNum )
-        {
-            Com_Printf(16, "Setting GAME_MODE to %i for controller %i\n", playlistNum, controllerIndex);
-            g_matchmakingInfo->m_memberGAME_MODE = playlistNum;
-            g_matchmakingInfo->m_dirty = 1;
-        }
-    }
-#endif
 }
 
 int __cdecl Live_GetMapIndex()

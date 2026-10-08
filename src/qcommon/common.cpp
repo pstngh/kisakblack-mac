@@ -1803,9 +1803,6 @@ void __cdecl Com_Init_Try_Block_Function(char *commandLine)
     Con_InitChannels();
     TaskManager2_Init();
 
-#ifdef KISAK_LIVE
-    dwInit();
-#endif
 
     DDL_Init();
     Com_InitClientGameStates();
@@ -2921,9 +2918,6 @@ unsigned int Com_Frame_Try_Block_Function()
     if (IsDedicatedServer())
     {
         Phys_RunToTime(svsHeader.time);
-#ifdef KISAK_LIVE
-        DWDedicatedLobbyPump();
-#endif
     }
     else
     {
