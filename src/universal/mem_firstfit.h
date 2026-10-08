@@ -1,9 +1,12 @@
 #pragma once
 #include "mem_userhunk.h"
+#include <universal/ptr32.h>
 
+// The allocator also treats nodes as pairs of 32-bit words, so `next` stays
+// 4 bytes (Ptr32) on 64-bit builds.
 struct _firstfit_heapnode // sizeof=0x8
 {                                       // XREF: FIRSTFIT_HEAPNODE/r
-    _firstfit_heapnode *next;
+    Ptr32<_firstfit_heapnode> next;
     int size;
 };
 

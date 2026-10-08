@@ -16,6 +16,9 @@
 //   - Either way an encoding keeps the pointer's low 4 bits, so alignment checks
 //     on an encoded value (`(int)p & 15`) still hold.
 //   - The fastfile loader's markers ((T *)-1, (T *)-2, ...) encode as themselves.
+//   - So does any "pointer" below 4 GB: none exists on macOS (the 4 GB
+//     __PAGEZERO), so it is an integer the decompiled code typed as a pointer
+//     (a byte count, an index), and its value must survive `(int)Encode(p)`.
 //
 //   0                              null
 //   [1, PTR32_LINEAR_LIMIT)        offset from Ptr32_Base()
@@ -49,8 +52,21 @@ extern "C" const char kisak_image_base __asm("__executable_start");
 inline uintptr_t Ptr32_Base() { return (uintptr_t)&kisak_image_base; }
 
 extern void *const *g_ptr32Handles;
+extern uint32_t g_ptr32HandleCount;
 
 uint32_t Ptr32_EncodeSlow(const void *p);
+
+// A value in the handle range that no handle was issued for decodes to itself:
+// the loader tests raw on-disk offsets (blocks 4-6 are >= 0x80000000) for
+// null and -1 before converting them. Below 4 GB nothing is mapped, so a
+// dereference of such a value still faults.
+inline void *Ptr32_DecodeHandle(uint32_t v)
+{
+    uint32_t index = (v - PTR32_LINEAR_LIMIT) >> 4;
+    if (index < __atomic_load_n(&g_ptr32HandleCount, __ATOMIC_ACQUIRE))
+        return g_ptr32Handles[index];
+    return (void *)(uintptr_t)v;
+}
 
 inline void *Ptr32_Decode(uint32_t v)
 {
@@ -58,7 +74,7 @@ inline void *Ptr32_Decode(uint32_t v)
         return v ? (void *)(Ptr32_Base() + v) : nullptr;
     if (v >= PTR32_SENTINEL_FIRST)
         return (void *)(intptr_t)(int32_t)v;
-    return g_ptr32Handles[(v - PTR32_LINEAR_LIMIT) >> 4];
+    return Ptr32_DecodeHandle(v);
 }
 
 inline uint32_t Ptr32_Encode(const void *p)

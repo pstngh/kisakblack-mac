@@ -54,5 +54,5 @@ int __cdecl StringTable_Find(
 int __cdecl StringTable_RowCount(const StringTable *table);
 int __cdecl StringTable_ColumnCount(const StringTable *table);
 int __cdecl StringTable_Checksum(const StringTable *table, unsigned int initialCrc);
-void __cdecl StringTable_GetAsset_FastFile(const char *filename, XAssetHeader *tablePtr);
-void __cdecl StringTable_GetAsset(const char *filename, XAssetHeader *tablePtr);
+void __cdecl StringTable_GetAsset_FastFile(const char *filename, StringTable **tablePtr);
+void __cdecl StringTable_GetAsset(const char *filename, StringTable **tablePtr);

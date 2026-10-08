@@ -34,7 +34,7 @@ enum statsMilestoneTypes_t : __int32
 };
 
 int __cdecl CL_GetMilestoneRowNum(
-                XAssetHeader *stringTable,
+                StringTable **stringTable,
                 int comparisonColumn1,
                 const char *value1,
                 int comparisonColumn2,

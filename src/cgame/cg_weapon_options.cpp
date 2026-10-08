@@ -37,7 +37,7 @@ void __thiscall WeaponOptions::InitWeaponOptionTextures(
     int nRows; // [esp+Ch] [ebp-204h]
     int rows[128]; // [esp+10h] [ebp-200h] BYREF
 
-    StringTable_GetAsset(tableName, (XAssetHeader *)&tablePtr);
+    StringTable_GetAsset(tableName, (StringTable **)&tablePtr);
     if ( num >= 0x80
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame_mp\\cg_weapon_options.cpp",
@@ -67,7 +67,7 @@ void __thiscall WeaponOptions::InitWeaponOptionMaterials(
     int nRows; // [esp+24h] [ebp-204h]
     int rows[128]; // [esp+28h] [ebp-200h] BYREF
 
-    StringTable_GetAsset(tableName, (XAssetHeader *)&tablePtr);
+    StringTable_GetAsset(tableName, (StringTable **)&tablePtr);
     if ( num >= 0x80
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame_mp\\cg_weapon_options.cpp",
@@ -124,7 +124,7 @@ void __thiscall WeaponOptions::InitWeaponOptionColors(
         v7[2] = -1.0f;
         v7[3] = -1.0f;
     }
-    StringTable_GetAsset(tableName, (XAssetHeader *)&tablePtr);
+    StringTable_GetAsset(tableName, (StringTable **)&tablePtr);
     nRows = StringTable_Find(tablePtr, rows, 16, labelCol, label, -1, 0);
     for ( j = 0; j < nRows; ++j )
     {
@@ -188,7 +188,7 @@ void __thiscall WeaponOptions::InitWeaponOptions()
         0x40u);
     WeaponOptions::InitWeaponOptionColors("mp/bodyHeadTable.csv", "pattern_color", 1, 3, this->facepaintColors);
     this->numWeaponOverrides = 0;
-    StringTable_GetAsset("mp/weaponoptions.csv", (XAssetHeader *)&tablePtr);
+    StringTable_GetAsset("mp/weaponoptions.csv", (StringTable **)&tablePtr);
     goldRow = StringTable_LookupRowNumForValue(tablePtr, 1, "gold");
     if ( goldRow != -1 )
     {
@@ -325,7 +325,7 @@ void __thiscall WeaponOptions::WeaponOverride::Init(const WeaponVariantDef *weap
     const StringTable *tablePtr; // [esp+4h] [ebp-8h] BYREF
     int row; // [esp+8h] [ebp-4h]
 
-    StringTable_GetAsset("mp/weaponoptions.csv", (XAssetHeader *)&tablePtr);
+    StringTable_GetAsset("mp/weaponoptions.csv", (StringTable **)&tablePtr);
     this->lastFrame = com_frameNumber;
     this->weapon = weapVarDef;
     row = StringTable_LookupRowNumForValue(tablePtr, 1, "weapon", 2, weapVarDef->weapDef->parentWeaponName, -1, 0);

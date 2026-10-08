@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 void *const *g_ptr32Handles;
+uint32_t g_ptr32HandleCount;
 
 namespace
 {
@@ -35,7 +36,6 @@ std::map<uintptr_t, size_t> &FreeRanges()
 std::map<uintptr_t, size_t> &LiveRanges() { static std::map<uintptr_t, size_t> m; return m; }
 
 void **g_handleTable;
-uint32_t g_handleCount;
 
 [[noreturn]] void Ptr32_Fatal(const char *msg)
 {
@@ -233,6 +233,9 @@ uint32_t Ptr32_EncodeSlow(const void *p)
     intptr_t s = (intptr_t)p;
     if (s < 0 && s >= -(intptr_t)(0x100000000ull - PTR32_SENTINEL_FIRST))
         return (uint32_t)s;
+    // An integer the decompiled code keeps in a pointer type (see ptr32.h).
+    if ((uintptr_t)p <= 0xFFFFFFFFu)
+        return (uint32_t)(uintptr_t)p;
 
     std::lock_guard<std::mutex> lock(HandleMutex());
     static std::unordered_map<const void *, uint32_t> s_handles;
@@ -247,11 +250,11 @@ uint32_t Ptr32_EncodeSlow(const void *p)
         g_handleTable = (void **)t;
         __atomic_store_n(&g_ptr32Handles, (void *const *)g_handleTable, __ATOMIC_RELEASE);
     }
-    if (g_handleCount >= HANDLE_CAPACITY || g_handleCount >= (PTR32_SENTINEL_FIRST - PTR32_LINEAR_LIMIT) >> 4)
+    if (g_ptr32HandleCount >= HANDLE_CAPACITY || g_ptr32HandleCount >= (PTR32_SENTINEL_FIRST - PTR32_LINEAR_LIMIT) >> 4)
         Ptr32_Fatal("handle table full");
-    uint32_t v = PTR32_LINEAR_LIMIT + (g_handleCount << 4) + ((uintptr_t)p & 15);
-    __atomic_store_n(&g_handleTable[g_handleCount], (void *)p, __ATOMIC_RELEASE);
-    ++g_handleCount;
+    uint32_t v = PTR32_LINEAR_LIMIT + (g_ptr32HandleCount << 4) + ((uintptr_t)p & 15);
+    g_handleTable[g_ptr32HandleCount] = (void *)p;
+    __atomic_store_n(&g_ptr32HandleCount, g_ptr32HandleCount + 1, __ATOMIC_RELEASE);
     s_handles.emplace(p, v);
     return v;
 }

@@ -1853,7 +1853,7 @@ XAssetEntryPoolEntry *__cdecl DB_AllocXAssetEntry(XAssetType type, unsigned __in
     }
     if ( ++XAssetEntryHighCount > XAssetEntryHighWaterMark )
         XAssetEntryHighWaterMark = XAssetEntryHighCount;
-    g_freeAssetEntryHead = (XAssetEntryPoolEntry *)freeHead->entry.asset.type;
+    g_freeAssetEntryHead = freeHead->next;
     freeHead->entry.asset.type = type;
     freeHead->entry.asset.header = DB_AllocXAssetHeader(type);
     freeHead->entry.zoneIndex = zoneIndex;

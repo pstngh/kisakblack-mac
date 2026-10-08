@@ -215,7 +215,7 @@ void __cdecl LiveStats_SetItemStat(
                 char *buffer,
                 unsigned int value);
 int __cdecl LiveStats_GetMilestoneRowNum(
-                XAssetHeader *statsMilestonestable,
+                StringTable **statsMilestonestable,
                 int currentMilestone,
                 const char *statType,
                 const char *statName);

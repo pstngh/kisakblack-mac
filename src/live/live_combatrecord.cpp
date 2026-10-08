@@ -264,7 +264,7 @@ void __cdecl LiveCombatRecord_Init()
     int currGameTypeLbIndex; // [esp+8h] [ebp-8h]
     const char *currGameTypeName; // [esp+Ch] [ebp-4h]
 
-    StringTable_GetAsset("mp/gametypesTable.csv", (XAssetHeader *)&gameTypesTable);
+    StringTable_GetAsset("mp/gametypesTable.csv", (StringTable **)&gameTypesTable);
     if ( !gameTypesTable
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_combatrecord.cpp",

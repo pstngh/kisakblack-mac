@@ -1886,7 +1886,7 @@ const char *__cdecl Script_TableLookupParse(UiContext *dc, const char **args)
     while ( !I_stricmp(arg, ",") || !I_stricmp(arg, "(") );
     if ( I_stricmp(arg, "dvarString") && I_stricmp(arg, "dvarstring") )
     {
-        StringTable_GetAsset(arg, (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset(arg, (StringTable **)&tablePtr);
     }
     else
     {
@@ -1894,7 +1894,7 @@ const char *__cdecl Script_TableLookupParse(UiContext *dc, const char **args)
             String_Parse(args, arg, 1024);
         while ( !I_stricmp(arg, "(") );
         String = Dvar_GetString(arg);
-        StringTable_GetAsset(String, (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset(String, (StringTable **)&tablePtr);
         String_Parse(args, arg, 1024);
     }
     do

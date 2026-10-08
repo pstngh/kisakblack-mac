@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
     }
     fprintf(stderr, "[KisakBlack] boot: cmdline=\"%s\"\n", cmdline);
     signal(SIGILL, CrashHandler); signal(SIGSEGV, CrashHandler); signal(SIGABRT, CrashHandler);
+    signal(SIGBUS, CrashHandler);   // macOS reports some bad accesses as SIGBUS
 
     Sys_InitializeCriticalSections();
     Sys_InitMainThread();

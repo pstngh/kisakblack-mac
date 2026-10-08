@@ -3437,7 +3437,7 @@ void __cdecl ConDrawInput_AutoCompleteArg(const char **stringList, int stringCou
         }
         if ( matchCount )
         {
-            qsort(matches, matchCount, 4u, (int (__cdecl *)(const void *, const void *))ConDrawInput_CompareStrings);
+            qsort(matches, matchCount, sizeof(matches[0]), (int (__cdecl *)(const void *, const void *))ConDrawInput_CompareStrings);
             consoleFont = cls.consoleFont;
             ArgChar = ConDrawInput_TextFieldFirstArgChar();
             x = (float)((float)R_TextWidth(g_consoleField.buffer, ArgChar, consoleFont) + conDrawInputGlob.leftX) - 6.0;
@@ -4110,9 +4110,9 @@ void __cdecl Con_Restricted_InitLists()
     Con_Restricted_ShutDown();
     LicenseType = SV_GetLicenseType();
     if ( SV_IsServerRanked(LicenseType) )
-        StringTable_GetAsset("mp/devconsole_restrict_access_dedicated_ranked_mp.csv", (XAssetHeader *)&table);
+        StringTable_GetAsset("mp/devconsole_restrict_access_dedicated_ranked_mp.csv", (StringTable **)&table);
     else
-        StringTable_GetAsset("mp/devconsole_restrict_access_dedicated_mp.csv", (XAssetHeader *)&table);
+        StringTable_GetAsset("mp/devconsole_restrict_access_dedicated_mp.csv", (StringTable **)&table);
     if ( table )
     {
         Con_Restricted_LoadTable(table);

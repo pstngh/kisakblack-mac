@@ -40,6 +40,15 @@ to what it was before.
 
 On 32-bit builds `Ptr32<T>` is `T*` and the two functions are casts.
 
+Two encoding details matter in practice:
+
+- A "pointer" below 4 GB encodes as itself. Nothing is mapped there on macOS
+  (the 4 GB `__PAGEZERO`), so it is an integer the decompiled code typed as a
+  pointer (a byte count, an index) and must survive `(int)Encode(p)`.
+- A value in the handle range that no handle was issued for decodes to itself.
+  The fastfile loader tests raw on-disk offsets (blocks 4-6 are >= 0x80000000)
+  for null and -1 before converting them.
+
 ## Rules for code that touches pointers
 
 1. Keep 32-bit builds compiling and identical. Never write `.v` or `.get()` on a
@@ -60,7 +69,24 @@ On 32-bit builds `Ptr32<T>` is `T*` and the two functions are casts.
    per variable: always-encoded 32-bit values, or pointer-sized atomics (8-byte
    aligned on arm64).
 7. Plain `long` is 8 bytes on macOS (4 on Windows). Casting an `int *` to
-   `unsigned long *` (e.g. for `_BitScanReverse`) writes 8 bytes into 4.
+   `unsigned long *` (e.g. for `_BitScanReverse`) writes 8 bytes into 4, and a
+   `long` counter "decremented" with `0xFFFFFFFF` grows by 4 billion instead
+   (this deadlocked every FastCriticalSection).
+8. A function called through a cast function pointer must really return what the
+   pointer type says: on arm64 an `int` return does not fill a pointer register
+   (the hunk allocators returned encoded ints through `void *(*)()`; they now go
+   through typed adapters).
+9. The decompiler aliases fields through other fields: negative indices
+   (`scene.dynSModelVisBitsCamera[i - 13]` is `scene.dpvs.entVisData[i]`),
+   `&objBuf[1758][2]` meaning the constant 0x4000000, `_user[1].flags` meaning a
+   field after a `HunkUser` header. Find the real field from the i386 layout
+   (`tools/layout_diff.py`, or clang's `-fdump-record-layouts`) and name it.
+10. Pointers kept in enum fields are not caught by `-Wint-to-pointer-cast`
+   (`(T *)entry->asset.type` was the asset free list).
+
+Runtime structs that the code addresses by raw 32-bit offsets keep their i386
+layout too: `centity_s` (205 sites) has `Ptr32` pointer fields and a strict size
+assert on every build. `tools/audit_rawofs.py` lists such structs.
 
 The macOS build turns the relevant warnings into errors: pointer <-> 32-bit int
 casts both ways, and `Ptr32` objects passed through varargs (`printf`).
@@ -75,3 +101,11 @@ casts both ways, and `Ptr32` objects passed through varargs (`printf`).
 - `tools/fix_ptr_casts.py <build_dir> <file.cpp>...` rewrites the mechanical
   cases (int <-> pointer casts, Ptr32 through varargs) that clang reports, and
   lists the casts to `T **` for a decision.
+- Audits for what the compiler accepts (need Homebrew LLVM's clang-query):
+  - `tools/audit_64bit.py`: `*(int *)&ptr`, `(T **)&ptr32Slot`, `(T *)enumValue`.
+  - `tools/audit_rawofs.py`: structs addressed as `(int *)p + N`.
+  - `tools/audit_allocs.py`, `tools/audit_memlit.py`, `tools/audit_qsort.py`:
+    allocations, memset/memcpy and qsort/bsearch sized with a 32-bit sizeof.
+  When the dedicated server first booted, all but `audit_rawofs.py` (a listing,
+  not a check) were clean apart from three allocation hits in commented-out or
+  `#if 0` code (mem_track.cpp, jobqueue_all.cpp).

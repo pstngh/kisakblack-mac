@@ -334,7 +334,7 @@ void R_AddCellSceneEntSurfacesInFrustumCmd(GfxWorldDpvsPlanes *data)
     {
         __debugbreak();
     }
-    entInfo = (GfxEntCellRefInfo *)Ptr32_Decode(scene.dynSModelVisBitsCamera[localClientNum - 4]);
+    entInfo = (GfxEntCellRefInfo *)scene.dpvs.entInfo[localClientNum];
     sceneXModelIndex = scene.dpvs.sceneXModelIndex;
     sceneDObjIndex = scene.dpvs.sceneDObjIndex;
     viewIndex = dpvsCell->viewIndex;

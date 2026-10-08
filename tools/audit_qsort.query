@@ -1,0 +1,3 @@
+set output dump
+set bind-root false
+match callExpr(callee(functionDecl(hasAnyName("qsort", "bsearch"))), hasArgument(0, ignoringParenImpCasts(expr().bind("base"))), hasAnyArgument(ignoringParenImpCasts(integerLiteral().bind("n"))))

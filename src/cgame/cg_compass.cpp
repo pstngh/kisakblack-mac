@@ -3331,7 +3331,7 @@ void __cdecl CG_SetGridTable()
     if ( !G_ExitAfterToolComplete() )
     {
         memset(gridPointStatus, 0, sizeof(gridPointStatus));
-        StringTable_GetAsset("mp/gridPointsTable.csv", (XAssetHeader *)&gridStringTable);
+        StringTable_GetAsset("mp/gridPointsTable.csv", (StringTable **)&gridStringTable);
         if ( !gridStringTable
             && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\cgame\\cg_compass.cpp", 2260, 0, "%s", "gridStringTable") )
         {

@@ -601,7 +601,7 @@ void __cdecl CG_ScoreboardTeamColor(int localClientNum, int team, float *color)
         UIContextIndex = Com_LocalClient_GetUIContextIndex(localClientNum);
         LocalVarsContext = UI_UIContext_GetLocalVarsContext(UIContextIndex);
         var = UILocalVar_Find(LocalVarsContext, "ui_team");
-        StringTable_GetAsset("mp/mapsTable.csv", (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset("mp/mapsTable.csv", (StringTable **)&tablePtr);
         String = Dvar_GetString("mapname");
         StringTable_Lookup(tablePtr, 0, String, 1);
         switch ( team )

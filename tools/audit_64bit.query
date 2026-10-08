@@ -1,3 +1,4 @@
 set output diag
 match unaryOperator(hasOperatorName("*"), hasUnaryOperand(ignoringParens(explicitCastExpr(hasDestinationType(pointerType(pointee(isInteger()))), hasSourceExpression(ignoringParenImpCasts(unaryOperator(hasOperatorName("&"), hasUnaryOperand(ignoringParenImpCasts(expr(hasType(pointerType())))))))))))
 match explicitCastExpr(hasDestinationType(pointerType(pointee(pointerType()))), hasSourceExpression(ignoringParenImpCasts(expr(hasType(pointerType(pointee(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("Ptr32"))))))))))))
+match explicitCastExpr(hasDestinationType(pointerType()), hasSourceExpression(ignoringParenImpCasts(expr(hasType(hasUnqualifiedDesugaredType(enumType()))))))

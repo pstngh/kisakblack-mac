@@ -1047,7 +1047,7 @@ void __cdecl UI_Gametype_SetupCustomModeNameAndDesc()
     const char *gameType; // [esp+8h] [ebp-4h]
 
     Dvar_SetString((dvar_s *)ui_customModeName, "");
-    StringTable_GetAsset("mp/gametypesTable.csv", (XAssetHeader *)&gameTypeTable);
+    StringTable_GetAsset("mp/gametypesTable.csv", (StringTable **)&gameTypeTable);
     if ( !gameTypeTable
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\ui_mp\\ui_gametype_custom_mp.cpp",

@@ -3,6 +3,18 @@
 #include "assertive.h"
 #include <win32/win_common.h>
 
+// FIRSTFIT_HUNKUSER: 32 bytes on 32-bit builds, where the decompiled code
+// addressed these fields as _user[1].scheme/flags/name/type.
+struct FirstFitHunk
+{
+    HunkUser user;
+    unsigned int size;        // _user[1].scheme
+    unsigned int freeBlocks;  // hunk->freeBlocks: encoded first free node
+    int reserved;             // _user[1].name
+    int used;                 // hunk->used
+};
+static_assert(sizeof(void *) != 4 || sizeof(FirstFitHunk) == 32);
+
 HunkUser *__cdecl Hunk_FirstFitInit(
                 unsigned int *buffer,
                 unsigned int size,
@@ -22,7 +34,7 @@ HunkUser *__cdecl Hunk_FirstFitInit(
     {
         __debugbreak();
     }
-    if ( size <= 0x28
+    if ( size <= sizeof(FirstFitHunk) + sizeof(_firstfit_heapnode)
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\mem_firstfit.cpp",
                     50,
@@ -32,25 +44,29 @@ HunkUser *__cdecl Hunk_FirstFitInit(
     {
         __debugbreak();
     }
-    buffer[2] = (unsigned int)Ptr32_Encode(name);
-    *buffer = scheme;
-    buffer[1] = flags;
-    buffer[3] = type;
-    buffer[6] = -1;
-    buffer[4] = size;
-    buffer[5] = (unsigned int)Ptr32_Encode(buffer + 8);
-    *(unsigned int *)Ptr32_Decode(buffer[5]) = 0;
-    *(unsigned int *)Ptr32_Decode(buffer[5] + 4) = buffer[4] - 32;
-    buffer[7] = 32;
-    return (HunkUser *)buffer;
+    FirstFitHunk *hunk = (FirstFitHunk *)buffer;
+    _firstfit_heapnode *first = (_firstfit_heapnode *)(hunk + 1);
+    hunk->user.name = name;
+    hunk->user.scheme = scheme;
+    hunk->user.flags = flags;
+    hunk->user.type = type;
+    hunk->reserved = -1;
+    hunk->size = size;
+    hunk->freeBlocks = Ptr32_Encode(first);
+    first->next = 0;
+    first->size = size - sizeof(FirstFitHunk);
+    hunk->used = sizeof(FirstFitHunk);
+    return &hunk->user;
 }
 
 void __cdecl Hunk_FirstFitReset(HunkUser *_user)
 {
-    _user[1].flags = (unsigned int)Ptr32_Encode(&_user[2]);
-    *(unsigned int *)Ptr32_Decode(_user[1].flags) = 0;
-    *(unsigned int *)Ptr32_Decode(_user[1].flags + 4) = _user[1].scheme - 32;
-    _user[1].type = 32;
+    FirstFitHunk *hunk = (FirstFitHunk *)_user;
+    _firstfit_heapnode *first = (_firstfit_heapnode *)(hunk + 1);
+    hunk->freeBlocks = Ptr32_Encode(first);
+    first->next = 0;
+    first->size = hunk->size - sizeof(FirstFitHunk);
+    hunk->used = sizeof(FirstFitHunk);
 }
 
 void __cdecl Hunk_FirstFitDestroy(HunkUser *_user)
@@ -59,14 +75,16 @@ void __cdecl Hunk_FirstFitDestroy(HunkUser *_user)
     _user->flags = 0;
     _user->name = 0;
     _user->type = 0;
-    _user[1].scheme = HU_SCHEME_DEFAULT;
-    _user[1].flags = 0;
-    _user[1].name = 0;
-    _user[1].type = 0;
+    FirstFitHunk *hunk = (FirstFitHunk *)_user;
+    hunk->size = 0;
+    hunk->freeBlocks = 0;
+    hunk->reserved = 0;
+    hunk->used = 0;
 }
 
 int __cdecl Hunk_FirstFitAlloc(HunkUser *_user, int size, int alignment)
 {
+    FirstFitHunk *hunk = (FirstFitHunk *)_user;
     unsigned int *free_link; // [esp+10h] [ebp-20h]
     int adj_size; // [esp+18h] [ebp-18h]
     _firstfit_heapnode *last; // [esp+2Ch] [ebp-4h]
@@ -77,7 +95,7 @@ int __cdecl Hunk_FirstFitAlloc(HunkUser *_user, int size, int alignment)
         __debugbreak();
     }
     Sys_EnterCriticalSection(CRITSECT_MEMFIRSTFIT);
-    free_link = (unsigned int *)Ptr32_Decode(_user[1].flags);
+    free_link = (unsigned int *)Ptr32_Decode(hunk->freeBlocks);
     last = 0;
     while ( 1 )
     {
@@ -105,16 +123,17 @@ LABEL_16:
     if ( last )
         last->next = (_firstfit_heapnode *)Ptr32_Decode(*free_link);
     else
-        _user[1].flags = *free_link;
+        hunk->freeBlocks = *free_link;
     *free_link = -559038737;
     *(unsigned int *)Ptr32_Decode((~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11)) - 12 + 8) = (unsigned int)Ptr32_Encode(free_link);
-    _user[1].type += free_link[1];
+    hunk->used += free_link[1];
     Sys_LeaveCriticalSection(CRITSECT_MEMFIRSTFIT);
     return ~(alignment - 1) & ((unsigned int)Ptr32_Encode(free_link) + alignment + 11);
 }
 
 void __cdecl Hunk_FirstFitFree(HunkUser *_user, unsigned int *ptr)
 {
+    FirstFitHunk *hunk = (FirstFitHunk *)_user;
     _firstfit_heapnode *free_link; // [esp+0h] [ebp-14h]
     _firstfit_heapnode *scan; // [esp+8h] [ebp-Ch]
     _firstfit_heapnode *last; // [esp+10h] [ebp-4h]
@@ -123,12 +142,12 @@ void __cdecl Hunk_FirstFitFree(HunkUser *_user, unsigned int *ptr)
     {
         Sys_EnterCriticalSection(CRITSECT_MEMFIRSTFIT);
         last = 0;
-        scan = (_firstfit_heapnode *)Ptr32_Decode(_user[1].flags);
+        scan = (_firstfit_heapnode *)Ptr32_Decode(hunk->freeBlocks);
         free_link = (_firstfit_heapnode *)Ptr32_Decode(*(ptr - 1));
-        if ( free_link->next == (_firstfit_heapnode *)-559038737 )
+        if ( Ptr32_Raw(free_link->next) == 0xDEADBEEF )   // the allocated-block marker
         {
-            _user[1].type -= free_link->size;
-            if ( !_user[1].flags
+            hunk->used -= free_link->size;
+            if ( !hunk->freeBlocks
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\universal\\mem_firstfit.cpp",
                             178,
@@ -149,8 +168,8 @@ void __cdecl Hunk_FirstFitFree(HunkUser *_user, unsigned int *ptr)
                     }
                     else
                     {
-                        free_link->next = (_firstfit_heapnode *)Ptr32_Decode(_user[1].flags);
-                        _user[1].flags = (unsigned int)Ptr32_Encode(free_link);
+                        free_link->next = (_firstfit_heapnode *)Ptr32_Decode(hunk->freeBlocks);
+                        hunk->freeBlocks = (unsigned int)Ptr32_Encode(free_link);
                     }
                     if ( last && (_firstfit_heapnode *)((char *)last + last->size) == free_link )
                     {

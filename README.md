@@ -37,8 +37,9 @@ The executable is written to `build_linux/blackops`.
 
 ### macOS (Apple Silicon) / OpenGL
 
-Work in progress: the native arm64 port does not build yet. Install Xcode and the
-Homebrew dependencies, then configure:
+Work in progress: the native arm64 build links and the dedicated server boots;
+loading a map and the client are not tested yet. Install Xcode and the Homebrew
+dependencies, then build:
 
 ```sh
 brew install cmake ninja ccache sdl2 glew openal-soft speex libvpx sse2neon

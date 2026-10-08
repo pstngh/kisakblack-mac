@@ -647,7 +647,7 @@ void __cdecl UI_ServersSort(__int64 column)
         qsort(
             &sharedUiInfo.serverStatusInfo.lines[31][1],
             sharedUiInfo.serverStatus.numDisplayServers,
-            4u,
+            sizeof(*(&sharedUiInfo.serverStatusInfo.lines[31][1])),
             (int(__cdecl *)(const void *, const void *))UI_ServersQsortCompare);
     }
 }

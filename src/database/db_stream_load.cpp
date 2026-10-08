@@ -86,10 +86,10 @@ void __cdecl DB_ConvertOffsetToPointer(unsigned int *data)
 
 void __cdecl Load_XStringCustom(Ptr32<const char> *str)
 {
-    unsigned __int8 *numBytesLoaded; // [esp+4h] [ebp-8h]
+    unsigned int numBytesLoaded; // [esp+4h] [ebp-8h]
 
     numBytesLoaded = DB_LoadXFileDataNullTerminated((unsigned __int8 *)*str);
-    DB_IncStreamPos((int)Ptr32_Encode(numBytesLoaded));
+    DB_IncStreamPos((int)numBytesLoaded);
 }
 
 void __cdecl Load_TempStringCustom(Ptr32<const char> *str)

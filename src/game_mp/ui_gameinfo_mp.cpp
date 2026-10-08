@@ -388,7 +388,9 @@ void __cdecl UI_LoadMaps()
     int count; // [esp+38h] [ebp-4h]
 
     I_strncpyz(tableName, "mp/mapsTable.csv", 18);
-    StringTable_GetAsset(tableName, &table);
+    StringTable *tablePtr;
+    StringTable_GetAsset(tableName, &tablePtr);
+    table.stringTable = tablePtr;
     if (!table.xmodelPieces
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ui_mp\\ui_gameinfo_mp.cpp", 434, 0, "%s", "table"))
     {
@@ -443,7 +445,7 @@ void __cdecl UI_LoadCustomMatchGameTypes()
     char index[4]; // [esp+24h] [ebp-4h] BYREF
 
     I_strncpyz(tableName, "mp/gametypesTable.csv", 23);
-    StringTable_GetAsset(tableName, (XAssetHeader *)&table);
+    StringTable_GetAsset(tableName, (StringTable **)&table);
     if ( !table
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ui_mp\\ui_gameinfo_mp.cpp", 486, 0, "%s", "table") )
     {

@@ -12,7 +12,7 @@
 #include <cgame_mp/cg_draw_mp.h>
 
 int __cdecl CL_GetMilestoneRowNum(
-                XAssetHeader *stringTable,
+                StringTable **stringTable,
                 int comparisonColumn1,
                 const char *value1,
                 int comparisonColumn2,
@@ -44,7 +44,7 @@ int __cdecl CL_GetMilestoneRowNum(
         if ( stringTable )
         {
             milestoneTableRow = StringTable_LookupRowNumForValue(
-                                                        stringTable->stringTable,
+                                                        *stringTable,
                                                         comparisonColumn1,
                                                         value1,
                                                         comparisonColumn2,
@@ -78,7 +78,7 @@ const char *__cdecl CL_GetMilestoneData(const char *indexName, milestoneTableCol
     }
     if ( !indexName )
         return 0;
-    milestoneTableRow = CL_GetMilestoneRowNum((XAssetHeader *)&milestoneTable, 0, indexName, -1, 0, -1, 0);
+    milestoneTableRow = CL_GetMilestoneRowNum((StringTable **)&milestoneTable, 0, indexName, -1, 0, -1, 0);
     if ( milestoneTable )
     {
         if ( milestoneTableRow != -1 )
@@ -282,7 +282,7 @@ char __cdecl CL_GetMilestoneLocalizedName(
     if ( !statName )
         return 0;
     v9 = va("%d", milestoneTier);
-    if ( CL_GetMilestoneRowNum((XAssetHeader *)&stringTable, 4, statName, 1, v9, -1, 0) == -1 )
+    if ( CL_GetMilestoneRowNum((StringTable **)&stringTable, 4, statName, 1, v9, -1, 0) == -1 )
         --milestoneTier;
     switch ( milestoneType )
     {
@@ -451,7 +451,7 @@ char __cdecl PrepareGlobalChallengeName(const char *name, char *outputString, in
         v6 = UI_SafeTranslateString(name);
         Com_sprintf(outputString, stringLength, "%s", v6);
     }
-    if ( CL_GetMilestoneRowNum((XAssetHeader *)&stringTable, 4, name, 1, "1", -1, 0) != -1 )
+    if ( CL_GetMilestoneRowNum((StringTable **)&stringTable, 4, name, 1, "1", -1, 0) != -1 )
     {
         CL_MilestoneTier_DecToRoman(milestoneTier, milestoneTierRoman, 5);
         Com_sprintf(outputString, stringLength, "%s %s", outputString, milestoneTierRoman);
@@ -817,7 +817,7 @@ char __cdecl PrepareGameModeChallengeName(
         Com_sprintf(outputString, stringLength, "%s %s", gameModeLocalizedString, challengeName);
     else
         Com_sprintf(outputString, stringLength, "%s", challengeName);
-    if ( CL_GetMilestoneRowNum((XAssetHeader *)&stringTable, 4, name, 1, "1", -1, 0) != -1 )
+    if ( CL_GetMilestoneRowNum((StringTable **)&stringTable, 4, name, 1, "1", -1, 0) != -1 )
     {
         CL_MilestoneTier_DecToRoman(tierId, milestoneTierRoman, 5);
         Com_sprintf(outputString, stringLength, "%s %s", outputString, milestoneTierRoman);
@@ -1628,7 +1628,7 @@ void __cdecl CL_GetMilestoneBackingMaterial(
             Com_sprintf(backingMaterialName, stringLength, "%s", "hud_medal_burst");
             if ( perkName && StringBeginsWith("perks_", statName) )
             {
-                StringTable_GetAsset("mp/statstable.csv", (XAssetHeader *)&statsTable);
+                StringTable_GetAsset("mp/statstable.csv", (StringTable **)&statsTable);
                 if ( !statsTable
                     && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_milestone.cpp",
@@ -1705,7 +1705,7 @@ void __cdecl CL_GetMilestoneMaterial(char *materialName, int stringLength, const
             Com_sprintf(materialName, stringLength, "%s", "menu_mp_lobby_aar_award_challenge");
             if ( perkName && StringBeginsWith("perks_", statName) )
             {
-                StringTable_GetAsset("mp/statstable.csv", (XAssetHeader *)&statsTable);
+                StringTable_GetAsset("mp/statstable.csv", (StringTable **)&statsTable);
                 if ( !statsTable
                     && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_milestone.cpp",

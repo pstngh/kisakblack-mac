@@ -9477,7 +9477,7 @@ void Scr_TableLookupRowNum()
         if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) < 2 )
             Scr_Error("USAGE: tableLookupRowNum( filename, searchColumnNum, searchValue )\n", 0);
         filename = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-        StringTable_GetAsset(filename, (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset(filename, (StringTable **)&tablePtr);
         comparisonColumn = Scr_GetInt(1u, SCRIPTINSTANCE_SERVER);
         stringValue = Scr_GetString(2u, SCRIPTINSTANCE_SERVER);
         returnValueRow = StringTable_LookupRowNumForValue(tablePtr, comparisonColumn, stringValue);
@@ -9503,7 +9503,7 @@ void Scr_TableLookupColumnForRow()
         if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) < 2 )
             Scr_Error("USAGE: tableLookupColumnForRow( filename, row, column )\n", 0);
         filename = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-        StringTable_GetAsset(filename, (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset(filename, (StringTable **)&tablePtr);
         row = Scr_GetInt(1u, SCRIPTINSTANCE_SERVER);
         column = Scr_GetInt(2u, SCRIPTINSTANCE_SERVER);
         returnValue = (char *)StringTable_GetColumnValueForRow(tablePtr, row, column);
@@ -9530,7 +9530,7 @@ void Scr_TableLookup()
         if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) < 3 )
             Scr_Error("USAGE: tableLookup( filename, searchColumnNum, searchValue, returnValueColumnNum )\n", 0);
         filename = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-        StringTable_GetAsset(filename, (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset(filename, (StringTable **)&tablePtr);
         comparisonColumn = Scr_GetInt(1u, SCRIPTINSTANCE_SERVER);
         stringValue = Scr_GetString(2u, SCRIPTINSTANCE_SERVER);
         returnValueColumn = Scr_GetInt(3u, SCRIPTINSTANCE_SERVER);
@@ -9558,7 +9558,7 @@ void Scr_TableLookupIString()
         if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) < 3 )
             Scr_Error("USAGE: tableLookupIString( filename, searchColumnNum, searchValue, returnValueColumnNum )\n", 0);
         filename = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-        StringTable_GetAsset(filename, (XAssetHeader *)&tablePtr);
+        StringTable_GetAsset(filename, (StringTable **)&tablePtr);
         comparisonColumn = Scr_GetInt(1u, SCRIPTINSTANCE_SERVER);
         stringValue = Scr_GetString(2u, SCRIPTINSTANCE_SERVER);
         returnValueColumn = Scr_GetInt(3u, SCRIPTINSTANCE_SERVER);

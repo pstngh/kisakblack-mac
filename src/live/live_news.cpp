@@ -498,7 +498,7 @@ int __cdecl LiveNews_GetNextIndexForPublishingNews(PCachePublicProfile *profile,
     lowestPriorityIndex = 0;
     name = 0;
     weight = 0;
-    StringTable_GetAsset("mp/tickerWeights.csv", (XAssetHeader *)&table);
+    StringTable_GetAsset("mp/tickerWeights.csv", (StringTable **)&table);
     I_strncpyz(newsType, cmd_args->argv[cmd_args->nesting][1], 64);
     v2 = StringTable_Lookup(table, 0, newsType, 2);
     maximumNumMessagesAllowed = atoi(v2);
@@ -795,7 +795,7 @@ char __cdecl LiveNews_EvaluateCounter(int row, char *outputString, int stringLen
     int weight; // [esp+414h] [ebp-2Ch]
     ConversionArguments convArgs; // [esp+418h] [ebp-28h] BYREF
 
-    StringTable_GetAsset("mp/globalCounterRefs.csv", (XAssetHeader *)&countersTable);
+    StringTable_GetAsset("mp/globalCounterRefs.csv", (StringTable **)&countersTable);
     v3 = va("%d", row);
     v4 = StringTable_Lookup(countersTable, 0, v3, 1);
     weight = atoi(v4);
@@ -861,7 +861,7 @@ void __cdecl LiveNews_InitCountersTicker()
 
     s_countersNewsState.numProcessed = 0;
     s_countersNewsState.lastFlushTime = Sys_Milliseconds();
-    StringTable_GetAsset("mp/globalCounterRefs.csv", (XAssetHeader *)&countersTable);
+    StringTable_GetAsset("mp/globalCounterRefs.csv", (StringTable **)&countersTable);
     s_countersNewsState.total = StringTable_RowCount(countersTable);
     if ( s_countersNewsState.total < 10 )
         max = s_countersNewsState.total;

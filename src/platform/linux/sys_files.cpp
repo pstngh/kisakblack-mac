@@ -90,7 +90,7 @@ HunkUser **Sys_ListFiles(char *directory, char *extension, char *filter, int *nu
     if (numfiles) *numfiles = n;
     if (n == 0) { Hunk_UserDestroy(user); return 0; }
     // Layout the FS expects: [0]=owning HunkUser, [1..n]=names, [n+1]=null; returns &[1].
-    HunkUser **v9 = (HunkUser **)Hunk_UserAlloc(user, 4 * n + 8, 4, 0);
+    HunkUser **v9 = (HunkUser **)Hunk_UserAlloc(user, (n + 2) * sizeof(HunkUser *), sizeof(HunkUser *), 0);
     *v9++ = user;
     for (int i = 0; i < n; ++i) v9[i] = (HunkUser *)list[i];
     v9[n] = 0;

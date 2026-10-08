@@ -145,7 +145,7 @@ void __cdecl CCS_LoadConstantConfigStrings(const char *mapname, const char *game
     }
     dir = "mp";
     Com_sprintf(filename, 0x100u, "%s/configStrings/configStrings_pc_%s_%s.csv", "mp", mapname, gametype);
-    StringTable_GetAsset(filename, (XAssetHeader *)&configStringTable);
+    StringTable_GetAsset(filename, (StringTable **)&configStringTable);
     configStringTableChecksum = StringTable_Checksum(configStringTable, 0);
     Com_DPrintf(30, "CCS: CCS_LoadConstantConfigStrings %s: %d\n", filename, configStringTableChecksum);
 }

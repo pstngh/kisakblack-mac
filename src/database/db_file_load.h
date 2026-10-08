@@ -60,7 +60,7 @@ void __cdecl DB_ResetMinimumFastFileLoaded();
 void __cdecl DB_CancelLoadXFile();
 signed __int32 DB_WaitXFileStage();
 void __cdecl DB_LoadedExternalData(unsigned int size);
-unsigned __int8 *__cdecl DB_LoadXFileDataNullTerminated(unsigned __int8 *pos);
+unsigned int __cdecl DB_LoadXFileDataNullTerminated(unsigned __int8 *pos);
 void __cdecl DB_LoadXFileSetSize(int size);
 void __cdecl DB_LoadXFileData(unsigned __int8 *pos, int size);
 void DB_ReadXFileStage();

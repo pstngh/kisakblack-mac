@@ -83,10 +83,18 @@ enum CriticalSection : __int32
 
 
 
+// MSVC's interlocked intrinsics take long*; elsewhere long can be 8 bytes
+// (macOS), which breaks the 0xFFFFFFFF "decrement" these counters use.
+#ifdef _MSC_VER
+typedef long kisak_atomic_long;
+#else
+typedef int kisak_atomic_long;
+#endif
+
 struct FastCriticalSection // sizeof=0x8
 {                                                                             // XREF: .data:g_dvarCritSect/r
-        volatile long readCount;
-        volatile long writeCount;                        // XREF: Dvar_FindMalleableVar_0:loc_7BD2E2/r
+        volatile kisak_atomic_long readCount;
+        volatile kisak_atomic_long writeCount;                        // XREF: Dvar_FindMalleableVar_0:loc_7BD2E2/r
 };
 
 void __cdecl Sys_Mkdir(const char *path);

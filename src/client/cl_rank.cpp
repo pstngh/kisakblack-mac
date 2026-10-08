@@ -18,7 +18,7 @@ void __cdecl CL_BuildRankXPTable()
     const StringTable *table; // [esp+4h] [ebp-4h] BYREF
 
     memset(&s_rankData, 0, sizeof(s_rankData));
-    StringTable_GetAsset("mp/rankTable.csv", (XAssetHeader *)&table);
+    StringTable_GetAsset("mp/rankTable.csv", (StringTable **)&table);
     s_rankData.topRow = table->rowCount - 1;
     if ( table->rowCount >= 96
         && !Assert_MyHandler(
@@ -53,7 +53,7 @@ int __cdecl CL_GetMaxXP()
 
     if ( !s_maxxp )
     {
-        StringTable_GetAsset("mp/rankTable.csv", (XAssetHeader *)&table);
+        StringTable_GetAsset("mp/rankTable.csv", (StringTable **)&table);
         ColumnValueForRow = StringTable_GetColumnValueForRow(table, s_rankData.topRow, 7);
         s_maxxp = atoi(ColumnValueForRow);
     }
@@ -67,7 +67,7 @@ int __cdecl CL_GetMaxPrestige()
 
     if ( !s_maxprestige )
     {
-        StringTable_GetAsset("mp/rankIconTable.csv", (XAssetHeader *)&table);
+        StringTable_GetAsset("mp/rankIconTable.csv", (StringTable **)&table);
         v0 = StringTable_Lookup(table, 0, "maxprestige", 1);
         s_maxprestige = atoi(v0);
     }
@@ -132,7 +132,7 @@ const char *__cdecl CL_GetRankData(int rank, rankTableColumns_t column)
     {
         __debugbreak();
     }
-    StringTable_GetAsset("mp/rankTable.csv", (XAssetHeader *)&table);
+    StringTable_GetAsset("mp/rankTable.csv", (StringTable **)&table);
     if ( !table && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_rank.cpp", 142, 0, "%s", "table") )
         __debugbreak();
     Com_sprintf(level, 4u, "%i", rank);
@@ -174,7 +174,7 @@ void __cdecl CL_GetRankIcon(int rank, int prestige, Material **handle)
         {
             __debugbreak();
         }
-        StringTable_GetAsset("mp/rankIconTable.csv", (XAssetHeader *)&table);
+        StringTable_GetAsset("mp/rankIconTable.csv", (StringTable **)&table);
         if ( !table && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_rank.cpp", 170, 0, "%s", "table") )
             __debugbreak();
         Com_sprintf(id, 4u, "%i", rank);
@@ -216,7 +216,7 @@ const char *__cdecl CL_GetRankIconName(int rank, int prestige)
     {
         __debugbreak();
     }
-    StringTable_GetAsset("mp/rankIconTable.csv", (XAssetHeader *)&table);
+    StringTable_GetAsset("mp/rankIconTable.csv", (StringTable **)&table);
     if ( !table && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_rank.cpp", 196, 0, "%s", "table") )
         __debugbreak();
     Com_sprintf(id, 4u, "%i", rank);

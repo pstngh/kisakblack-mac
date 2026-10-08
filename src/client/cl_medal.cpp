@@ -11,7 +11,7 @@ const char *__cdecl CG_GetMedalData(int medalIndex, medalTableColumns_t column)
     char index[8]; // [esp+4h] [ebp-14h] BYREF
     int medalTableRow; // [esp+14h] [ebp-4h]
 
-    StringTable_GetAsset("mp/medalTable.csv", (XAssetHeader *)&medalTable);
+    StringTable_GetAsset("mp/medalTable.csv", (StringTable **)&medalTable);
     if ( !medalTable
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_medal.cpp", 17, 0, "%s", "medalTable") )
     {
@@ -65,7 +65,7 @@ const char *__cdecl CG_GetWagerMedalData(int wagerMedalIndex, wagerMedalTableCol
     char index[8]; // [esp+4h] [ebp-14h] BYREF
     const StringTable *wagerMedalTable; // [esp+10h] [ebp-8h] BYREF
 
-    StringTable_GetAsset("mp/medalTable.csv", (XAssetHeader *)&wagerMedalTable);
+    StringTable_GetAsset("mp/medalTable.csv", (StringTable **)&wagerMedalTable);
     if ( !wagerMedalTable
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_medal.cpp", 68, 0, "%s", "wagerMedalTable") )
     {

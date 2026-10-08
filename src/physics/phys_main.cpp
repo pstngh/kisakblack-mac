@@ -2982,7 +2982,7 @@ void __cdecl draw_static_models_bounds()
         smodel_debug_infos[j].smodel = smodel;
         smodel_debug_infos[j].dist2 = len2;
     }
-    qsort(smodel_debug_infos, nmodels, 8u, (int(__cdecl *)(const void *, const void *))SortSModelsByDist);
+    qsort(smodel_debug_infos, nmodels, sizeof(smodel_debug_infos[0]), (int(__cdecl *)(const void *, const void *))SortSModelsByDist);
     for (i = 0; ; ++i)
     {
         v0 = nmodels >= nboxes ? nboxes : nmodels;

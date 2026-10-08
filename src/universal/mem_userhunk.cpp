@@ -21,27 +21,45 @@ struct ALLOCATION_SCHEME_FUNCTIONS // sizeof=0x14
 };
 
 // KISAKTODO: remove casts and fix prototypes
+// These allocators return the block as an (encoded) int. The table wants a
+// pointer, and on arm64 an int return does not fill the pointer register, so
+// call them through typed adapters rather than through a cast function pointer.
+static void *Hunk_UserDefaultAllocPtr(HunkUser *user, int size, int alignment, const char *name)
+{
+    return Ptr32_Decode(Hunk_UserDefaultAlloc((HunkUserDefault *)user, size, alignment, name));
+}
+
+static void *Hunk_UserDebugAllocPtr(HunkUser *user, int size, int alignment, const char *)
+{
+    return Ptr32_Decode(Hunk_UserDebugAlloc(user, size, alignment));
+}
+
+static void *Hunk_FirstFitAllocPtr(HunkUser *user, int size, int alignment, const char *)
+{
+    return Ptr32_Decode(Hunk_FirstFitAlloc(user, size, alignment));
+}
+
 ALLOCATION_SCHEME_FUNCTIONS g_HunkUserAllocationSchemeMap[4] =
 {
   {
     (HunkUser *(*)(void*, int, HU_ALLOCATION_SCHEME, unsigned int, void*, const char *, int))Hunk_UserDefaultInit,
     (void(*)(HunkUser*))Hunk_UserDefaultReset,
      (void(*)(HunkUser *))Hunk_UserDefaultDestroy,
-    (void *(*)(HunkUser *, int, int, const char *))Hunk_UserDefaultAlloc,
+    Hunk_UserDefaultAllocPtr,
     Hunk_UserDefaultFree
   },
   {
     (HunkUser *(*)(void *, int, HU_ALLOCATION_SCHEME, unsigned int, void *, const char *, int))Hunk_UserDebugInit,
     Hunk_UserDebugReset,
     Hunk_UserDebugDestroy,
-    (void *(*)(HunkUser *, int, int, const char *))Hunk_UserDebugAlloc,
+    Hunk_UserDebugAllocPtr,
     (void(__cdecl *)(HunkUser *, void *))Hunk_UserDebugFree
   },
   {
     (HunkUser *(*)(void *, int, HU_ALLOCATION_SCHEME, unsigned int, void *, const char *, int))Hunk_FirstFitInit,
     Hunk_FirstFitReset,
     Hunk_FirstFitDestroy,
-    (void *(*)(HunkUser *, int, int, const char *))Hunk_FirstFitAlloc,
+    Hunk_FirstFitAllocPtr,
     (void(__cdecl *)(HunkUser *, void *))Hunk_FirstFitFree
   },
   {
@@ -54,6 +72,14 @@ ALLOCATION_SCHEME_FUNCTIONS g_HunkUserAllocationSchemeMap[4] =
 };
 
 
+
+// The debug scheme's header: the user, then the first-fit user that does the
+// work (20 bytes on 32-bit builds, where this was written as raw words).
+struct HunkUserDebug
+{
+    HunkUser user;
+    HunkUser *firstFit;
+};
 
 HunkUser *__cdecl Hunk_UserDebugInit(
                 unsigned int *buffer,
@@ -84,22 +110,19 @@ HunkUser *__cdecl Hunk_UserDebugInit(
     {
         __debugbreak();
     }
-    *buffer = 0;
-    buffer[1] = 0;
-    buffer[2] = 0;
-    buffer[3] = 0;
-    buffer[4] = 0;
-    buffer[4] = (unsigned int)Ptr32_Encode(Hunk_FirstFitInit(buffer + 5, size - 20, HU_SCHEME_FIRSTFIT, flags, 0, name, type));
-    *buffer = scheme;
-    buffer[1] = flags;
-    buffer[2] = (unsigned int)Ptr32_Encode(name);
-    buffer[3] = type;
-    return (HunkUser *)buffer;
+    HunkUserDebug *debug = (HunkUserDebug *)buffer;
+    memset(debug, 0, sizeof(*debug));
+    debug->firstFit = Hunk_FirstFitInit((unsigned int *)((unsigned char *)buffer + sizeof(*debug)), size - sizeof(*debug), HU_SCHEME_FIRSTFIT, flags, 0, name, type);
+    debug->user.scheme = scheme;
+    debug->user.flags = flags;
+    debug->user.name = name;
+    debug->user.type = type;
+    return &debug->user;
 }
 
 void __cdecl Hunk_UserDebugReset(HunkUser *_user)
 {
-    Hunk_FirstFitReset((HunkUser *)_user[1].scheme);
+    Hunk_FirstFitReset(((HunkUserDebug *)_user)->firstFit);
 }
 
 void __cdecl Hunk_UserDebugDestroy(HunkUser *_user)
@@ -174,7 +197,7 @@ int __cdecl Hunk_UserDebugAlloc(HunkUser *_user, int size, int alignment)
     {
         __debugbreak();
     }
-    return Hunk_FirstFitAlloc((HunkUser *)_user[1].scheme, size, alignment);
+    return Hunk_FirstFitAlloc(((HunkUserDebug *)_user)->firstFit, size, alignment);
 }
 
 void __cdecl Hunk_UserDebugFree(HunkUser *_user, unsigned int *ptr)
@@ -199,7 +222,7 @@ void __cdecl Hunk_UserDebugFree(HunkUser *_user, unsigned int *ptr)
     {
         __debugbreak();
     }
-    Hunk_FirstFitFree((HunkUser *)_user[1].scheme, ptr);
+    Hunk_FirstFitFree(((HunkUserDebug *)_user)->firstFit, ptr);
 }
 
 HunkUser *__cdecl Hunk_UserDefaultInit(
@@ -223,38 +246,40 @@ HunkUser *__cdecl Hunk_UserDefaultInit(
     {
         __debugbreak();
     }
-    memset(buffer, 0, 0x2Cu);
-    *((unsigned int *)buffer + 7) = (unsigned int) Ptr32_Encode(& buffer[size]);
-    *((unsigned int *)buffer + 8) = (unsigned int)Ptr32_Encode(buffer + 40);
-    *((unsigned int *)buffer + 8) = (*((unsigned int *)buffer + 8) + 31) & 0xFFFFFFE0;
-    if ( (*((unsigned int *)buffer + 8) & 0x1F) != 0
+    // Written by member: the decompiled version stored words at 32-bit offsets.
+    HunkUserDefault *user = (HunkUserDefault *)buffer;
+    memset(user, 0, sizeof(*user));
+    user->end = (int)Ptr32_Encode(&buffer[size]);
+    user->pos = (int)Ptr32_Encode(user->buf);
+    user->pos = (user->pos + 31) & 0xFFFFFFE0;
+    if ( (user->pos & 0x1F) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\mem_userhunk.cpp",
                     187,
                     0,
                     "%s\n\t(user->pos) = %i",
                     "(!(user->pos & 31))",
-                    *((unsigned int *)buffer + 8)) )
+                    user->pos) )
     {
         __debugbreak();
     }
     if ( (flags & 2) != 0 )
-        v7 = size + *((unsigned int *)buffer + 8);
+        v7 = size + user->pos;
     else
-        v7 = (*((unsigned int *)buffer + 8) + 4095) & 0xFFFFF000;
-    *((unsigned int *)buffer + 9) = v7;
-    *((unsigned int *)buffer + 6) = size;
-    *((unsigned int *)buffer + 4) = (unsigned int)Ptr32_Encode(buffer);
-    *(unsigned int *)buffer = scheme;
-    *((unsigned int *)buffer + 1) = flags;
-    *((unsigned int *)buffer + 2) = (unsigned int)Ptr32_Encode(name);
-    *((unsigned int *)buffer + 3) = type;
-    if ( *((unsigned int *)buffer + 5)
+        v7 = (user->pos + 4095) & 0xFFFFF000;
+    user->locked = v7;
+    user->maxSize = size;
+    user->current = user;
+    user->hunkUser.scheme = scheme;
+    user->hunkUser.flags = flags;
+    user->hunkUser.name = name;
+    user->hunkUser.type = type;
+    if ( user->next
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\universal\\mem_userhunk.cpp", 200, 0, "%s", "!user->next") )
     {
         __debugbreak();
     }
-    return (HunkUser *)buffer;
+    return &user->hunkUser;
 }
 
 void __cdecl Hunk_UserDefaultReset(HunkUserDefault *_user)
@@ -285,7 +310,8 @@ void __cdecl Hunk_UserDefaultReset(HunkUserDefault *_user)
     }
     else
     {
-        pos = (char *)Ptr32_Decode((unsigned int)Ptr32_Encode(&_user[93].buf[3]) & 0xFFFFF000);
+        // First page boundary past the header: &_user[93].buf[3] (_user + 4135) on 32-bit.
+        pos = (char *)Ptr32_Decode(((unsigned int)Ptr32_Encode(_user) + 4135) & 0xFFFFF000);
         if (pos != (char *)Ptr32_Decode((_user->pos + 4095) & 0xFFFFF000))
         {
             if (_user->pos - (int)Ptr32_Encode(pos) <= 0

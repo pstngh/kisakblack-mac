@@ -201,8 +201,8 @@ void __thiscall UIViewer::Init(bool _ingame)
             &UI_ViewerRotateRightRepeatEnabled_f_VAR);
         for ( i = 0; i < 1; ++i )
             this->dobjsPool[i] = (DObj *)&this->dobjsBuffer[124 * i];
-        StringTable_GetAsset("mp/ui_viewer_camera.csv", (XAssetHeader *)&this->cameraPosTable);
-        StringTable_GetAsset("mp/bodyheadtable.csv", (XAssetHeader *)&this->bodyHeadTable);
+        StringTable_GetAsset("mp/ui_viewer_camera.csv", (StringTable **)&this->cameraPosTable);
+        StringTable_GetAsset("mp/bodyheadtable.csv", (StringTable **)&this->bodyHeadTable);
         this->inited = 1;
         this->streamerInited = 0;
         this->mapLoaded = 0;

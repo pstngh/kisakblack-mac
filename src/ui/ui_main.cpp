@@ -3648,7 +3648,7 @@ LABEL_24:
                 }
                 else if ( connstate >= CA_CONNECTING )
                 {
-                    Com_DPrintf(13, "PC ONLY: No menu has focus and %s, what should I do?", (const char *)connstate);
+                    Com_DPrintf(13, "PC ONLY: No menu has focus and connstate %i, what should I do?", (int)connstate);
                 }
                 else
                 {

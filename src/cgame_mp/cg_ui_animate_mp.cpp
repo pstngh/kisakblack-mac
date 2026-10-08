@@ -1274,7 +1274,7 @@ void __cdecl CG_DisplayKillstreak(int localClientNum)
     streakCount = Cmd_Argv(2);
     killstreakTableNumber = Cmd_Argv(3);
     CG_GetLocalClientGlobals(localClientNum)->popUpAngleDelta = 0.0f;
-    StringTable_GetAsset("mp/statstable.csv", (XAssetHeader *)&tablePtr);
+    StringTable_GetAsset("mp/statstable.csv", (StringTable **)&tablePtr);
     if ( !tablePtr
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\cgame_mp\\cg_ui_animate_mp.cpp",

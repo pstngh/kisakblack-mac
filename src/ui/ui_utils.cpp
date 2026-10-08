@@ -864,7 +864,7 @@ void __cdecl CL_SelectStringTableEntryInDvar_f()
         if ( Cmd_Argc() >= 4 )
         {
             v0 = Cmd_Argv(1);
-            StringTable_GetAsset(v0, (XAssetHeader *)&table);
+            StringTable_GetAsset(v0, (StringTable **)&table);
             v1 = Sys_Milliseconds();
             srand(v1);
             rowCount = (float)table->rowCount;

@@ -31,7 +31,7 @@ target_compile_options(${BIN_NAME} PRIVATE
     # a Ptr32<T> field passed through varargs (printf etc.) as an object, and a
     # pointer cast to or from a 32-bit int (-fms-extensions makes the truncating
     # direction a mere warning).
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-everything;-Werror=class-varargs;-Werror=int-to-pointer-cast;-Werror=pointer-to-int-cast;-ferror-limit=0>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-everything;-Werror=class-varargs;-Werror=int-to-pointer-cast;-Werror=pointer-to-int-cast;-Werror=pointer-to-enum-cast;-ferror-limit=0>
 )
 
 target_link_libraries(${BIN_NAME} PRIVATE

@@ -461,7 +461,7 @@ void __cdecl BG_LoadWeaponAttachmentTable()
     if ( !G_ExitAfterToolComplete() )
     {
         attachmentTable = 0;
-        StringTable_GetAsset("mp/attachmenttable.csv", (XAssetHeader *)&attachmentTable);
+        StringTable_GetAsset("mp/attachmenttable.csv", (StringTable **)&attachmentTable);
         if ( !attachmentTable->columnCount || !attachmentTable->rowCount )
             Com_Error(ERR_DROP, "Couldn't load file or file is invalid '%s'", "mp/attachmenttable.csv");
         count = 0;

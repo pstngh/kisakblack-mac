@@ -362,16 +362,16 @@ int __cdecl StringTable_Checksum(const StringTable *table, unsigned int initialC
     return crc;
 }
 
-void __cdecl StringTable_GetAsset_FastFile(const char *filename, XAssetHeader *tablePtr)
+void __cdecl StringTable_GetAsset_FastFile(const char *filename, StringTable **tablePtr)
 {
-    tablePtr->xmodelPieces = DB_FindXAssetHeader(ASSET_TYPE_STRINGTABLE, (char*)filename, 1, -1).xmodelPieces;
+    *tablePtr = DB_FindXAssetHeader(ASSET_TYPE_STRINGTABLE, (char*)filename, 1, -1).stringTable;
 }
 
-void __cdecl StringTable_GetAsset(const char *filename, XAssetHeader *tablePtr)
+void __cdecl StringTable_GetAsset(const char *filename, StringTable **tablePtr)
 {
     if ( useFastFile->current.enabled )
         StringTable_GetAsset_FastFile(filename, tablePtr);
     else
-        StringTable_GetAsset_LoadObj(filename, (StringTable **)tablePtr);
+        StringTable_GetAsset_LoadObj(filename, tablePtr);
 }
 

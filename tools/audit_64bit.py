@@ -4,6 +4,8 @@
 Matchers live in tools/audit_64bit.query:
   1. *(int *)&ptrVar     reads 4 bytes of an 8-byte native pointer
   2. (T **)&ptr32Field   views a 4-byte Ptr32 slot as a native pointer
+  3. (T *)enumValue      a pointer kept in an enum-typed field (not covered by
+                         -Wint-to-pointer-cast)
 
 Needs Homebrew LLVM (clang-query). Prints each matched source location once.
 

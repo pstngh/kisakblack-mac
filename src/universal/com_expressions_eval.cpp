@@ -6553,7 +6553,7 @@ void __cdecl GetCurrentItemClassifiedHintText(int localClientNum, itemDef_s *ite
 
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)Ptr32_Encode("");
-    StringTable_GetAsset("mp/attributesTable.csv", (XAssetHeader *)&attributesTable);
+    StringTable_GetAsset("mp/attributesTable.csv", (StringTable **)&attributesTable);
     purchasesNeeded = BG_UnlockablesGetNumPurchasesBeforeDeclassified(sharedUiInfo.itemIndex);
     memset(convArgs.args, 0, sizeof(convArgs.args));
     convArgs.argCount = 2;
@@ -7025,7 +7025,7 @@ void __cdecl GetBaseLbMenuName(int localClientNum, itemDef_s *item, OperandStack
     else
         v5 = lbType - 8;
     lbType = v5;
-    StringTable_GetAsset("mp/gametypesTable.csv", (XAssetHeader *)&gameTypesTable);
+    StringTable_GetAsset("mp/gametypesTable.csv", (StringTable **)&gameTypesTable);
     if ( !gameTypesTable
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_expressions_eval.cpp",
@@ -8943,7 +8943,7 @@ LABEL_31:
     currMilestone = (int)LiveCombatRecord_GetSortedItemData(currIndex, forFriend, PARAM3);
     v5 = va("%d", currMilestone);
     currMilestoneRowNum = CL_GetMilestoneRowNum(
-                                                    (XAssetHeader *)&statsMilestonesTable,
+                                                    (StringTable **)&statsMilestonesTable,
                                                     3,
                                                     currItemGroup,
                                                     4,
@@ -8952,7 +8952,7 @@ LABEL_31:
                                                     v5);
     v6 = va("%d", currMilestone + 1);
     nextMilestoneRowNum = CL_GetMilestoneRowNum(
-                                                    (XAssetHeader *)&nextStatsMilestonesTable,
+                                                    (StringTable **)&nextStatsMilestonesTable,
                                                     3,
                                                     currItemGroup,
                                                     4,
@@ -9929,7 +9929,7 @@ const char *__cdecl GetStatsMilestoneData(
     const StringTable *statsMilestonestable; // [esp+4h] [ebp-4h] BYREF
 
     rowNum = CL_GetMilestoneRowNum(
-                         (XAssetHeader *)&statsMilestonestable,
+                         (StringTable **)&statsMilestonestable,
                          comparisonColumn1,
                          value1,
                          comparisonColumn2,
@@ -9969,7 +9969,7 @@ void __cdecl GetStatsMilestoneValue(int localClientNum, itemDef_s *item, Operand
     if ( index >= 0
         && (NumStatsMilestones = LiveStats_GetNumStatsMilestones(controllerIndex), index <= (int)(NumStatsMilestones - 1)) )
     {
-        StringTable_GetAsset("mp/statsTable.csv", (XAssetHeader *)&statsTable);
+        StringTable_GetAsset("mp/statsTable.csv", (StringTable **)&statsTable);
         statsMilestoneTier = LiveStats_GetStatsMilestoneTier(controllerIndex, index);
         statsMilestoneTierString = va("%d", statsMilestoneTier - 1);
         statsMilestoneType = (statsMilestoneTypes_t)LiveStats_GetStatsMilestoneType(controllerIndex, index);
@@ -10457,7 +10457,7 @@ void __cdecl GetLbTypeWithButtons(int localClientNum, itemDef_s *item, OperandSt
 
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)Ptr32_Encode("");
-    StringTable_GetAsset("mp/gametypesTable.csv", (XAssetHeader *)&gameTypesTable);
+    StringTable_GetAsset("mp/gametypesTable.csv", (StringTable **)&gameTypesTable);
     if ( !gameTypesTable
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_expressions_eval.cpp",
@@ -11523,7 +11523,7 @@ void __cdecl TableLookup(int localClientNum, itemDef_s *item, OperandStack *data
         if ( list.operandCount == 4 )
         {
             SourceString = GetSourceString(list.operands[0]);
-            StringTable_GetAsset(SourceString, (XAssetHeader *)&tablePtr);
+            StringTable_GetAsset(SourceString, (StringTable **)&tablePtr);
             operandResult.dataType = VAL_STRING;
             intVal = GetSourceInt(&list.operands[3]).intVal;
             v8 = GetSourceString(list.operands[2]);
@@ -11579,7 +11579,7 @@ void __cdecl StatsTableLookup(int localClientNum, itemDef_s *item, OperandStack 
     {
         if ( list.operandCount == 3 )
         {
-            StringTable_GetAsset("mp/statstable.csv", (XAssetHeader *)&tablePtr);
+            StringTable_GetAsset("mp/statstable.csv", (StringTable **)&tablePtr);
             operandResult.dataType = VAL_STRING;
             intVal = GetSourceInt(&list.operands[2]).intVal;
             SourceString = GetSourceString(list.operands[1]);
@@ -11632,7 +11632,7 @@ void __cdecl GetClassBonus(int localClientNum, itemDef_s *item, OperandStack *da
     {
         if ( list.operandCount == 1 )
         {
-            StringTable_GetAsset("mp/classbonustable.csv", (XAssetHeader *)&tablePtr);
+            StringTable_GetAsset("mp/classbonustable.csv", (StringTable **)&tablePtr);
             SourceString = GetSourceString(list.operands[0]);
             operandResult.internals.intVal = GetClassBonusInternal(localClientNum, tablePtr, SourceString);
             if ( uiscript_debug )

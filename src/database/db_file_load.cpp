@@ -139,7 +139,8 @@ void __cdecl DB_LoadedExternalData(unsigned int size)
     _InterlockedExchangeAdd(&g_loadedExternalBytes, size);
 }
 
-unsigned __int8 *__cdecl DB_LoadXFileDataNullTerminated(unsigned __int8 *pos)
+// Returns the number of bytes read (the decompiler typed it as a pointer).
+unsigned int __cdecl DB_LoadXFileDataNullTerminated(unsigned __int8 *pos)
 {
     unsigned __int8 *origPos; // [esp+0h] [ebp-4h]
 
@@ -152,7 +153,7 @@ unsigned __int8 *__cdecl DB_LoadXFileDataNullTerminated(unsigned __int8 *pos)
             *pos = g_load.deflateBuffer[g_load.deflateBufferPos++];
     }
     while ( *pos++ );
-    return (unsigned __int8 *)(pos - origPos);
+    return (unsigned int)(pos - origPos);
 }
 
 void __cdecl DB_LoadXFileSetSize(int size)
