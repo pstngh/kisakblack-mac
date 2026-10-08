@@ -2,10 +2,61 @@
 #include "gl_d3d9.h"
 #include "glcontext.h"
 #include "gl_resources.h"
+#include "gl_optrace.h"
 
 #include <GL/glew.h>
+extern "C" void KB_FlushBatchedDraws();
+extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched-draw flush (gl_d3d9_draw.cpp)
+
 #include <SDL2/SDL.h>   // adapter display-mode queries (EnumAdapterModes etc.)
 #include <cstdio>
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/html5_webgl.h>  // emscripten_webgl_get_current_context()
+#include <emscripten.h>              // EM_ASM_INT (?noslopebias toggle in FillDefaultCaps)
+extern "C" void glClearDepthf(float);             // GLES/WebGL2 depth-clear
+extern "C" void glDepthRangef(float, float);      // GLES/WebGL2 depth-range
+#endif
+
+#if defined(__EMSCRIPTEN__)
+// KB_DEVHOT forwarders (see winsdk/d3d9.h): the hot device methods are NON-virtual on
+// web, so every engine call site compiles to a direct call here, which direct-calls the
+// GLDevice member (its same-name declaration hides these) — no fpcast-emu trampoline,
+// no indirect call. GLDevice is the only device implementation on this build.
+HRESULT WINAPI IDirect3DDevice9::SetViewport(const D3DVIEWPORT9 *p) { return static_cast<GLDevice *>(this)->SetViewport(p); }
+HRESULT WINAPI IDirect3DDevice9::SetRenderState(D3DRENDERSTATETYPE s, DWORD v) { return static_cast<GLDevice *>(this)->SetRenderState(s, v); }
+HRESULT WINAPI IDirect3DDevice9::SetSamplerState(DWORD s, D3DSAMPLERSTATETYPE t, DWORD v) { return static_cast<GLDevice *>(this)->SetSamplerState(s, t, v); }
+HRESULT WINAPI IDirect3DDevice9::SetTexture(DWORD st, IDirect3DBaseTexture9 *t) { return static_cast<GLDevice *>(this)->SetTexture(st, t); }
+HRESULT WINAPI IDirect3DDevice9::SetStreamSource(UINT n, IDirect3DVertexBuffer9 *vb, UINT off, UINT stride) { return static_cast<GLDevice *>(this)->SetStreamSource(n, vb, off, stride); }
+HRESULT WINAPI IDirect3DDevice9::SetIndices(IDirect3DIndexBuffer9 *ib) { return static_cast<GLDevice *>(this)->SetIndices(ib); }
+HRESULT WINAPI IDirect3DDevice9::SetVertexDeclaration(IDirect3DVertexDeclaration9 *d) { return static_cast<GLDevice *>(this)->SetVertexDeclaration(d); }
+HRESULT WINAPI IDirect3DDevice9::SetVertexShader(IDirect3DVertexShader9 *sh) { return static_cast<GLDevice *>(this)->SetVertexShader(sh); }
+HRESULT WINAPI IDirect3DDevice9::SetVertexShaderConstantF(UINT r, const float *d, UINT n) { return static_cast<GLDevice *>(this)->SetVertexShaderConstantF(r, d, n); }
+HRESULT WINAPI IDirect3DDevice9::SetPixelShader(IDirect3DPixelShader9 *sh) { return static_cast<GLDevice *>(this)->SetPixelShader(sh); }
+HRESULT WINAPI IDirect3DDevice9::SetPixelShaderConstantF(UINT r, const float *d, UINT n) { return static_cast<GLDevice *>(this)->SetPixelShaderConstantF(r, d, n); }
+HRESULT WINAPI IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE t, UINT sv, UINT pc) { return static_cast<GLDevice *>(this)->DrawPrimitive(t, sv, pc); }
+HRESULT WINAPI IDirect3DDevice9::DrawIndexedPrimitive(D3DPRIMITIVETYPE t, INT bv, UINT mv, UINT nv, UINT si, UINT pc) { return static_cast<GLDevice *>(this)->DrawIndexedPrimitive(t, bv, mv, nv, si, pc); }
+#endif
+
+// glClearDepth/glDepthRange take doubles and are desktop-GL only. Under WebGL2 the
+// render backend runs on a worker whose GL context is PROXIED to the main thread;
+// only the GLES3 core entry points carry proxy wrappers. The desktop double variants
+// are stray compat aliases with NO proxy wrapper — they dereference the integer
+// context handle and throw "GLctx.<fn> is not a function". Route through the GLES
+// *f names (which ARE proxied) on Emscripten; use the native doubles on desktop.
+static inline void KB_glClearDepth(double z) {
+#if defined(__EMSCRIPTEN__)
+    glClearDepthf((float)z);
+#else
+    glClearDepth(z);
+#endif
+}
+static inline void KB_glDepthRange(double n, double f) {
+#if defined(__EMSCRIPTEN__)
+    glDepthRangef((float)n, (float)f);
+#else
+    glDepthRange(n, f);
+#endif
+}
 
 // Default device caps, shared by GLDevice::GetDeviceCaps and GLD3D9::GetDeviceCaps.
 // These advertise an SM3.0-class GPU, which is what the Black Ops renderer expects.
@@ -24,6 +75,23 @@ static void FillDefaultCaps(D3DCAPS9 *c) {
     c->MaxPrimitiveCount       = 0x00FFFFFF;
     c->MaxVertexIndex          = 0x00FFFFFF;
     c->MaxStreams              = 16;
+    // Slope-scaled depth bias: every D3D9-era GPU (incl. the 8600GT this game shipped on) had
+    // it. Without advertising it, R_HW_SetPolygonOffset (r_state.cpp) drops the polygon-offset
+    // SLOPE term entirely and only sends the constant D3DRS_DEPTHBIAS — so decals on
+    // grazing-angle walls/fences are under-biased and render THROUGH the geometry. Advertising
+    // it restores the engine's intended slope+constant bias for both decals and shadowmaps.
+    // Default on; ?noslopebias disables it (A/B, e.g. to check shadow biasing).
+    {
+        static int wantSlope = -1;
+        if (wantSlope < 0) {
+#ifdef __EMSCRIPTEN__
+            { const char *v = getenv("KB_NOSLOPEBIAS"); wantSlope = (v && *v == '1') ? 0 : 1; }  // ENV from index.html (worker can't read location.search)
+#else
+            wantSlope = 1;
+#endif
+        }
+        if (wantSlope) c->RasterCaps |= 0x02000000;  // D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -42,33 +110,251 @@ GLDevice::~GLDevice() {
     delete ctx_;
 }
 
+void GLDevice::kbEnsureRTComplete(unsigned tex, int w, int h) {
+    if (!tex || w <= 0 || h <= 0) return;
+    unsigned long long key = ((unsigned long long)tex << 32) | ((unsigned)w << 16) | (unsigned)(h & 0xFFFF);
+    if (rtFixed_.count(key)) return;   // already given renderable storage at this size
+    // The live FBO (fbo_) has this tex as COLOR0 and an auto depth attachment. Re-allocate
+    // the colour storage to a renderable format sized to the RT, then re-verify the FULL
+    // attachment combo (colour + depth). RGBA16F preserves HDR; RGBA8 is the last resort.
+    unsigned cands[2] = { GL_RGBA16F, GL_RGBA8 };
+    unsigned fmts[2]  = { GL_RGBA,    GL_RGBA   };
+    unsigned types[2] = { GL_HALF_FLOAT, GL_UNSIGNED_BYTE };
+    int chosen = -1;
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    unsigned dbgErr1 = 0, dbgStColorDepth = 0, dbgStColorOnly = 0, dbgErr2 = 0;
+    GLint dbgBound = 0; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &dbgBound);
+    for (int i = 0; i < 2; ++i) {
+        while (glGetError() != GL_NO_ERROR) {}
+        glTexImage2D(GL_TEXTURE_2D, 0, cands[i], w, h, 0, fmts[i], types[i], nullptr);
+        dbgErr1 = glGetError();   // did the storage alloc itself fail (e.g. immutable tex)?
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+        // Match the auto depth renderbuffer to this size (a stale-sized one also fails).
+        kbRestoreAutoDepth(w, h);
+        dbgStColorDepth = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (glGetError() == GL_NO_ERROR && dbgStColorDepth == GL_FRAMEBUFFER_COMPLETE) { chosen = i; break; }
+        // Color-ONLY (no depth at all): isolates whether the depth attach is the problem.
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+        dbgStColorOnly = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        dbgErr2 = glGetError();
+    }
+    rtFixed_[key] = chosen >= 0 ? (int)cands[chosen] : 0;
+    static int fixN = 0;
+    if (++fixN <= 12)
+        fprintf(stderr, "[gl] kbEnsureRTComplete tex=%u %dx%d -> %s | fbo=%d texErr=0x%x stCD=0x%x stColorOnly=0x%x err2=0x%x\n",
+                tex, w, h, chosen == 0 ? "RGBA16F" : chosen == 1 ? "RGBA8" : "STILL-INCOMPLETE",
+                (int)dbgBound, dbgErr1, dbgStColorDepth, dbgStColorOnly, dbgErr2);
+}
+
+void GLDevice::kbRestoreAutoDepth(int w, int h) {
+    // Detach ALL depth-ish attachments (a leftover DEPTH-only or stencil attachment
+    // from the broken DS attach would conflict), then attach a fresh DEPTH24_STENCIL8
+    // renderbuffer sized to the live color target. WebGL2 requires depth dims == color
+    // dims, so a stale-sized fboDepth_ would itself leave the FBO incomplete.
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
+    if (w > 0 && h > 0) {
+        if (fboDepthW_ != w || fboDepthH_ != h || !fboDepth_) {
+            if (!fboDepth_) glGenRenderbuffers(1, &fboDepth_);
+            glBindRenderbuffer(GL_RENDERBUFFER, fboDepth_);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            fboDepthW_ = w; fboDepthH_ = h;
+        }
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fboDepth_);
+    } else {
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+    }
+    // Last resort: color-only beats a permanently-black scene.
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+}
+
 HRESULT WINAPI GLDevice::SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurface9 *pRenderTarget) {
+    KB_FlushTagged(11);
+    KB_OpTag("setRT", (unsigned)(uintptr_t)pRenderTarget, 0, 0);
     if (RenderTargetIndex != 0) return D3D_OK;  // single render target for now (MRT: TODO)
     GLSurface *s = static_cast<GLSurface *>(pRenderTarget);
     // A null target, or the back-buffer surface itself, means the default framebuffer.
     if (!s || s->isBackbuffer()) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        fboActive_ = false;
+        dsLive_ = false;
         fbWidth_ = bbWidth_; fbHeight_ = bbHeight_;
         return D3D_OK;
     }
     if (!fbo_) glGenFramebuffers(1, &fbo_);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_);
+    fboActive_ = true;
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s->texName(), s->level());
+    curRTColorTex_ = s->texName();
 
-    // Provide a matching depth-stencil buffer so depth testing works when
-    // rendering to a texture. (Honoring an explicit SetDepthStencilSurface is a
-    // TODO; for now the FBO owns an auto-sized depth-stencil renderbuffer.)
     int w = (int)s->width(), h = (int)s->height();
-    if (fboDepthW_ != w || fboDepthH_ != h) {
-        if (!fboDepth_) glGenRenderbuffers(1, &fboDepth_);
-        glBindRenderbuffer(GL_RENDERBUFFER, fboDepth_);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        fboDepthW_ = w; fboDepthH_ = h;
+    // Honor an engine-set depth-stencil surface backed by a DEPTH TEXTURE (the shadow
+    // map): attach it so the shadow pass renders depth into sampleable storage. The
+    // attach point depends on whether the format carries stencil.
+    if (curDS_ && curDS_->texName() &&
+        curDS_->width() == (UINT)w && curDS_->height() == (UINT)h) {
+        // The DS texture's storage decides the attach point. Depth-tag surfaces always
+        // carry DEPTH24_STENCIL8 (the engine's metrics format arrives as garbage, see
+        // gl_resources.cpp); texture-backed depth surfaces keep the format-derived choice.
+        unsigned attach = curDS_->texIsDepthStencil() ? GL_DEPTH_STENCIL_ATTACHMENT
+                          : (curDS_->format() == (D3DFORMAT)80 /*D16*/ ||
+                             curDS_->format() == (D3DFORMAT)70 /*D16_LOCKABLE*/ ||
+                             curDS_->format() == (D3DFORMAT)71 /*D32*/)
+                                ? GL_DEPTH_ATTACHMENT : GL_DEPTH_STENCIL_ATTACHMENT;
+        // Clear the OTHER attach point first (a stale renderbuffer on DEPTH_STENCIL
+        // while we attach DEPTH leaves the FBO incomplete).
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, attach, GL_TEXTURE_2D, curDS_->texName(), 0);
+        // An incomplete FBO silently no-ops EVERY draw of the pass (the B59 black-region
+        // regression: a color texture attached as depth no-op'd the MAIN scene). Never
+        // leave a broken FBO live — detach and fall back to the auto renderbuffer.
+        // glCheckFramebufferStatus is a SYNC round-trip on the proxied context; with
+        // ~9 DS binds/frame that is real frame time. Skip it for pairs already known
+        // good (attachments are immutable storage; completeness cannot regress).
+        unsigned long long pairKey = ((unsigned long long)s->texName() << 32) | curDS_->texName();
+        bool known = false;
+        for (int pi = 0; pi < fboOkN_; ++pi) if (fboOkPairs_[pi] == pairKey) { known = true; break; }
+        unsigned st = known ? GL_FRAMEBUFFER_COMPLETE : glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        bool dsAttached = (st == GL_FRAMEBUFFER_COMPLETE);
+        if (dsAttached && !known && fboOkN_ < 8) fboOkPairs_[fboOkN_++] = pairKey;
+        if (!dsAttached)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, attach, GL_TEXTURE_2D, 0, 0);
+        {
+            static unsigned lastStatus = 0xFFFFFFFFu;
+            if (st != lastStatus) {
+                lastStatus = st;
+                fprintf(stderr, "[gl] DS-attach FBO status=0x%x (%s) ds=%ux%u rt=%dx%d\n",
+                        st, dsAttached ? "COMPLETE" : "INCOMPLETE->auto-renderbuffer for this pass",
+                        curDS_->width(), curDS_->height(), w, h);
+            }
+        }
+        if (dsAttached) {
+            extern unsigned long g_kbShadowFbo; ++g_kbShadowFbo;
+            dsLive_ = true; fbWidth_ = w; fbHeight_ = h; return D3D_OK;
+        }
     }
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fboDepth_);
+    dsLive_ = false;
+    {
+        // Auto depth-stencil renderbuffer sized to the colour target (the default path).
+        if (fboDepthW_ != w || fboDepthH_ != h) {
+            if (!fboDepth_) glGenRenderbuffers(1, &fboDepth_);
+            glBindRenderbuffer(GL_RENDERBUFFER, fboDepth_);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            fboDepthW_ = w; fboDepthH_ = h;
+        }
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fboDepth_);
+    }
 
     fbWidth_ = w; fbHeight_ = h;
+#if defined(__EMSCRIPTEN__)
+    // Completeness check on EVERY custom RT bind (not just the shadow-DS path): an
+    // incomplete scene FBO silently no-ops every draw of the pass = the scene goes
+    // black with shaders fine and shadows off (the third blackout class). Cheap enough
+    // — SetRenderTarget is per-RT-switch, not per-draw. Color attachment 0 must be a
+    // renderable texture; if it isn't (e.g. a compressed or odd-format RT), say so.
+    {
+        // Skip the SYNC round-trip for configs already verified COMPLETE (the dominant DOM-thread
+        // cost — 28% in the CPU trace, dwarfing actual draws). Key by (colorTex,w,h): the auto
+        // depth renderbuffer sizes to w,h and attachment storage is immutable, so once complete it
+        // stays complete.
+        unsigned long long ck = ((unsigned long long)s->texName() << 32) | ((unsigned)w << 16) | (unsigned)h;
+        if (fboComplete_.find(ck) == fboComplete_.end()) {
+            unsigned st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            if (st != GL_FRAMEBUFFER_COMPLETE) {
+                // Give the colour texture renderable, RT-sized storage and re-verify — the
+                // bulletproof fix: completeness guaranteed at the point of use, regardless of
+                // how/where the RT texture was created or its (possibly non-renderable) format.
+                kbEnsureRTComplete(s->texName(), w, h);
+            } else {
+                fboComplete_.insert(ck);
+            }
+        }
+    }
+#endif
+    return D3D_OK;
+}
+
+HRESULT WINAPI GLDevice::SetDepthStencilSurface(IDirect3DSurface9 *pNewZStencil) {
+    KB_FlushTagged(11);
+    KB_OpTag("setDS", (unsigned)(uintptr_t)pNewZStencil, 0, 0);
+    GLSurface *ds = static_cast<GLSurface *>(pNewZStencil);
+    { extern unsigned long g_kbSetDS, g_kbSetDSTex;
+      ++g_kbSetDS; if (ds && ds->texName()) ++g_kbSetDSTex; }
+    // Only depth-TEXTURE-backed surfaces are honored (texName != 0, i.e. a view onto a
+    // depth-format GLTexture). Plain metadata depth-stencil handles keep the auto
+    // renderbuffer behavior. NULL restores the auto path.
+    curDS_ = (KB_ShadowsEnabled() && ds && ds->texName()) ? ds : nullptr;
+    // The shadowmap image's CreateTexture flags don't reliably mark it depth (engine
+    // flag soup + garbage formats from the decompiled metrics). The point of truth is
+    // HERE: anything used as a depth-stencil surface gets real depth storage.
+    if (curDS_ && curDS_->ownerTex() && !curDS_->ownerTex()->isDepth())
+        curDS_->ownerTex()->ensureDepthStorage();
+    {
+        static bool once = false;
+        if (curDS_ && !once) {
+            once = true;
+            fprintf(stderr, "[gl] SetDepthStencilSurface: depth texture honored (%ux%u fmt=%u)\n",
+                    curDS_->width(), curDS_->height(), (unsigned)curDS_->format());
+        }
+    }
+    if (fboActive_) {
+        // Re-apply on the live FBO immediately (engine may set DS after the RT) — but
+        // only when the DS size matches the live RT (WebGL2 requires equal dimensions;
+        // D3D9 allowed DS >= RT, e.g. the 1080p main DS during a 256x256 UI3D pass).
+        if (curDS_ && curDS_->width() == (UINT)fbWidth_ && curDS_->height() == (UINT)fbHeight_) {
+            unsigned attach = curDS_->texIsDepthStencil() ? GL_DEPTH_STENCIL_ATTACHMENT
+                              : (curDS_->format() == (D3DFORMAT)80 || curDS_->format() == (D3DFORMAT)70 ||
+                                 curDS_->format() == (D3DFORMAT)71)
+                                    ? GL_DEPTH_ATTACHMENT : GL_DEPTH_STENCIL_ATTACHMENT;
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, attach, GL_TEXTURE_2D, curDS_->texName(), 0);
+            dsLive_ = true;
+            { extern unsigned long g_kbShadowFbo; ++g_kbShadowFbo; }
+            // Never leave a broken FBO live: incomplete -> a correctly-sized auto
+            // renderbuffer for THIS pass (keep curDS_; it may match a later RT). A
+            // stale-sized fboDepth_ was itself incomplete = the scene went and STAYED
+            // black after a decal/DS-switch mid-game.
+            // Cache verified (colorTex,dsTex) pairs — glCheckFramebufferStatus is a SYNC
+            // round-trip (the #1 DOM-thread cost) and this DS re-apply runs ~9x/frame.
+            unsigned long long dsKey = ((unsigned long long)curRTColorTex_ << 32) | curDS_->texName();
+            bool dsKnown = false;
+            for (int pi = 0; pi < fboOkN_; ++pi) if (fboOkPairs_[pi] == dsKey) { dsKnown = true; break; }
+            unsigned dsStatus = dsKnown ? GL_FRAMEBUFFER_COMPLETE : glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            if (dsStatus == GL_FRAMEBUFFER_COMPLETE && !dsKnown && fboOkN_ < 8) fboOkPairs_[fboOkN_++] = dsKey;
+            if (dsStatus != GL_FRAMEBUFFER_COMPLETE) {
+                static int dsIncN = 0;
+                if (++dsIncN <= 6)
+                    fprintf(stderr, "[gl] DS re-apply INCOMPLETE status=0x%x ds=%ux%u(fmt=%u dsTex=%u attach=0x%x) rt=%dx%d -> auto rb\n",
+                            dsStatus, curDS_->width(), curDS_->height(), (unsigned)curDS_->format(),
+                            curDS_->texName(), attach, fbWidth_, fbHeight_);
+                dsLive_ = false;
+                kbRestoreAutoDepth(fbWidth_, fbHeight_);
+            }
+        } else if (fboDepth_ && fboDepthW_ == fbWidth_ && fboDepthH_ == fbHeight_) {
+            // DS size != live RT (WebGL2 forbids unequal dims), auto rb already correct:
+            // cheap re-attach, no completeness check (the hot path, ~9 DS sets/frame).
+            dsLive_ = false;
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fboDepth_);
+        } else {
+            // Auto rb missing or wrong-sized: size + attach + verify.
+            dsLive_ = false;
+            kbRestoreAutoDepth(fbWidth_, fbHeight_);
+        }
+    }
     return D3D_OK;
 }
 
@@ -82,12 +368,14 @@ HRESULT WINAPI GLDevice::Reset(D3DPRESENT_PARAMETERS *pp) {
 }
 
 HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA *) {
+    KB_FlushTagged(11);
     if (ctx_) ctx_->SwapBuffers();
     return D3D_OK;
 }
 
 HRESULT WINAPI GLDevice::Clear(DWORD /*Count*/, const D3DRECT * /*pRects*/, DWORD Flags,
                                D3DCOLOR Color, float Z, DWORD Stencil) {
+    KB_FlushTagged(11);
     GLbitfield mask = 0;
     if (Flags & D3DCLEAR_TARGET) {
         const float inv = 1.0f / 255.0f;
@@ -97,12 +385,14 @@ HRESULT WINAPI GLDevice::Clear(DWORD /*Count*/, const D3DRECT * /*pRects*/, DWOR
                      ((Color >> 24) & 0xff) * inv);  // A
         mask |= GL_COLOR_BUFFER_BIT;
     }
-    if (Flags & D3DCLEAR_ZBUFFER)  { glClearDepth(Z);          mask |= GL_DEPTH_BUFFER_BIT; }
+    if (Flags & D3DCLEAR_ZBUFFER)  { KB_glClearDepth(Z);       mask |= GL_DEPTH_BUFFER_BIT; }
     if (Flags & D3DCLEAR_STENCIL)  { glClearStencil((GLint)Stencil); mask |= GL_STENCIL_BUFFER_BIT; }
 
     // D3D's Clear ignores scissor (when no rects) and the write masks; GL's does
     // not. Force the affected state for the clear, then restore.
-    GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+    // Use the shadowed scissor state, not glIsEnabled — that's a SYNCHRONOUS proxied
+    // round-trip and Clear runs several times per frame (one of the futex-ping-pong sources).
+    bool scissor = scissorOn_;
     if (scissor) glDisable(GL_SCISSOR_TEST);
     if (mask & GL_COLOR_BUFFER_BIT) glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     if (mask & GL_DEPTH_BUFFER_BIT) glDepthMask(GL_TRUE);
@@ -110,15 +400,33 @@ HRESULT WINAPI GLDevice::Clear(DWORD /*Count*/, const D3DRECT * /*pRects*/, DWOR
     glClear(mask);
 
     if (scissor) glEnable(GL_SCISSOR_TEST);
+    // Clear forced colorMask/depthMask open and did NOT restore D3D's values, so the GL
+    // state now diverges from the SetRenderState cache — invalidate those entries so the
+    // next SetRenderState re-applies them (otherwise the masks stay stuck full-open).
+    if (mask & GL_COLOR_BUFFER_BIT) rsSet_[D3DRS_COLORWRITEENABLE] = 0;
+    if (mask & GL_DEPTH_BUFFER_BIT) rsSet_[D3DRS_ZWRITEENABLE]     = 0;
     return D3D_OK;
 }
 
 HRESULT WINAPI GLDevice::SetViewport(const D3DVIEWPORT9 *vp) {
+    KB_FlushTagged(11);
     if (!vp) return E_INVALIDARG;
-    // D3D viewport origin is top-left; GL is bottom-left — flip Y.
-    glViewport((GLint)vp->X, fbHeight_ - (GLint)(vp->Y + vp->Height),
-               (GLsizei)vp->Width, (GLsizei)vp->Height);
-    glDepthRange(vp->MinZ, vp->MaxZ);
+    // WINDOW target: D3D viewport origin is top-left, GL is bottom-left — flip Y.
+    // FBO target: keep D3D placement. The vertex path already flips clip-space Y, so
+    // CONTENT orientation matches D3D either way; the viewport flip only RELOCATES
+    // sub-rects, which broke every render target sampled with D3D-convention coords
+    // through a non-screen-space projection — the tiled sun-shadow atlas (its two
+    // vertical cascade tiles landed in swapped halves -> angle/distance-dependent
+    // black viewmodel + flapping world sun factors). Full-target viewports are
+    // unaffected (the flip is identity at vp.Y=0, Height=target height).
+    // D3D placement ONLY for the shadow-atlas build (live honored DS on a target that
+    // is not backbuffer-sized): its tiles are sampled later with D3D-convention coords.
+    // Everything else (scene incl. scissored sub-passes, postfx chains) keeps the
+    // legacy flip those paths were built against.
+    bool shadowBuild = fboActive_ && dsLive_ && (fbWidth_ != bbWidth_ || fbHeight_ != bbHeight_);
+    GLint y = shadowBuild ? (GLint)vp->Y : fbHeight_ - (GLint)(vp->Y + vp->Height);
+    glViewport((GLint)vp->X, y, (GLsizei)vp->Width, (GLsizei)vp->Height);
+    KB_glDepthRange(vp->MinZ, vp->MaxZ);
     return D3D_OK;
 }
 
@@ -134,9 +442,19 @@ HRESULT WINAPI GLDevice::GetDeviceCaps(D3DCAPS9 *pCaps) {
 HRESULT WINAPI GLD3D9::GetAdapterIdentifier(UINT, DWORD, D3DADAPTER_IDENTIFIER9 *pIdentifier) {
     if (!pIdentifier) return E_INVALIDARG;
     *pIdentifier = D3DADAPTER_IDENTIFIER9{};
-    // GL_VENDOR/GL_RENDERER need a current context; fall back to a neutral name.
-    const GLubyte *renderer = glGetString(GL_RENDERER);
-    const GLubyte *vendor   = glGetString(GL_VENDOR);
+    // GL_VENDOR/GL_RENDERER need a current context. R_ChooseAdapter() queries this
+    // BEFORE R_CreateGameWindow() creates the context, so there may be none yet.
+    // On desktop glGetString() returns null with no context; under Emscripten the
+    // JS shim instead THROWS (GLctx is undefined), so only query when one is current.
+    const GLubyte *renderer = nullptr;
+    const GLubyte *vendor   = nullptr;
+#if defined(__EMSCRIPTEN__)
+    if (emscripten_webgl_get_current_context() > 0)
+#endif
+    {
+        renderer = glGetString(GL_RENDERER);
+        vendor   = glGetString(GL_VENDOR);
+    }
     snprintf(pIdentifier->Description, sizeof(pIdentifier->Description), "%s",
              renderer ? (const char *)renderer : "OpenGL Renderer");
     snprintf(pIdentifier->Driver, sizeof(pIdentifier->Driver), "%s",

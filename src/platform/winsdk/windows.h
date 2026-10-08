@@ -45,8 +45,22 @@ KISAK_DECLARE_HANDLE(HGLRC);
 
 static inline DWORD GetCurrentThreadId()  { return (DWORD)(uintptr_t)pthread_self(); }
 static inline DWORD GetCurrentProcessId() { return (DWORD)getpid(); }
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+// Single-OS-thread cooperative build: a real usleep would block the one OS thread and
+// freeze the page. Instead, Sleep/SwitchToThread YIELD to the fiber scheduler so other
+// engine "threads" (fibers) make progress. (WebFiber_Yield lives in web_fibers.cpp;
+// declared here with matching C++ linkage — see web_fibers.h.)
+void WebFiber_Yield(void);
+static inline void  Sleep(DWORD /*ms*/)   { WebFiber_Yield(); }
+static inline BOOL  SwitchToThread()      { WebFiber_Yield(); return TRUE; }
+#else
+// Real-thread build (desktop, or Emscripten WITH -pthread = Web Workers). Each engine
+// thread is its own OS thread/worker, so a real usleep/yield is correct: it parks THIS
+// worker and lets the others run. Under PROXY_TO_PTHREAD + ALLOW_BLOCKING_ON_MAIN_THREAD
+// even the proxied "main" worker may block here without freezing the DOM thread.
 static inline void  Sleep(DWORD ms)       { if (ms) usleep((useconds_t)ms * 1000u); }
 static inline BOOL  SwitchToThread()      { return sched_yield() == 0; }
+#endif
 
 typedef struct _SYSTEMTIME {
     WORD wYear, wMonth, wDayOfWeek, wDay, wHour, wMinute, wSecond, wMilliseconds;
@@ -227,6 +241,11 @@ typedef struct _OVERLAPPED {
 } OVERLAPPED, *LPOVERLAPPED;
 struct _EXCEPTION_POINTERS;
 
+// Async-read completion routine type (ReadFileEx's 5th arg). Declared explicitly
+// so a function name binds to it directly — Clang won't implicitly convert a
+// function to the prior `void*` parameter (GCC did).
+typedef void (WINAPI *LPOVERLAPPED_COMPLETION_ROUTINE)(DWORD, DWORD, LPOVERLAPPED);
+
 // ---- Kernel objects: file / thread / event / semaphore / mutex -------------
 // All Win32 kernel handles are unified behind one tagged HANDLE, implemented over
 // POSIX/pthreads in src/platform/sdl/win_kernel.cpp; CloseHandle and
@@ -289,7 +308,7 @@ BOOL   DuplicateHandle(HANDLE srcProc, HANDLE src, HANDLE dstProc, HANDLE *dst,
 #endif
 HANDLE CreateFileA(const char *name, DWORD access, DWORD share, void *sec, DWORD disp, DWORD flags, HANDLE tmpl);
 BOOL   ReadFile(HANDLE h, void *buf, DWORD n, DWORD *numRead, OVERLAPPED *ov);
-BOOL   ReadFileEx(HANDLE h, void *buf, DWORD n, OVERLAPPED *ov, void *completion);
+BOOL   ReadFileEx(HANDLE h, void *buf, DWORD n, OVERLAPPED *ov, LPOVERLAPPED_COMPLETION_ROUTINE completion);
 BOOL   WriteFile(HANDLE h, const void *buf, DWORD n, DWORD *written, OVERLAPPED *ov);
 DWORD  GetFileSize(HANDLE h, DWORD *high);
 DWORD  SetFilePointer(HANDLE h, LONG dist, LONG *distHigh, DWORD method);
@@ -340,7 +359,12 @@ static inline void GetSystemTimeAsFileTime(FILETIME *ft) { if (ft) { ft->dwLowDa
 // rather than blocking forever on the APC that will never come.
 static inline DWORD SleepEx(DWORD ms, BOOL alertable) {
     if (alertable) return 0x000000C0;                              // WAIT_IO_COMPLETION
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+    // Cooperative build: yield to the fiber scheduler rather than block the OS thread.
+    if (ms) { extern void WebFiber_Yield(void); WebFiber_Yield(); }
+#else
     if (ms && ms != INFINITE) usleep((useconds_t)ms * 1000u);
+#endif
     return 0;
 }
 static inline void *InterlockedExchangePointer(void **target, void *value) { return __sync_lock_test_and_set(target, value); }
@@ -354,11 +378,15 @@ static inline BOOL      SetThreadPriority(HANDLE, int)                       { r
 // bit would force single-threaded rendering — which is wrong for the GL
 // backend, whose context is bound to the render thread and must receive all
 // draw work via the SMP hand-off rather than inline on the main thread.
-static inline BOOL      GetProcessAffinityMask(HANDLE, DWORD_PTR *p, DWORD_PTR *s) {
+// The engine passes DWORD* (not DWORD_PTR*); on i386 these are identical so it
+// compiled, but on wasm32 DWORD(unsigned int) and DWORD_PTR(uintptr_t) are
+// distinct pointer types and Clang rejects the mismatch. Take DWORD* — the mask
+// is 32-bit and the count is capped at 32, so it fits.
+static inline BOOL      GetProcessAffinityMask(HANDLE, DWORD *p, DWORD *s) {
     long n = sysconf(_SC_NPROCESSORS_ONLN);
     if (n < 1)  n = 1;
     if (n > 32) n = 32;  // the mask is 32-bit; the engine caps the count anyway
-    DWORD_PTR mask = (n >= 32) ? (DWORD_PTR)~0u : (((DWORD_PTR)1 << n) - 1);
+    DWORD mask = (n >= 32) ? (DWORD)~0u : (((DWORD)1 << n) - 1);
     if (p) *p = mask; if (s) *s = mask; return TRUE;
 }
 static inline HANDLE    GetCurrentThread()                                   { return (HANDLE)(intptr_t)-2; }
