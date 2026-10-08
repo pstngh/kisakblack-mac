@@ -117,8 +117,8 @@ void __cdecl BG_ShutdownFire()
 
 void __cdecl BG_ResetFire()
 {
-    memset((unsigned __int8 *)g_FM_ActiveCells, 0, sizeof(g_FM_ActiveCells));
-    memset((unsigned __int8 *)g_FM_BurnData, 0, sizeof(g_FM_BurnData));
+    memset(g_FM_ActiveCells, 0, sizeof(g_FM_ActiveCells));
+    memset(g_FM_BurnData, 0, sizeof(g_FM_BurnData));
     g_FM_BurnDataActiveCount = 0;
     Sync_VisualBurn_To_FM_State();
 }
@@ -294,8 +294,9 @@ void __cdecl TerrainScorch(float *loresCellPos, bool instant)
 
     int(__cdecl * allowSurf)(int, void *) = TerrainScorch_AllowSurfacesCallback;
 
-    GfxSurface surfs[50];
-    GfxSurface *surfList = surfs;
+    // R_BoxSurfaces returns pointers to world surfaces, not surface records.
+    GfxSurface *surfs[1024];
+    GfxSurface **surfList = surfs;
     unsigned int surfCount = 0;
 
     R_BoxSurfaces(
@@ -303,8 +304,8 @@ void __cdecl TerrainScorch(float *loresCellPos, bool instant)
         maxs,
         &allowSurf,
         0,
-        (GfxSurface***)&surfList, // KISAKTODO: shitty cast
-        0x400,
+        &surfList,
+        1024,
         &surfCount,
         1);
 
@@ -312,7 +313,7 @@ void __cdecl TerrainScorch(float *loresCellPos, bool instant)
 
     for (unsigned int i = 0; i < surfCount; ++i)
     {
-        GfxSurface *surf = &surfs[i];
+        GfxSurface *surf = surfs[i];
         srfTriangles_t *tris = &surf->tris;
 
         if (tris->stream2ByteOffset < 0)

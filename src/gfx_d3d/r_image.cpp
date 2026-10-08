@@ -87,17 +87,10 @@ void __cdecl R_GetImageList(ImageList *imageList)
 
 void __cdecl R_AddImageToList(XAssetHeader header, XAssetHeader *data)
 {
-    if ( data->xmodelPieces >= (XModelPieces *)0x1080
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_image.cpp",
-                    225,
-                    0,
-                    "%s",
-                    "imageList->count < ARRAY_COUNT( imageList->image )") )
-    {
-        __debugbreak();
-    }
-    data[(int)data->xmodelPieces++ + 1] = header;
+    ImageList *imageList = (ImageList *)data;
+    iassert(imageList->count < ARRAY_COUNT(imageList->image));
+
+    imageList->image[imageList->count++] = header.image;
 }
 
 void __cdecl R_SumOfUsedImages(Image_MemUsage *usage)
@@ -345,7 +338,7 @@ void __cdecl R_ShutdownImages()
                 Image_Free(imageGlobals.imageHashTable[i]);
         }
     }
-    memset((unsigned __int8 *)&imageGlobals, 0, 0x2000u);
+    memset(&imageGlobals, 0, 0x2000u);
     for ( j = 0; j < v2; ++j )
     {
         imagea = (GfxImage *)v4[j];

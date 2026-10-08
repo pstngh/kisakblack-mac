@@ -1,7 +1,5 @@
 #pragma once
 
-#define SND_EPSILON 0.0000152879
-
 double __cdecl SND_LosOcclusionTrace(bool fancy, int *cache, const float *listener, const float *playback);
 void __cdecl Snd_LosOcclusionMultiTrace(
                 int *global_cache,
@@ -15,7 +13,6 @@ void __cdecl Snd_LosOcclusionMultiTrace(
                 unsigned int playback_rays,
                 unsigned int *valid,
                 unsigned int *hits);
-void __cdecl Vec3ScaleAdd(const float *base, const float *dir, float scale, float *dst);
 void    SND_TraceProximity(
                 float *front,
                 float *origin,

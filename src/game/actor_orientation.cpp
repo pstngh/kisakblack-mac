@@ -151,7 +151,7 @@ void __cdecl StepYaw(float dt, float *yaw, float *yawVeloc, float targetYaw, flo
     if ( angleDelta >= 0.0 )
         value = ai_angularYawAccelRate->current.value;
     else
-        (value) = -ai_angularYawAccelRate->current.integer;
+        (value) = -ai_angularYawAccelRate->current.value;
     decel = (-(value)) * ai_angularYawDecelFactor->current.value;
     maxVeloc = sqrtf(
                              (float)((float)((float)((float)((float)(-2.0 * angleDelta) * value) * decel)
@@ -217,7 +217,7 @@ void __fastcall Actor_UpdateBodyAngle(actor_s *self)
     {
         fYaw = self->ent->r.currentAngles[1];
         fYawVeloc = self->yawVeloc;
-        StepYaw(0.050000001, &fYaw, &fYawVeloc, self->fDesiredBodyYaw, 0.0);
+        StepYaw(0.05f, &fYaw, &fYawVeloc, self->fDesiredBodyYaw, 0.0);
     }
     else
     {

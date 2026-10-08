@@ -355,7 +355,7 @@ void    CG_Vehicle_PreControllers(
         {
             __debugbreak();
         }
-        memset((unsigned __int8 *)cent->vehicle, 0, sizeof(cgVehicle_s));
+        memset(cent->vehicle, 0, sizeof(cgVehicle_s));
     }
     cgameGlob = CG_GetLocalClientGlobals((int)localClientNum);
     p_currentState = &cent->currentState;
@@ -1155,7 +1155,7 @@ void __cdecl CG_CrossFadeVehicleMaterialEffects(
         __debugbreak();
     }
     wheelEffect = &cent->vehicle->wheelEffects[groundEffectIndex];
-    if ( ratio < 0.0000152879 )
+    if ( ratio < SND_EPSILON )
         ratio = 0.0f;
     soundAlias = info->sndMaterialNames[groundEffectIndex];
     if ( *soundAlias )

@@ -986,6 +986,7 @@ set(SRC_GFX_D3D
 	"${SRC_DIR}/gfx_d3d/r_model_pose.cpp"
 	"${SRC_DIR}/gfx_d3d/r_model_pose.h"
 	"${SRC_DIR}/gfx_d3d/r_model_skin.cpp"
+	"${SRC_DIR}/gfx_d3d/r_model_skin_sse.cpp"
 	"${SRC_DIR}/gfx_d3d/r_model_skin.h"
 	"${SRC_DIR}/gfx_d3d/r_outdoor.cpp"
 	"${SRC_DIR}/gfx_d3d/r_outdoor.h"

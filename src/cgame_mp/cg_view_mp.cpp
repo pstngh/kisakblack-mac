@@ -5122,7 +5122,7 @@ double __cdecl CG_UpdateAdsDofValue(float currentValue, float targetValue, float
     float changeVala; // [esp+0h] [ebp-4h]
     float maxChangea; // [esp+14h] [ebp+10h]
 
-    maxChangea = (float)(maxChange / 0.050000001) * dt;
+    maxChangea = (float)(maxChange / 0.05f) * dt;
     if ( currentValue <= targetValue )
     {
         if ( targetValue > currentValue )
@@ -5568,7 +5568,7 @@ void __cdecl CG_ClearSaveScreenFx(int localClientNum)
     cg_s *cgameGlob; // [esp+0h] [ebp-4h]
 
     cgameGlob = CG_GetLocalClientGlobals(localClientNum);
-    memset((unsigned __int8 *)&cgameGlob->refdef.saveScreenFx, 0, sizeof(cgameGlob->refdef.saveScreenFx));
+    memset(&cgameGlob->refdef.saveScreenFx, 0, sizeof(cgameGlob->refdef.saveScreenFx));
 }
 
 void __cdecl CG_SaveScreen(int localClientNum)

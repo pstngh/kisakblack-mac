@@ -10,24 +10,23 @@
 
 float g_pathAttemptGoalPos[3];
 
-double __fastcall Path_GetPathDir(float *delta, const float *vFrom, const float *vTo)
+float Path_GetPathDir(float *delta, const float *vFrom, const float *vTo)
 {
     float fDist; // [esp+18h] [ebp-4h]
 
-    *delta = *vTo - *vFrom;
-    delta[1] = vTo[1] - vFrom[1];
+    Vec2Sub(vTo, vFrom, delta);
     
     iassert(!IS_NAN(delta[0]));
     iassert(!IS_NAN(delta[1]));
-    
     iassert(delta[0] || delta[1]);
     
     fDist = Vec2Length(delta);
 
     iassert(fDist > 0);
     
-    *delta = (float)(1.0 / fDist) * *delta;
-    delta[1] = (float)(1.0 / fDist) * delta[1];
+    delta[0] = (1.0f / fDist) * delta[0];
+    delta[1] = (1.0f / fDist) * delta[1];
+
     return fDist;
 }
 
@@ -203,27 +202,20 @@ void __fastcall Path_AddTrimmedAmount(path_t *pPath, const float *vStartPos)
     }
 }
 
-double __fastcall Path_GetDistToPathSegment(const float *vStartPos, const pathpoint_t *pt)
+float Path_GetDistToPathSegment(const float *vStartPos, const pathpoint_t *pt)
 {
-    float offset; // [esp+10h] [ebp-8h]
-    float offset_4; // [esp+14h] [ebp-4h]
+    float offset[2]; // [esp+10h] [ebp-8h]
 
-    if ( !pt && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\game\\actor_navigation.cpp", 168, 0, "%s", "pt") )
-        __debugbreak();
-    offset = pt->vOrigPoint[0] - *vStartPos;
-    offset_4 = pt->vOrigPoint[1] - vStartPos[1];
-    if ( pt->fDir2D[0] == 0.0
-        && pt->fDir2D[1] == 0.0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\game\\actor_navigation.cpp",
-                    171,
-                    0,
-                    "%s",
-                    "pt->fDir2D[0] || pt->fDir2D[1]") )
-    {
-        __debugbreak();
-    }
-    return (float)fabs((float)((float)(pt->fDir2D[0] * offset_4) - (float)(pt->fDir2D[1] * offset)));
+    iassert(pt);
+
+    offset[0] = pt->vOrigPoint[0] - vStartPos[0];
+    offset[1] = pt->vOrigPoint[1] - vStartPos[1];
+
+    Vec2Sub(pt->vOrigPoint, vStartPos, offset);
+
+    iassert(pt->fDir2D[0] || pt->fDir2D[1]);
+
+    return I_fabs(((pt->fDir2D[0] * offset[1]) - (pt->fDir2D[1] * offset[0])));
 }
 
 int __cdecl Path_AStarAlgorithm_CustomSearchInfo_FindCloseNode_(
@@ -3044,7 +3036,7 @@ int __fastcall Path_TrimToSeePoint(
 
 void __fastcall Path_Begin(path_t *pPath)
 {
-    memset((unsigned __int8 *)pPath, 0, sizeof(path_t));
+    memset(pPath, 0, sizeof(path_t));
     pPath->fLookaheadAmount = 21845.334f;
     pPath->wDodgeEntity = 1023;
 }

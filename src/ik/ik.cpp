@@ -71,7 +71,7 @@ float ikLayerLerpTimes[22] =
   1.5,
   0.69999999,
   0.40000001,
-  0.050000001,
+  0.05f,
   0.5,
   0.40000001,
   0.30000001,
@@ -307,7 +307,7 @@ IKState *__cdecl IK_CreateIKForEntity(int entityNum, unsigned __int8 *model)
     ikState->entityNum = entityNum;
     ikState->model = model;
     ikState->bJointVarsValid = 0;
-    memset((unsigned __int8 *)ikState->lastFrameMS, 0, sizeof(ikState->lastFrameMS));
+    memset(ikState->lastFrameMS, 0, sizeof(ikState->lastFrameMS));
     ikState->isServer = IKImport_IsServerModel(model);
     ikState->localClientIndex = IKImport_GetLocalClientIndexForModel(model);
     ikState->localIkSystem = &ikSystem;
@@ -484,7 +484,7 @@ void __cdecl IK_UpdateDvarValues(IKState *ikState)
     }
     else
     {
-        memset((unsigned __int8 *)ikState->dvarValues, 0, sizeof(ikState->dvarValues));
+        memset(ikState->dvarValues, 0, sizeof(ikState->dvarValues));
     }
 }
 

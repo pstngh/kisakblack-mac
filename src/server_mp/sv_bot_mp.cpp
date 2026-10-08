@@ -235,7 +235,7 @@ void __cdecl SV_BotClearScriptEnemy(const client_t *bot)
 
 void __cdecl Bot_ClearThreat(bot_info_t *botInfo)
 {
-    memset((unsigned __int8 *)&botInfo->threat, 0, sizeof(botInfo->threat));
+    memset(&botInfo->threat, 0, sizeof(botInfo->threat));
     botInfo->attackerEnt = 0;
     botInfo->flags &= ~1u;
     botInfo->flags &= ~0x40u;
@@ -528,7 +528,7 @@ void __cdecl Bot_UpdateThreat(bot_info_t *botInfo, const client_t *bot)
             //D3DPERF_EndEvent();
         return;
     }
-    memset((unsigned __int8 *)threats, 0, sizeof(threats));
+    memset(threats, 0, sizeof(threats));
     if ( sv_botsIgnoreHumans->current.enabled && botInfo->threat.enemy && Bot_IsEnemyHuman(botInfo->threat.enemy) )
         Bot_ClearThreat(botInfo);
     if ( botInfo->threat.enemy )
@@ -1908,7 +1908,7 @@ double __cdecl Bot_UpdatePitch(float currentPitch, float targetPitch, bool force
     }
     else
         v4 = rate;
-    v6 = DiffTrackAngle(targetPitch, currentPitch, v4, 0.050000001);
+    v6 = DiffTrackAngle(targetPitch, currentPitch, v4, 0.05f);
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
     return v6;
@@ -1958,7 +1958,7 @@ double __cdecl Bot_UpdateYaw(float currentYaw, float targetYaw, bool forceSlow, 
     else
         v4 = botInfo->flags | 0x10;
     botInfo->flags = v4;
-    v9 = DiffTrackAngle(targetYaw, currentYaw, rateb, 0.050000001);
+    v9 = DiffTrackAngle(targetYaw, currentYaw, rateb, 0.05f);
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
     return v9;
@@ -2132,7 +2132,7 @@ void __cdecl Bot_UpdateStance(bot_info_t *botInfo, const client_t *bot, usercmd_
     if ( Path_Exists(&botInfo->path)
         && !Bot_IsAtNegotiationNode(botInfo, bot, &botInfo->path)
         && sv_botCrouchDistance->current.value > botInfo->path.fLookaheadDist
-        && Com_Random() < 0.050000001 )
+        && Com_Random() < 0.05f )
     {
         if ( svs.time >= botInfo->lastMoveTime )
             Bot_SetTimedAction(9u, &botInfo->crouchEndTime, sv_botMinCrouchTime, sv_botMaxCrouchTime, cmd, &bot->lastUsercmd);
@@ -2390,14 +2390,14 @@ LABEL_98:
             if ( Com_Random() < 0.0049999999
                 || sv_botsForceSpecialOnly->current.enabled
                 || ((v7 = botInfo->threat.enemy) == 0 || !v7->pTurretInfo ? (v4 = 0) : (v4 = 1),
-                        v4 && botInfo->threat.distSq < 4194304.0 && Com_Random() < 0.050000001) )
+                        v4 && botInfo->threat.distSq < 4194304.0 && Com_Random() < 0.05f) )
             {
                 cmd->button_bits.setBit(0xF);
                 goto LABEL_95;
             }
             v6 = botInfo->threat.enemy;
             v3 = v6 && v6->pTurretInfo;
-            if ( v3 && botInfo->threat.distSq < 4194304.0 && Com_Random() < 0.050000001 )
+            if ( v3 && botInfo->threat.distSq < 4194304.0 && Com_Random() < 0.05f )
             {
 LABEL_87:
                 cmd->button_bits.setBit(0xE);
@@ -2944,7 +2944,7 @@ char __cdecl Bot_ShouldThrowGrenade(bot_info_t *botInfo, const client_t *bot)
 void __cdecl Bot_Clear(bot_info_t *botInfo)
 {
     //PIXBeginNamedEvent(-1, "Bot_Clear");
-    memset((unsigned __int8 *)botInfo, 0, sizeof(bot_info_t));
+    memset(botInfo, 0, sizeof(bot_info_t));
     Path_Clear(&botInfo->path);
     //if ( g_DXDeviceThread == GetCurrentThreadId() )
         //D3DPERF_EndEvent();
@@ -3624,13 +3624,13 @@ void    Bot_DrawThreat(const client_t *bot)
                 angles[1] = (float)(sv_botFov->current.value * 0.5) + angles[1];
                 break;
             case 1:
-                angles[1] = (float)((-sv_botFov->current.integer) * 0.5) + angles[1];
+                angles[1] = (float)((-sv_botFov->current.value) * 0.5) + angles[1];
                 break;
             case 2:
                 angles[0] = (float)(sv_botFov->current.value * 0.5) + angles[0];
                 break;
             case 3:
-                angles[0] = (float)((-sv_botFov->current.integer) * 0.5) + angles[0];
+                angles[0] = (float)((-sv_botFov->current.value) * 0.5) + angles[0];
                 break;
             default:
                 break;

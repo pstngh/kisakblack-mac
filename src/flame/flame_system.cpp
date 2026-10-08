@@ -1066,7 +1066,7 @@ void __cdecl Flame_Init_FlameVars()
 {
     int i; // [esp+14h] [ebp-4h]
 
-    memset((unsigned __int8 *)flameVarList, 0, sizeof(flameVarList));
+    memset(flameVarList, 0, sizeof(flameVarList));
     numFlameVars = 0;
     for ( i = 0; i < bg_iNumFlameTableFields; ++i )
     {
@@ -1083,7 +1083,7 @@ void __cdecl Flame_Init_FlameVars()
 
 void __cdecl Flame_Reset_FlameVars()
 {
-    memset((unsigned __int8 *)flameVarList, 0, sizeof(flameVarList));
+    memset(flameVarList, 0, sizeof(flameVarList));
     numFlameVars = 0;
 }
 
@@ -1103,9 +1103,9 @@ void __cdecl Flame_Init_Sources()
     int i; // [esp+0h] [ebp-4h]
 
     Flame_Init_DVars();
-    memset((unsigned __int8 *)flameSources, 0, sizeof(flameSources));
+    memset(flameSources, 0, sizeof(flameSources));
     memset(flameSourceLookup, 0, 0x3FEu);
-    memset((unsigned __int8 *)sv_flameSources, 0, sizeof(sv_flameSources));
+    memset(sv_flameSources, 0, sizeof(sv_flameSources));
     memset(sv_flameSourceLookup, 0, 0x3FEu);
     for ( i = 0; i < 64; ++i )
         sv_flameSources[i].is_server_alloc = 1;
@@ -1490,7 +1490,7 @@ void __cdecl Flame_Item_Init(flameGeneric_s *item, unsigned int itemSize)
 
     globalList = item->listGlobal;
     localList = item->listLocal;
-    memset((unsigned __int8 *)item, 0, itemSize);
+    memset(item, 0, itemSize);
     item->listGlobal = globalList;
     item->listLocal = localList;
 }
@@ -2089,7 +2089,7 @@ void __cdecl CG_Flame_Update_ViewModel(int localClientNum, centity_s *cent)
                                                                                                                      * (float)cgameGlob->frametime)
                                                                                                      / 1000.0)
                                                                                      + cgameGlob->flamethrowerKickOffset[i];
-            if (fabs(cgameGlob->flamethrowerKickOffset[i]) > fabs(flame_kick_offset->current.value))// COERCE_FLOAT(*(&flame_kick_offset->current.integer + i) & _mask__AbsFloat_) )
+            if (fabs(cgameGlob->flamethrowerKickOffset[i]) > fabs(flame_kick_offset->current.vector[i]))
                 cgameGlob->flamethrowerKickOffset[i] = flame_kick_offset->current.vector[i];
         }
     }

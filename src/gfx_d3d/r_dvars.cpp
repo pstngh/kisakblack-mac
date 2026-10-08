@@ -897,7 +897,7 @@ void __cdecl R_RegisterDvars()
                                                      2.0,
                                                      0,
                                                      "Max reflection intensity based on glancing angle.");
-    r_envMapExponent = _Dvar_RegisterFloat("r_envMapExponent", 5.0, 0.050000001, 20.0, 0, "Reflection exponent.");
+    r_envMapExponent = _Dvar_RegisterFloat("r_envMapExponent", 5.0, 0.05f, 20.0, 0, "Reflection exponent.");
     r_envMapSunIntensity = _Dvar_RegisterFloat(
                                                      "r_envMapSunIntensity",
                                                      2.0,
@@ -1817,7 +1817,7 @@ void __cdecl R_RegisterDvars()
                                                                      "r_motionblur_directionFactor",
                                                                      0.001,
                                                                      0.001,
-                                                                     0.050000001,
+                                                                     0.05f,
                                                                      0x1081u,
                                                                      "Tweak dev var; blur magnitude due to direction change");
     r_motionblur_positionFactor = _Dvar_RegisterFloat(
@@ -2586,11 +2586,7 @@ void __cdecl R_RegisterDvars()
 #endif
     sv_cheats = _Dvar_RegisterBool("sv_cheats", 1, 0x48u, "Allow server side cheats");
     com_statmon = _Dvar_RegisterBool("com_statmon", 0, 0, "Draw stats monitor");
-#ifdef KISAK_SSE_SKINNING // KISAKTODO: fix sse skinning (broken)
     r_sse_skinning = _Dvar_RegisterBool("r_sse_skinning", 1, 0, "Use Streaming SIMD Extensions for skinning");
-#else
-    r_sse_skinning = _Dvar_RegisterBool("r_sse_skinning", 0, 0, "Use Streaming SIMD Extensions for skinning");
-#endif
     r_monitor = _Dvar_RegisterInt(
                                 "r_monitor",
                                 0,

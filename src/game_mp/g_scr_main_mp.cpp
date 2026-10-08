@@ -1683,29 +1683,17 @@ void GScr_GetAnimLength()
 
 void GScr_AnimHasNotetrack()
 {
-    const XAnim_s *Anims; // eax
-    unsigned __int8 v1; // al
-    unsigned __int16 name; // [esp+4h] [ebp-8h]
-    const char *anim; // [esp+8h] [ebp-4h]
-
-    anim = Scr_GetAnim(0, 0, SCRIPTINSTANCE_SERVER).linkPointer;
-    name = (unsigned __int16)Scr_GetConstString(1u, SCRIPTINSTANCE_SERVER);
-    Anims = Scr_GetAnims(HIWORD(anim), SCRIPTINSTANCE_SERVER);
-    v1 = XAnimNotetrackExists(Anims, (unsigned __int16)anim, name);
-    Scr_AddBool(v1, SCRIPTINSTANCE_SERVER);
+    scr_anim_s anim = Scr_GetAnim(0, 0, SCRIPTINSTANCE_SERVER);
+    uint16_t name = Scr_GetConstString(1, SCRIPTINSTANCE_SERVER);
+    Scr_AddBool(XAnimNotetrackExists(Scr_GetAnims(anim.tree, SCRIPTINSTANCE_SERVER), anim.index, name), SCRIPTINSTANCE_SERVER);
 }
 
 void GScr_GetNotetrackTimes()
 {
-    const XAnim_s *Anims; // eax
-    VariableUnion name; // [esp+4h] [ebp-8h]
-    const char *anim; // [esp+8h] [ebp-4h]
-
-    anim = Scr_GetAnim(0, 0, SCRIPTINSTANCE_SERVER).linkPointer;
-    name.intValue = Scr_GetConstString(1u, SCRIPTINSTANCE_SERVER);
+    scr_anim_s anim = Scr_GetAnim(0, 0, SCRIPTINSTANCE_SERVER);
+    uint32_t name = Scr_GetConstString(1, SCRIPTINSTANCE_SERVER);
     Scr_MakeArray(SCRIPTINSTANCE_SERVER);
-    Anims = Scr_GetAnims(HIWORD(anim), SCRIPTINSTANCE_SERVER);
-    XAnimAddNotetrackTimesToScriptArray(Anims, (unsigned __int16)anim, name.stringValue);
+    XAnimAddNotetrackTimesToScriptArray(Scr_GetAnims(anim.tree, SCRIPTINSTANCE_SERVER), anim.index, name);
 }
 
 void GScr_GetBrushModelCenter()
@@ -5166,7 +5154,7 @@ void Scr_Objective_Current()
     int objNum; // [esp+8Ch] [ebp-4h]
 
     numParam = Scr_GetNumParam(SCRIPTINSTANCE_SERVER);
-    memset((unsigned __int8 *)makeCurrent, 0, sizeof(makeCurrent));
+    memset(makeCurrent, 0, sizeof(makeCurrent));
     for ( i = 0; i < numParam; ++i )
     {
         objNum = Scr_GetInt(i, SCRIPTINSTANCE_SERVER);
@@ -17007,7 +16995,7 @@ int Scr_ParseGameTypeList_LoadObj()
     char *dest; // [esp+1438h] [ebp-8h]
     int FileList; // [esp+143Ch] [ebp-4h]
 
-    memset((unsigned __int8 *)g_scr_data.gametype.list, 0, sizeof(g_scr_data.gametype.list));
+    memset(g_scr_data.gametype.list, 0, sizeof(g_scr_data.gametype.list));
     v11 = 0;
     FileList = FS_GetFileList("maps/mp/gametypes", (char*)"gsc", FS_LIST_PURE_ONLY, listbuf, 4096);
     src = listbuf;
@@ -17084,7 +17072,7 @@ void Scr_ParseGameTypeList_FastFile()
     const char *gametypesBuf; // [esp+3Ch] [ebp-8h] BYREF
     gameTypeScript_t *pGameType; // [esp+40h] [ebp-4h]
 
-    memset((unsigned __int8 *)g_scr_data.gametype.list, 0, sizeof(g_scr_data.gametype.list));
+    memset(g_scr_data.gametype.list, 0, sizeof(g_scr_data.gametype.list));
     iNumGameTypes = 0;
     gametypesFile = DB_FindXAssetHeader(ASSET_TYPE_RAWFILE, (char*)"maps/mp/gametypes/_gametypes.txt", 1, -1).rawfile;
     if ( gametypesFile )

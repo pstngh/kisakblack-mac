@@ -11,7 +11,7 @@
 #include "snd_driver_xaudio2_dsp.h"
 
 #define SND_MAX_STREAM_VOICES 10
-#define SND_MAX_VOICES 74
+#define SND_MAX_VOICES (64 + 10)
 #define SND_PLAYBACKID_NOTPLAYED -1
 
 
@@ -178,7 +178,7 @@ void __cdecl SD_PauseVoice(int voiceIndex);
 void __cdecl SD_UnpauseVoice(int voiceIndex);
 void __cdecl SD_UpdateVoice(unsigned int voiceIndex);
 void __cdecl SDXA2_UpdateVoiceSends(int voiceIndex);
-
+bool SND_IsVoiceFree(int voiceIndex);
 
 int __cdecl SD_StartAlias(SndStartAliasInfo *startAliasInfo, unsigned int voice);
 int __cdecl SND_StartAliasRam(SndStartAliasInfo *startAliasInfo, int voiceIndex);

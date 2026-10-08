@@ -5382,7 +5382,7 @@ bool __cdecl Item_TextField_HandleKey(int localClientNum, UiContext *dc, itemDef
         return 0;
     if ( !item->dvar )
         return 0;
-    memset((unsigned __int8 *)buff, 0, sizeof(buff));
+    memset(buff, 0, sizeof(buff));
     VariantString = Dvar_GetVariantString(item->dvar);
     I_strncpyz(buff, VariantString, 1024);
     len = &buff[strlen(buff) + 1] - &buff[1];
@@ -6398,7 +6398,7 @@ int __cdecl Item_Slider_HandleKey(UiContext *dc, itemDef_s *item, int key)
         editDef = Item_GetEditFieldDef(item);
         if ( editDef )
         {
-            step = (float)(editDef->maxVal - editDef->minVal) * 0.050000001;
+            step = (float)(editDef->maxVal - editDef->minVal) * 0.05f;
             VariantString = Dvar_GetVariantString(item->dvar);
             value = atof(VariantString);
             if ( (dvar->type == DVAR_TYPE_INT || dvar->type == DVAR_TYPE_INT64) && step < 1.0 )

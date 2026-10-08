@@ -88,7 +88,7 @@ SDXA2Effect::SDXA2Effect(XAPO_REGISTRATION_PROPERTIES *props) : CXAPOBase(props)
     //this->IXAPOParameters::IUnknown::__vftable = (IXAPOParameters_vtbl *)&SDXA2Effect::`vftable'{for `IXAPOParameters'};
     this->locked = 0;
     this->started = 0;
-    memset((unsigned __int8 *)this->interleave, 0, sizeof(this->interleave));
+    memset(this->interleave, 0, sizeof(this->interleave));
     //return this;
 }
 
@@ -185,8 +185,8 @@ void SDXA2SourceEffect::Clear()
     iassert(!locked);
     iassert(!started);
 
-    memset((unsigned __int8 *)&this->params, 0, sizeof(this->params));
-    memset((unsigned __int8 *)this->state, 0, sizeof(this->state));
+    memset(&this->params, 0, sizeof(this->params));
+    memset(this->state, 0, sizeof(this->state));
 }
 
 void __thiscall SDXA2SourceEffect::Process(
@@ -194,19 +194,9 @@ void __thiscall SDXA2SourceEffect::Process(
                 unsigned int frameCount,
                 float *data)
 {
-    unsigned int i; // [esp+4h] [ebp-4h]
+    iassert(channelCount <= SDXA2_MAX_SOURCE_CHANNELS);
 
-    if ( channelCount > 2
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\sound\\snd_driver_xaudio2_dsp.cpp",
-                    174,
-                    0,
-                    "%s",
-                    "channelCount <= SDXA2_MAX_SOURCE_CHANNELS") )
-    {
-        __debugbreak();
-    }
-    for ( i = 0; i < channelCount; ++i )
+    for ( int i = 0; i < channelCount; ++i )
         SND_DspFxSourceMono(
             (const snd_dsp_futz_param *)&this->params,
             &this->state[i],
@@ -237,15 +227,11 @@ void __thiscall SDXA2MasterNoVoiceBusEffect::Process(
                 unsigned int frameCount,
                 float *data)
 {
-    float frameRate; // [esp+0h] [ebp-24h]
-    unsigned int i; // [esp+20h] [ebp-4h]
-
-    for ( i = 0; i < channelCount; ++i )
+    for ( int i = 0; i < channelCount; ++i )
     {
-        frameRate = (float)this->frameRate;
         SND_DspFxMasterNoVoiceSingleChannel(
             frameCount,
-            frameRate,
+            this->frameRate,
             &data[frameCount * i],
             &this->params,
             &this->state[i],
@@ -268,8 +254,8 @@ SDXA2MasterBusEffect::SDXA2MasterBusEffect()
     //SDXA2Effect::SDXA2Effect(this, &g_masterEffectProps);
     //this->SDXA2Effect::CXAPOBase::IXAPO::IUnknown::__vftable = (SDXA2MasterBusEffect_vtbl *)&SDXA2MasterBusEffect::`vftable'{for `CXAPOBase'};
     //this->SDXA2Effect::IXAPOParameters::IUnknown::__vftable = (IXAPOParameters_vtbl *)&SDXA2MasterBusEffect::`vftable'{for `IXAPOParameters'};
-    memset((unsigned __int8 *)&this->params, 0, sizeof(this->params));
-    memset((unsigned __int8 *)this->state, 0, sizeof(this->state));
+    memset(&this->params, 0, sizeof(this->params));
+    memset(this->state, 0, sizeof(this->state));
     //return this;
 }
 

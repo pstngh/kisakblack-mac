@@ -1629,7 +1629,7 @@ void __cdecl FinitePerspectiveMatrix(float tanHalfFovX, float tanHalfFovY, float
     iassert(zNear > 0.0f);
     iassert(zFar > zNear);
 
-    memset((unsigned __int8 *)mtx, 0, 0x40u);
+    memset(mtx, 0, 0x40u);
 
     (*mtx)[0] = 1.0 / tanHalfFovX;
     (*mtx)[5] = 1.0 / tanHalfFovY;
@@ -1759,7 +1759,7 @@ void __cdecl SpotLightProjectionMatrix(float cosFov, float zNear, float zFar, fl
     float Q; // [esp+8h] [ebp-8h]
     float cotanFov; // [esp+Ch] [ebp-4h]
 
-    memset((unsigned __int8 *)mtx, 0, 0x40u);
+    memset(mtx, 0, 0x40u);
     if ( zNear >= 0.001 )
         v4 = zNear;
     else
@@ -1779,7 +1779,7 @@ void __cdecl InfinitePerspectiveMatrix(float tanHalfFovX, float tanHalfFovY, flo
         iassert(mtx);
         iassert(zNear > 0);
 
-        memset((unsigned __int8 *)mtx, 0, sizeof(mat4x4));
+        memset(mtx, 0, sizeof(mat4x4));
 
         (*mtx)[0] = MAX_11BIT_FLT / tanHalfFovX;
         (*mtx)[5] = MAX_11BIT_FLT / tanHalfFovY;
@@ -3352,13 +3352,13 @@ float __cdecl Vec2Normalize(float *v)
 {
         float ilength; // [esp+Ch] [ebp-8h]
         float length; // [esp+10h] [ebp-4h]
-
-        length = sqrt(v[0] * v[0] + v[1] * v[1]);
+        
+        length = Vec2Length(v);
 
         if (length > 0.0f)
-                ilength = 1.0f / length;
+            ilength = 1.0f / length;
         else
-                ilength = 1.0f;
+            ilength = 1.0f;
 
         v[0] = v[0] * ilength;
         v[1] = v[1] * ilength;
@@ -3383,7 +3383,7 @@ bool __cdecl Vec3IsNormalized(const float *v)
 
 float __cdecl Vec2Length(const float *v)
 {
-        return sqrtf(v[1] * v[1] + v[0] * v[0]);
+    return sqrtf(v[1] * v[1] + v[0] * v[0]);
 }
 
 float Vec2LengthSq(const float *v)
@@ -3418,6 +3418,13 @@ void __cdecl Vec3Mul(const float *a, const float *b, float *product)
     *product = *a * *b;
     product[1] = a[1] * b[1];
     product[2] = a[2] * b[2];
+}
+
+void __cdecl Vec3ScaleAdd(const float *base, const float *dir, float scale, float *dst)
+{
+    Vec3Copy(dir, dst);
+    Vec3Scale(dst, scale, dst);
+    Vec3Add(base, dst, dst);
 }
 
 float __cdecl Vec3NormalizeTo(const vec3r v, vec3r out)
@@ -3606,7 +3613,7 @@ void __cdecl Vec4Add(const float *a, const float *b, float *sum)
 
 void __cdecl Vec3Sub(const float *a, const float *b, float *diff)
 {
-    *diff = *a - *b;
+    diff[0] = a[0] - b[0];
     diff[1] = a[1] - b[1];
     diff[2] = a[2] - b[2];
 }

@@ -4,6 +4,7 @@
 #include "snd_radverb.h"
 
 #define SDXA2_MAX_FRAME_COUNT 480
+#define SDXA2_MAX_SOURCE_CHANNELS 2
 
 // The DSP effects derive from CXAPOBase / IXAPOParameters — reconstructed portably in
 // XAPOBase.h — so they now compile on every platform; the OpenAL backend
