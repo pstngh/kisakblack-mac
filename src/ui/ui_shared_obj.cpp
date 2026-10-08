@@ -336,11 +336,11 @@ struct// $CD64A558AFC89A5F4974E935559855BB // sizeof=0x141C
                                         // Asset_Parse+13E/o ...
     MenuList menuList;                  // XREF: UI_LoadMenu_LoadObj+17/w
                                         // UI_LoadMenu_LoadObj:loc_77E012/o ...
-    itemDef_s *items[512];              // XREF: Menu_Init+7C/o
+    Ptr32<itemDef_s> items[512];        // XREF: Menu_Init+7C/o
                                         // Menu_PostParse+5A/o
-    animParamsDef_t *animStates[256];   // XREF: Item_Init+72/o
+    Ptr32<animParamsDef_t> animStates[256]; // XREF: Item_Init+72/o
                                         // Item_PostParse+6B/o ...
-    menuDef_t *menus[512];              // XREF: UI_LoadMenu_LoadObj+17/o
+    Ptr32<menuDef_t> menus[512];        // XREF: UI_LoadMenu_LoadObj+17/o
                                         // UI_LoadMenus_LoadObj+1A/o
 } g_load_0;
 
@@ -529,7 +529,7 @@ int __cdecl PC_CndStackPopLevel()
     }
 }
 
-int __cdecl PC_CndStackAddConditionsToScript(GenericEventScript **baseScript, char *accumulatedScriptCommands)
+int __cdecl PC_CndStackAddConditionsToScript(Ptr32<GenericEventScript> *baseScript, char *accumulatedScriptCommands)
 {
     conditionStackMember_t *v2; // eax
     int i; // [esp+20h] [ebp-14h]
@@ -613,6 +613,19 @@ int __cdecl PC_String_Parse(int handle, const char **out)
     *out = String_Alloc(token.string);
     return 1;
 }
+
+#ifdef KISAK_PTR32
+// For the Ptr32<const char> fields of menu structs (same type as above on 32-bit).
+int __cdecl PC_String_Parse(int handle, Ptr32<const char> *out)
+{
+    const char *string;
+
+    if ( !PC_String_Parse(handle, &string) )
+        return 0;
+    *out = string;
+    return 1;
+}
+#endif
 
 int    MenuParse_fullscreen(menuDef_t *menu, int handle)
 {
@@ -1070,7 +1083,7 @@ int __cdecl MenuParse_onFocus(menuDef_t *menu, int handle)
 }
 
 
-int __cdecl PC_EventScript_Parse(int handle, GenericEventScript **baseScript)
+int __cdecl PC_EventScript_Parse(int handle, Ptr32<GenericEventScript> *baseScript)
 {
     const char *v3; // eax
     unsigned __int8 v4[5120]; // [esp+14h] [ebp-2C30h] BYREF
@@ -1573,7 +1586,7 @@ void __cdecl Item_PostParse(itemDef_s *item)
     if ( item->animInfo )
     {
         size = 4 * item->animInfo->animStateCount;
-        item->animInfo->animStates = (animParamsDef_t **)UI_Alloc(size, 4);
+        item->animInfo->animStates = (Ptr32<animParamsDef_t> *)UI_Alloc(size, 4);
         memcpy((unsigned __int8 *)item->animInfo->animStates, (unsigned __int8 *)g_load_0.animStates, size);
     }
 }
@@ -1753,7 +1766,7 @@ int    MenuParse_blurWorld(menuDef_t *menu, int handle)
 
 int __cdecl MenuParse_legacySplitScreenScale(menuDef_t *menu, int handle)
 {
-    return SetItemStaticFlag(menu, handle, (int)Ptr32_Encode(&objBuf[1758][2]));
+    return SetItemStaticFlag(menu, handle, 0x4000000);
 }
 
 int __cdecl SetItemStaticFlag(menuDef_t *menu, int handle, int flag)
@@ -2898,7 +2911,7 @@ int __cdecl ItemParse_mouseEnter(itemDef_s *item, int handle)
     return PC_Script_Parse(handle, &focusPtr->mouseEnter) != 0;
 }
 
-int __cdecl PC_Script_Parse(int handle, const char **out)
+int __cdecl PC_Script_Parse(int handle, Ptr32<const char> *out)
 {
     const char *v3; // eax
     char dst[5120]; // [esp+34h] [ebp-1818h] BYREF
@@ -3560,7 +3573,7 @@ int __cdecl ItemParse_state(itemDef_s *item, int handle)
         item->animInfo->animStates = g_load_0.animStates;
         *item->animInfo->animStates = (animParamsDef_t *)UI_Alloc(0x6Cu, 4);
         Item_PropertiesToAnimState(item, *item->animInfo->animStates);
-        **(unsigned int **)item->animInfo->animStates = (unsigned int)Ptr32_Encode(String_Alloc("Default"));
+        (*item->animInfo->animStates)->name = String_Alloc("Default");
         ++item->animInfo->animStateCount;
     }
     animParams = (animParamsDef_t *)UI_Alloc(0x6Cu, 4);
@@ -3602,9 +3615,9 @@ void __cdecl Item_SetupKeywordHash()
 MenuList *__cdecl UI_LoadMenu(const char *menuFile, int imageTrack)
 {
     if ( useFastFile->current.enabled )
-        return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenus_FastFile)(menuFile, imageTrack));
+        return UI_LoadMenus_FastFile(menuFile);
     else
-        return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenu_LoadObj)(menuFile, imageTrack));
+        return UI_LoadMenu_LoadObj((char *)menuFile, imageTrack);
 }
 
 MenuList * UI_LoadMenu_LoadObj(char *menuFile, int imageTrack)
@@ -3818,7 +3831,7 @@ void __cdecl Menu_PostParse(menuDef_t *menu)
     if ( !menu && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_shared_obj.cpp", 4324, 0, "%s", "menu") )
         __debugbreak();
     size = 4 * menu->itemCount;
-    menu->items = (itemDef_s **)UI_Alloc(size, 4);
+    menu->items = (Ptr32<itemDef_s> *)UI_Alloc(size, 4);
     memcpy((unsigned __int8 *)menu->items, (unsigned __int8 *)g_load_0.items, size);
     if ( menu->fullScreen )
     {
@@ -3835,8 +3848,8 @@ MenuList *__cdecl UI_LoadMenus(const char *menuFile, int imageTrack)
     if ( G_ExitAfterToolComplete() )
         return 0;
     if ( useFastFile->current.enabled )
-        return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenus_FastFile)(menuFile, imageTrack));
-    return (MenuList *)Ptr32_Decode(((int (__cdecl *)(const char *, int))UI_LoadMenus_LoadObj)(menuFile, imageTrack));
+        return UI_LoadMenus_FastFile(menuFile);
+    return UI_LoadMenus_LoadObj((char *)menuFile, imageTrack);
 }
 
 char menuBuf[32768];

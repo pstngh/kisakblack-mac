@@ -227,7 +227,7 @@ struct DiskLeaf // sizeof=0x18
 };
 
 const Material *__cdecl R_GetBspMaterial(unsigned int materialIndex);
-void __cdecl R_CreateWorldVertexBuffer(IDirect3DVertexBuffer9 **vb, int *srcData, unsigned int sizeInBytes);
+void __cdecl R_CreateWorldVertexBuffer(Ptr32<IDirect3DVertexBuffer9> *vb, int *srcData, unsigned int sizeInBytes);
 unsigned __int8 *__cdecl R_LoadSurfaceAlloc(unsigned int bytes);
 char *__cdecl R_ParseSunLight(struct SunLightParseParams *params, char *text);
 struct GfxWorld *__cdecl R_LoadWorldInternal(const char *name);

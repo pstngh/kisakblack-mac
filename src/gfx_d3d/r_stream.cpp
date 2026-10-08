@@ -455,7 +455,7 @@ void __cdecl R_Stream_ForceLoadImage(GfxImage *image, int part)
 void __cdecl R_Stream_ForceLoadModel(XModel *model, int part)
 {
     int lod; // [esp+0h] [ebp-14h]
-    Material *const *material; // [esp+4h] [ebp-10h]
+    const Ptr32<Material> *material; // [esp+4h] [ebp-10h]
     int surfCount; // [esp+8h] [ebp-Ch]
     XSurface *surfaces; // [esp+Ch] [ebp-8h] BYREF
     int surfIter; // [esp+10h] [ebp-4h]
@@ -488,7 +488,7 @@ char __cdecl R_StreamTouchDObjAndCheck(const DObj *obj, int level)
     unsigned int surfaceCount; // [esp+20h] [ebp-70h]
     char targBoneIndexLow; // [esp+24h] [ebp-6Ch]
     char invTargBoneIndexLow; // [esp+28h] [ebp-68h]
-    Material **materials; // [esp+2Ch] [ebp-64h]
+    Ptr32<Material> *materials; // [esp+2Ch] [ebp-64h]
     XSurface *surfaces; // [esp+30h] [ebp-60h] BYREF
     unsigned int hidePartBits[5]; // [esp+34h] [ebp-5Ch] BYREF
     int targBoneIndexHigh; // [esp+48h] [ebp-48h]
@@ -1024,28 +1024,30 @@ void __cdecl R_Stream_AddImagePartImportance(int imagePartIndex, float importanc
     }
 }
 
-void __cdecl importance_swap_func(void **a, void **b)
+void __cdecl importance_swap_func(int *a, int *b)
 {
-    void *temp; // [esp+0h] [ebp-4h]
+    int temp; // [esp+0h] [ebp-4h]
 
     temp = *a;
     *a = *b;
     *b = temp;
 }
 
-bool __cdecl importance_compare_func(void *a, void *b)
+// The sorted list holds image part indices in 4-byte int slots (sortedImages),
+// not pointers, so it is sorted as ints.
+bool __cdecl importance_compare_func(int a, int b)
 {
-    return (signed int)streamFrontendGlob.imageImportanceBits[(unsigned int)Ptr32_Encode(a) - 4064] > (signed int)streamFrontendGlob.imageImportanceBits[(unsigned int)Ptr32_Encode(b) - 4064];
+    return (signed int)streamFrontendGlob.imageImportanceBits[a - 4064] > (signed int)streamFrontendGlob.imageImportanceBits[b - 4064];
 }
 
-void *aux_buffer[2113];
-void __cdecl importance_merge_sort(void **list, int list_count)
+int aux_buffer[2113];
+void __cdecl importance_merge_sort(int *list, int list_count)
 {
-    void **t; // [esp+0h] [ebp-14h]
-    void **b; // [esp+8h] [ebp-Ch]
-    void **ba; // [esp+8h] [ebp-Ch]
-    void **a; // [esp+10h] [ebp-4h]
-    void **aa; // [esp+10h] [ebp-4h]
+    int *t; // [esp+0h] [ebp-14h]
+    int *b; // [esp+8h] [ebp-Ch]
+    int *ba; // [esp+8h] [ebp-Ch]
+    int *a; // [esp+10h] [ebp-4h]
+    int *aa; // [esp+10h] [ebp-4h]
 
     if ( list_count >= 3 )
     {
@@ -1650,7 +1652,7 @@ void R_StreamUpdateTouchedModels()
 void __cdecl R_StreamUpdateForXModelTouched(const XModel *model)
 {
     int lod; // [esp+0h] [ebp-14h]
-    Material *const *material; // [esp+4h] [ebp-10h]
+    const Ptr32<Material> *material; // [esp+4h] [ebp-10h]
     int surfCount; // [esp+8h] [ebp-Ch]
     XSurface *surfaces; // [esp+Ch] [ebp-8h] BYREF
     int surfIter; // [esp+10h] [ebp-4h]
@@ -1678,7 +1680,7 @@ void __cdecl R_StreamUpdateForcedModels()
     float distSq; // [esp+28h] [ebp-2Ch]
     int i; // [esp+30h] [ebp-24h]
     XModel *model; // [esp+34h] [ebp-20h]
-    Material **material; // [esp+38h] [ebp-1Ch]
+    Ptr32<Material> *material; // [esp+38h] [ebp-1Ch]
     int surfCount; // [esp+3Ch] [ebp-18h]
     XSurface *surfaces; // [esp+40h] [ebp-14h] BYREF
     int modelIter; // [esp+44h] [ebp-10h]
@@ -1923,11 +1925,11 @@ void __cdecl R_StreamUpdateDynamicModels(
             R_StreamUpdateForBModel(
                 viewPos,
                 frame,
-                *(unsigned __int16 *)&scene.glassBrushVisData[40 * entIndexd - 40924],
-                *(const GfxBrushModel **)&scene.glassBrushVisData[40 * entIndexd - 40932],
-                (const float *)&scene.glassBrushVisData[40 * entIndexd - 40944],
+                scene.glassBrush[entIndexd].info.surfId,
+                scene.glassBrush[entIndexd].bmodel,
+                scene.glassBrush[entIndexd].placement.origin,
                 maxDistSq,
-                *(Material **)&scene.glassBrushVisData[40 * entIndexd - 40928],
+                scene.glassBrush[entIndexd].altStreamingMaterial,
                 1,
                 distanceScale);
     }
@@ -2201,7 +2203,7 @@ void __cdecl MultiplePointDistSqFromBounds(
     float4 v6; // [esp-20h] [ebp-120h]
     float4 v7; // [esp-10h] [ebp-110h]
 
-    if ( ((unsigned int)Ptr32_Encode(&s_viewPos) & 0xF) != 0
+    if ( ((unsigned int)(uintptr_t)&s_viewPos & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp",
                     3465,
@@ -2211,7 +2213,7 @@ void __cdecl MultiplePointDistSqFromBounds(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)Ptr32_Encode(mip0mins) & 0xF) != 0
+    if ( ((unsigned __int8)(uintptr_t)mip0mins & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp",
                     3469,
@@ -2221,7 +2223,7 @@ void __cdecl MultiplePointDistSqFromBounds(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)Ptr32_Encode(mip0maxs) & 0xF) != 0
+    if ( ((unsigned __int8)(uintptr_t)mip0maxs & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp",
                     3470,
@@ -2344,7 +2346,7 @@ void __cdecl R_StreamUpdate_EndQuerySort(bool diskOrder)
     }
     else
     {
-        importance_merge_sort((void **)((char *)streamFrontendGlob.sortedImages + 2), streamFrontendGlob.totalBytesWanted);
+        importance_merge_sort((int *)((char *)streamFrontendGlob.sortedImages + 2), streamFrontendGlob.totalBytesWanted);
     }
 }
 
@@ -2438,7 +2440,7 @@ void __cdecl R_StreamUpdateForXModel(const XModel *remoteModel, float distSq)
     float v3; // [esp+4h] [ebp-3Ch]
     float v4; // [esp+10h] [ebp-30h]
     int materialIndex; // [esp+1Ch] [ebp-24h]
-    Material **materialHandles; // [esp+20h] [ebp-20h]
+    Ptr32<Material> *materialHandles; // [esp+20h] [ebp-20h]
     XModelHighMipBounds *highMipBounds; // [esp+24h] [ebp-1Ch]
     XModelHighMipBounds *bounds; // [esp+28h] [ebp-18h]
     float importance; // [esp+2Ch] [ebp-14h]

@@ -54,9 +54,12 @@ int __cdecl PC_CndStackPush(
                 int type);
 int __cdecl PC_CndStackModifyTop();
 int __cdecl PC_CndStackPopLevel();
-int __cdecl PC_CndStackAddConditionsToScript(GenericEventScript **baseScript, char *accumulatedScriptCommands);
+int __cdecl PC_CndStackAddConditionsToScript(Ptr32<GenericEventScript> *baseScript, char *accumulatedScriptCommands);
 int __cdecl MenuParse_name(menuDef_t *menu, int handle);
 int __cdecl PC_String_Parse(int handle, const char **out);
+#ifdef KISAK_PTR32
+int __cdecl PC_String_Parse(int handle, Ptr32<const char> *out);
+#endif
 int    MenuParse_fullscreen(menuDef_t *menu, int handle);
 int    PC_Int_Parse(int handle, int *i);
 void PC_SourceError(int handle, const char *format, ...);
@@ -70,7 +73,7 @@ int    PC_Byte_Parse(int handle, unsigned __int8 *b);
 int __cdecl MenuParse_visible(menuDef_t *menu, int handle);
 int __cdecl MenuParse_visiblityBits(menuDef_t *menu, int handle);
 int __cdecl MenuParse_onFocus(menuDef_t *menu, int handle);
-int __cdecl PC_EventScript_Parse(int handle, GenericEventScript **baseScript);
+int __cdecl PC_EventScript_Parse(int handle, Ptr32<GenericEventScript> *baseScript);
 int __cdecl MenuParse_leaveFocus(menuDef_t *menu, int handle);
 int __cdecl MenuParse_onOpen(menuDef_t *menu, int handle);
 int __cdecl MenuParse_onClose(menuDef_t *menu, int handle);
@@ -184,7 +187,7 @@ int __cdecl ItemParse_onEnter(itemDef_s *item, int handle);
 int __cdecl ItemParse_onFocus(itemDef_s *item, int handle);
 int __cdecl ItemParse_leaveFocus(itemDef_s *item, int handle);
 int __cdecl ItemParse_mouseEnter(itemDef_s *item, int handle);
-int __cdecl PC_Script_Parse(int handle, const char **out);
+int __cdecl PC_Script_Parse(int handle, Ptr32<const char> *out);
 int __cdecl ItemParse_mouseExit(itemDef_s *item, int handle);
 int __cdecl ItemParse_mouseEnterText(itemDef_s *item, int handle);
 int __cdecl ItemParse_mouseExitText(itemDef_s *item, int handle);

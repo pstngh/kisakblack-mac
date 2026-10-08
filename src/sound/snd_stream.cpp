@@ -904,9 +904,9 @@ void __cdecl Snd_StreamReleaseWindow(unsigned int index, char *data)
     }
     for ( i = 0; i < 3; ++i )
     {
-        if ( !_InterlockedCompareExchange(
-                        (volatile unsigned __int32 *)&g_snd_streams[index].window_return[i],
-                        (signed __int32)data,
+        if ( !InterlockedCompareExchangePointer(
+                        (void *volatile *)&g_snd_streams[index].window_return[i],
+                        data,
                         0) )
         {
             Sys_WakeStream();

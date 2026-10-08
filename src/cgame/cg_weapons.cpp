@@ -608,7 +608,7 @@ void __cdecl CG_FreeWeapons(int localClientNum)
             XAnimFreeTree(viewModelInfo->tree, 0, SCRIPTINSTANCE_SERVER);
         viewModelInfo->tree = 0;
     }
-    memset(cg_weaponsArray[localClientNum], 0, 0x12000u);
+    memset(cg_weaponsArray[localClientNum], 0, 2048 * sizeof(weaponInfo_s));
 }
 
 int removeMeWhenMPStopsCrashingInHere;
@@ -975,7 +975,7 @@ void __cdecl ChangeViewmodelDobj(
                         XAnimSetGoalWeight(viewModelInfo->viewModelDObj, 1u, 1.0, 0.0, 1.0, 0, 1u, 0, -1);
                     else
                         XAnimSetGoalWeight(viewModelInfo->viewModelDObj, 2u, 1.0, 0.0, 1.0, 0, 1u, 0, -1);
-                    if (**((_BYTE **)weapVariantDef->szXAnims + 65))
+                    if (weapVariantDef->szXAnims[65][0])
                     {
                         XAnimSetGoalWeight(viewModelInfo->viewModelDObj, 0x41u, 1.0, 0.0, 0.0, 0, 1u, 0, -1);
                         XAnimSetTime(viewModelInfo->tree, 0x41u, 1.0, -1);
@@ -1082,9 +1082,9 @@ void __cdecl CG_CreateWeaponViewModelXAnim(ViewModelInfo *viewModelInfo, const W
             BG_CreateXAnim(pAnimsa, animIndex, weapVariantDef->szXAnims[v2]);
         }
     }
-    if ( **((_BYTE **)weapVariantDef->szXAnims + 64) && XAnimIsLooped(pAnimsa, 0x40u) )
+    if ( weapVariantDef->szXAnims[64][0] && XAnimIsLooped(pAnimsa, 0x40u) )
         Com_Error(ERR_DROP, "CG_RegisterWeapon: ADS anim [%s] cannot be looping", *((unsigned int *)weapVariantDef->szXAnims + 64));
-    if ( **((_BYTE **)weapVariantDef->szXAnims + 65) && XAnimIsLooped(pAnimsa, 0x41u) )
+    if ( weapVariantDef->szXAnims[65][0] && XAnimIsLooped(pAnimsa, 0x41u) )
         Com_Error(ERR_DROP, "CG_RegisterWeapon: ADS anim [%s] cannot be looping", *((unsigned int *)weapVariantDef->szXAnims + 65));
     for ( animIndexa = 53; animIndexa <= 57; ++animIndexa )
     {
@@ -1112,7 +1112,7 @@ void __cdecl CG_CreateWeaponViewModelXAnim(ViewModelInfo *viewModelInfo, const W
 
 bool __cdecl CG_NonDualWieldAnimsValid(const WeaponVariantDef *weapVariantDef)
 {
-    return *((unsigned int *)weapVariantDef->szXAnims + 1) && **((_BYTE **)weapVariantDef->szXAnims + 1);
+    return *((unsigned int *)weapVariantDef->szXAnims + 1) && weapVariantDef->szXAnims[1][0];
 }
 
 void __cdecl CG_UpdateHandViewmodels(int localClientNum)
@@ -2920,7 +2920,7 @@ void __cdecl WeaponRunXModelAnims(
         v4 = !v6 && v5;
         PlayADSAnim(ps->fWeaponPosFrac, weaponIndex, obj, 65 - v4);
     }
-    else if ( **((_BYTE **)weapVariantDef->szXAnims + 65) )
+    else if ( weapVariantDef->szXAnims[65][0] )
     {
         PlayADSAnim(0.0, weaponIndex, obj, 65);
     }
@@ -3119,14 +3119,14 @@ void __cdecl WeaponRunXModelAnims(
                 StartWeaponAnim(localClientNum, weaponIndex, obj, 23, 0.0, newPlayerstate);
                 break;
             case 0x1Bu:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 25) )
+                if ( weapVariantDef->szXAnims[25][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 25;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 25, 0.0, newPlayerstate);
                 }
                 break;
             case 0x1Cu:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 25) )
+                if ( weapVariantDef->szXAnims[25][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 26;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 26, 0.0, newPlayerstate);
@@ -3135,37 +3135,37 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 53) )
+                if ( weapVariantDef->szXAnims[53][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 53, 0.0);
                 break;
             case 0x1Du:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 27) )
+                if ( weapVariantDef->szXAnims[27][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 27;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 27, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 53) )
+                if ( weapVariantDef->szXAnims[53][0] )
                     StopCameraAnim(obj);
                 break;
             case 0x1Eu:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 28) )
+                if ( weapVariantDef->szXAnims[28][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 28;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 28, 0.0, newPlayerstate);
                 }
-                else if ( **((_BYTE **)weapVariantDef->szXAnims + 25) )
+                else if ( weapVariantDef->szXAnims[25][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 25;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 25, 0.0, newPlayerstate);
                 }
                 break;
             case 0x1Fu:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 28) )
+                if ( weapVariantDef->szXAnims[28][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 29;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 29, 0.0, newPlayerstate);
                 }
-                else if ( **((_BYTE **)weapVariantDef->szXAnims + 25) )
+                else if ( weapVariantDef->szXAnims[25][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 26;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 26, 0.0, newPlayerstate);
@@ -3174,21 +3174,21 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 53) )
+                if ( weapVariantDef->szXAnims[53][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 53, 0.0);
                 break;
             case 0x20u:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 30) )
+                if ( weapVariantDef->szXAnims[30][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 30;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 30, 0.0, newPlayerstate);
                 }
-                else if ( **((_BYTE **)weapVariantDef->szXAnims + 27) )
+                else if ( weapVariantDef->szXAnims[27][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 27;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 27, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 53) )
+                if ( weapVariantDef->szXAnims[53][0] )
                     StopCameraAnim(obj);
                 break;
             case 0x24u:
@@ -3228,7 +3228,7 @@ void __cdecl WeaponRunXModelAnims(
                 StartWeaponAnim(localClientNum, weaponIndex, obj, 38, 0.0, newPlayerstate);
                 break;
             case 0x2Du:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 45) )
+                if ( weapVariantDef->szXAnims[45][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 45;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 45, 0.0, newPlayerstate);
@@ -3237,11 +3237,11 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 54) )
+                if ( weapVariantDef->szXAnims[54][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 54, 0.0);
                 break;
             case 0x2Eu:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 46) )
+                if ( weapVariantDef->szXAnims[46][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 46;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 46, 0.0, newPlayerstate);
@@ -3250,11 +3250,11 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 55) )
+                if ( weapVariantDef->szXAnims[55][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 55, 0.0);
                 break;
             case 0x2Fu:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 47) )
+                if ( weapVariantDef->szXAnims[47][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 47;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 47, 0.0, newPlayerstate);
@@ -3263,16 +3263,16 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 56) )
+                if ( weapVariantDef->szXAnims[56][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 56, 0.0);
                 break;
             case 0x30u:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 48) )
+                if ( weapVariantDef->szXAnims[48][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 48;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 48, 0.0, newPlayerstate);
                 }
-                else if ( **((_BYTE **)weapVariantDef->szXAnims + 45) )
+                else if ( weapVariantDef->szXAnims[45][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 45;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 45, 0.0, newPlayerstate);
@@ -3281,16 +3281,16 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 54) )
+                if ( weapVariantDef->szXAnims[54][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 54, 0.0);
                 break;
             case 0x31u:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 49) )
+                if ( weapVariantDef->szXAnims[49][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 49;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 49, 0.0, newPlayerstate);
                 }
-                else if ( **((_BYTE **)weapVariantDef->szXAnims + 46) )
+                else if ( weapVariantDef->szXAnims[46][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 46;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 46, 0.0, newPlayerstate);
@@ -3299,16 +3299,16 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 55) )
+                if ( weapVariantDef->szXAnims[55][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 55, 0.0);
                 break;
             case 0x32u:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 50) )
+                if ( weapVariantDef->szXAnims[50][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 50;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 50, 0.0, newPlayerstate);
                 }
-                else if ( **((_BYTE **)weapVariantDef->szXAnims + 47) )
+                else if ( weapVariantDef->szXAnims[47][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 47;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 47, 0.0, newPlayerstate);
@@ -3317,11 +3317,11 @@ void __cdecl WeaponRunXModelAnims(
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 56) )
+                if ( weapVariantDef->szXAnims[56][0] )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 56, 0.0);
                 break;
             case 0x33u:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 51) )
+                if ( weapVariantDef->szXAnims[51][0] )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 51;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 51, 0.0, newPlayerstate);
@@ -3333,7 +3333,7 @@ LABEL_68:
                 }
                 break;
             case 0x34u:
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 52) && Mantle_DoAnim(ps) )
+                if ( weapVariantDef->szXAnims[52][0] && Mantle_DoAnim(ps) )
                 {
                     viewModelInfo->hand[0].iHandAnimIndex = 52;
                     StartWeaponAnim(localClientNum, weaponIndex, obj, 52, 0.0, newPlayerstate);
@@ -3342,7 +3342,7 @@ LABEL_68:
                 {
                     PlayIdleAnim(localClientNum, ps, viewModelInfo, obj, weaponIndex, 0.0, newPlayerstate);
                 }
-                if ( **((_BYTE **)weapVariantDef->szXAnims + 57) && Mantle_DoAnim(ps) )
+                if ( weapVariantDef->szXAnims[57][0] && Mantle_DoAnim(ps) )
                     StartCameraAnim(localClientNum, weaponIndex, obj, 57, 0.0);
                 break;
             default:

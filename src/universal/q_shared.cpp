@@ -1189,13 +1189,13 @@ bool __cdecl KeyValueToField(
             case 9:
                 if (!IsDedicatedServer())
                 {
-                    *(FxEffectDef **)&pStruct[pField->iOffset] = (FxEffectDef*)FX_Register(pszKeyValue);
+                    *(Ptr32<FxEffectDef> *)&pStruct[pField->iOffset] = (FxEffectDef*)FX_Register(pszKeyValue);
                 }
             case 0xB:
             case 0xC:
                 if (!IsDedicatedServer())
                 {
-                    *(Material **)&pStruct[pField->iOffset] = Material_RegisterHandle(pszKeyValue, 0);
+                    *(Ptr32<Material> *)&pStruct[pField->iOffset] = Material_RegisterHandle(pszKeyValue, 0);
                 }
                 return 1;
             case 0xA:

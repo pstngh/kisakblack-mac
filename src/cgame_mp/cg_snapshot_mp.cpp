@@ -220,10 +220,10 @@ void __cdecl CG_ShutdownEntity(int localClientNum, centity_s *cent, bool shutdow
     {
         if ( cent->vehicle->vehicle_cache )
         {
-            MT_Free((unsigned char *)cent->vehicle->vehicle_cache, 1928, SCRIPTINSTANCE_SERVER);
+            MT_Free((unsigned char *)cent->vehicle->vehicle_cache, sizeof(vehicle_cache_t) > 1928 ? sizeof(vehicle_cache_t) : 1928, SCRIPTINSTANCE_SERVER);
             cent->vehicle->vehicle_cache = 0;
         }
-        MT_Free((unsigned char *)cent->vehicle, 84, SCRIPTINSTANCE_SERVER);
+        MT_Free((unsigned char *)cent->vehicle, sizeof(cgVehicle_s), SCRIPTINSTANCE_SERVER);
         cent->vehicle = 0;
     }
     auto_rigid_body::remove_ent(cent);

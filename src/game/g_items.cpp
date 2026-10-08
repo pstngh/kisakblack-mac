@@ -1490,9 +1490,9 @@ void __cdecl G_RegisterWeapon(unsigned int weapIndex)
         Com_Error(ERR_DROP, "Too many different hintstring values on weapons. Max allowed is %i different strings.", 96);
     if ( *weapDef->worldModel )
     {
-        Name = (char *)XModelGetName(*(const XModel **)weapDef->worldModel);
+        Name = (char *)XModelGetName(weapDef->worldModel[0]);
         modelindex = G_ModelIndex(Name);
-        if ( XModelBad(*(const XModel **)weapDef->worldModel) )
+        if ( XModelBad(weapDef->worldModel[0]) )
             G_OverrideModel(modelindex, (char*)"defaultweapon");
     }
     if ( weapDef->projectileModel )
@@ -1502,7 +1502,7 @@ void __cdecl G_RegisterWeapon(unsigned int weapIndex)
     }
     if ( *((unsigned int *)weapDef->worldModel + 1) )
     {
-        v3 = (char *)XModelGetName(*((const XModel **)weapDef->worldModel + 1));
+        v3 = (char *)XModelGetName(weapDef->worldModel[1]);
         G_ModelIndex(v3);
     }
     if ( weapDef->additionalMeleeModel )

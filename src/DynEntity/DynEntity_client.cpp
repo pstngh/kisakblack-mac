@@ -2957,7 +2957,7 @@ static bool __cdecl DynEntCl_CompareDynEntsForExplosion(const DynEntSortStruct &
 
 bool CompareMaterialMemory(const MaterialMemory &one, const MaterialMemory &two)
 {
-    return (uintptr_t)one.material > (uintptr_t)two.material;
+    return (uintptr_t)(Material *)one.material > (uintptr_t)(Material *)two.material;
 }
 
 unsigned int __cdecl DynEntCl_GetClosestEntities(

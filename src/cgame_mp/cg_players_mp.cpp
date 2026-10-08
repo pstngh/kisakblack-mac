@@ -598,7 +598,7 @@ LABEL_11:
 int delta = 5;
 void __cdecl CG_Player(int localClientNum, centity_s *cent)
 {
-    XModel **worldModel; // esi
+    Ptr32<XModel> *worldModel; // esi
     unsigned int String; // eax
     bool v4; // [esp+38h] [ebp-1D8h]
     float v5; // [esp+3Ch] [ebp-1D4h]

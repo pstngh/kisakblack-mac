@@ -1,10 +1,6 @@
 # Native macOS (Apple Silicon) build. Included from portable.cmake after the
 # shared source list and include directories are set up.
 
-if (NOT CMAKE_OSX_ARCHITECTURES)
-    set(CMAKE_OSX_ARCHITECTURES arm64)
-endif()
-
 execute_process(COMMAND brew --prefix OUTPUT_VARIABLE KISAK_BREW_PREFIX
     OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
 if (NOT KISAK_BREW_PREFIX)

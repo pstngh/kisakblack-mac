@@ -122,7 +122,7 @@ const dvar_t *emblem_scroll_delay_first;
 const dvar_t *emblem_scroll_delay_rest;
 
 uiInfo_s uiInfoArray[1];
-const serverFilter_s serverFilters[1];
+const serverFilter_s serverFilters[1] = {};
 
 bool g_ingameMenusLoaded[1];
 
@@ -1047,7 +1047,7 @@ int __cdecl UI_GetClientNumForPlayerListNum(int playerListIndex)
     return sharedUiInfo.playerClientNums[playerListIndex - 1];
 }
 
-void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args)
+void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, const char **args, const char *actualScript)
 {
     int ControllerIndex; // eax
     char *v5; // eax
@@ -1205,7 +1205,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                                                                                                                     contextIndex,
                                                                                                                                                                     out,
                                                                                                                                                                     (const char **)args,
-                                                                                                                                                                    (const char *)Ptr32_Decode(HIDWORD(args)));
+                                                                                                                                                                    actualScript);
                                                                                                                                                             else
                                                                                                                                                                 ; // leaderboards were online-only
                                                                                                                                                         }
@@ -1320,9 +1320,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                                                     {
                                                                                                         LAN_GetServerInfo(
                                                                                                             ui_netSource->current.integer,
-                                                                                                            *(_DWORD *)&sharedUiInfo.serverStatusAddress[4
-                                                                                                            * sharedUiInfo.serverStatus.currentServer
-                                                                                                            - 81328],
+                                                                                                            sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer],
                                                                                                             buf,
                                                                                                             1024);
                                                                                                         v18 = Info_ValueForKey(buf, "dwuserid");
@@ -1393,9 +1391,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                         {
                                                                             LAN_GetServerSecurityId(
                                                                                 ui_netSource->current.integer,
-                                                                                *(_DWORD *)&sharedUiInfo.serverStatusAddress[4
-                                                                                * sharedUiInfo.serverStatus.currentServer
-                                                                                - 81328],
+                                                                                sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer],
                                                                                 (XNKID *)sharedUiInfo.serverStatusSecurityID,
                                                                                 8);
                                                                             UI_BuildServerStatusScoreBoard(localClientNum, uiInfoArray, 1);
@@ -1411,9 +1407,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                     {
                                                                         LAN_GetServerSecurityId(
                                                                             ui_netSource->current.integer,
-                                                                            *(_DWORD *)&sharedUiInfo.serverStatusAddress[4
-                                                                            * sharedUiInfo.serverStatus.currentServer
-                                                                            - 81328],
+                                                                            sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer],
                                                                             (XNKID *)sharedUiInfo.serverStatusSecurityID,
                                                                             8);
                                                                         UI_BuildServerStatus(localClientNum, uiInfoArray, 1);
@@ -3097,7 +3091,7 @@ char *__cdecl GetXpLockDescription(int localClientNum, int playlistId)
     Com_sprintf(tempString, 5u, "%s", v4);
     if ( !*rankString )
         Com_PrintWarning(13, "Empty rank string for rank %i\n", rank);
-    memset(&convArgs.args[2], 0, 28);
+    memset(&convArgs.args[2], 0, 7 * sizeof(convArgs.args[0]));
     convArgs.argCount = 2;
     convArgs.args[0] = rankString;
     convArgs.args[1] = tempString;

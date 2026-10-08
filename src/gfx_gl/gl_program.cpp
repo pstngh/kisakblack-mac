@@ -1,6 +1,7 @@
 // gl_program.cpp — programmable shader path: create/bind shaders, upload the c#
 // constant registers, and link+cache the bound (vs, ps) pair into a GL program.
 #include "gl_d3d9.h"
+#include "gl_platform.h"
 #include "gl_shader.h"
 #include "gl_optrace.h"
 #include "gl_resources.h"
@@ -264,7 +265,7 @@ bool GLDevice::finalizeProgram(LinkedProgram &lp) {
     };
     lp.vscCount = arraySize(lp.vscLoc, "vsc");
     lp.pscCount = arraySize(lp.pscLoc, "psc");
-#ifdef __EMSCRIPTEN__
+#ifdef KB_GL_MODERN_GLSL
     lp.alphaFuncLoc = KB_glGetUniformLocation(lp.prog, "uAlphaTestFunc");
     lp.alphaRefLoc  = KB_glGetUniformLocation(lp.prog, "uAlphaRef");
     lp.lmLayerLoc   = KB_glGetUniformLocation(lp.prog, "uLmLayer");   // ?lmarray (-1 if shader has no lightmap array)
@@ -473,7 +474,7 @@ bool GLDevice::useDrawProgram() {
     if (lp.upPsVer == psVer_) { psDirtyMin_ = 256; psDirtyMax_ = 0; psDirtyBaseVer_ = psVer_; }
 #endif
 
-#ifdef __EMSCRIPTEN__
+#ifdef KB_GL_MODERN_GLSL
     // Feed the in-shader alpha test. uAlphaTestFunc carries the D3DCMP_* value
     // (1..8) when enabled, 0 when disabled; uAlphaRef is the normalized [0,1] ref.
     // Gated on change: these vary per material batch, not per draw — unconditional

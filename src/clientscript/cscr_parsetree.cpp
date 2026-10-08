@@ -263,7 +263,7 @@ void __cdecl Scr_ClearDebugExpr(scriptInstance_t inst, debugger_sval_s *debugExp
     {
         //Scr_ClearDebugExprValue(inst, (sval_u)&debugExprHead[1]);
         sval_u *pval = (sval_u *)((char *)debugExprHead + sizeof(debugger_sval_s));
-        Scr_ClearDebugExprValue(inst, *(sval_u *)&pval);
+        Scr_ClearDebugExprValue(inst, (sval_u)(unsigned int)Ptr32_Encode(pval));
         debugExprHead = debugExprHead->next;
     }
 }
@@ -304,7 +304,7 @@ void __cdecl Scr_FreeDebugExpr(scriptInstance_t inst, ScriptExpression_t *expr)
     {
         // See Prefixed data in Scr_AllocDebugExpr()
         sval_u *pval = (sval_u *)((char *)debugExprHead + sizeof(debugger_sval_s));
-        Scr_FreeDebugExprValue(inst, *(sval_u *)&pval);
+        Scr_FreeDebugExprValue(inst, (sval_u)(unsigned int)Ptr32_Encode(pval));
 
         nextDebugExprHead = debugExprHead->next;
         Z_Free((char*)debugExprHead, 0);
@@ -372,7 +372,7 @@ sval_u __cdecl debugger_node4(
 sval_u __cdecl debugger_prepend_node(scriptInstance_t inst, sval_u val1, sval_u val2)
 {
     //*(unsigned int *)val2.stringValue = *(unsigned int *)&debugger_node2(inst, 0, val1, *val2.node) + 4;
-    *(_DWORD *)val2.type = debugger_node2(inst, ENUM_NOP, val1, (sval_u)val2.node->type).type + 4;
+    *(_DWORD *)Ptr32_Decode(val2.stringValue) = debugger_node2(inst, ENUM_NOP, val1, (sval_u)val2.node->type).stringValue + 4;
     return val2;
 }
 

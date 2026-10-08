@@ -7,6 +7,7 @@
 // combine (D3DTSS_COLOROP/COLORARG1/2) are tracked here and folded into the
 // built-in fragment shader at draw time (see gl_d3d9_draw.cpp).
 #include "gl_d3d9.h"
+#include "gl_platform.h"
 #include "gl_resources.h"
 
 #include <GL/glew.h>
@@ -164,7 +165,7 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
         case D3DRS_ALPHATESTENABLE:
             alphaTest_.enable = (Value != 0);
             alphaTestOn_ = (Value != 0);
-#ifndef __EMSCRIPTEN__
+#ifndef KB_GL_MODERN_GLSL
             if (Value) glEnable(GL_ALPHA_TEST); else glDisable(GL_ALPHA_TEST);
 #endif
             // On WebGL2/GLES the cutout is done with discard in-shader (the func/ref
@@ -173,14 +174,14 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
         case D3DRS_ALPHAFUNC:
             alphaTest_.func = Value;
             alphaFunc_ = Value;
-#ifndef __EMSCRIPTEN__
+#ifndef KB_GL_MODERN_GLSL
             glAlphaFunc(glCmp(alphaFunc_), (GLfloat)alphaRef_ / 255.0f);
 #endif
             break;
         case D3DRS_ALPHAREF:
             alphaTest_.ref = Value & 0xff;
             alphaRef_ = Value & 0xff;
-#ifndef __EMSCRIPTEN__
+#ifndef KB_GL_MODERN_GLSL
             glAlphaFunc(glCmp(alphaFunc_), (GLfloat)alphaRef_ / 255.0f);
 #endif
             break;

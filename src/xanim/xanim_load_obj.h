@@ -3,8 +3,8 @@
 
 union XAnimPartQuatFrames // sizeof=0x4
 {                                       // XREF: XAnimPartQuatDataFrames/r
-    __int16 (*frames)[4];
-    __int16 (*frames2)[2];
+    Ptr32<__int16[4]> frames;
+    Ptr32<__int16[2]> frames2;
 };
 
 struct __declspec(align(4)) XAnimPartQuatDataFrames // sizeof=0x8

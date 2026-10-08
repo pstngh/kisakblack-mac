@@ -473,7 +473,7 @@ void __cdecl CMod_LoadBrushRelated(unsigned int version, bool usePvs)
         CMod_LoadLeafBrushNodes_Version14();
     CMod_LoadSubmodelBrushNodes();
     CM_InitBoxHull();
-    ++cm.leafbrushNodes;
+    cm.leafbrushNodes = (cLeafBrushNode_s *)cm.leafbrushNodes + 1;
     leafbrushNodesCount = (TempMallocAlignStrict(0) - (char *)cm.leafbrushNodes) / 20;
     cm.leafbrushNodesCount = leafbrushNodesCount + 1;
     leafbrushNodes = (cLeafBrushNode_s *)CM_Hunk_Alloc(20 * (leafbrushNodesCount + 1), "CMod_LoadBrushRelated", 27);

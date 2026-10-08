@@ -101,7 +101,7 @@ FxImpactTable *__cdecl CG_RegisterImpactEffects_LoadObj(const char *mapname)
 int __cdecl CG_RegisterImpactEffects_Generic_31_char_const_____cdecl_int__(
     const char **szEffectFile,
     const char *pszTypeName,
-    const FxEffectDef **fx,
+    Ptr32<const FxEffectDef> *fx,
     const char *(__cdecl *typeToNameFunc)(int),
     const char *defaultEffectName)
 {
@@ -139,7 +139,7 @@ int __cdecl CG_RegisterImpactEffects_Generic_31_char_const_____cdecl_int__(
 int __cdecl CG_RegisterImpactEffects_NonFlesh(
                 const char **szEffectFile,
                 const char *pszTypeName,
-                const FxEffectDef **fx)
+                Ptr32<const FxEffectDef> *fx)
 {
     return CG_RegisterImpactEffects_Generic_31_char_const_____cdecl_int__(
                      szEffectFile,
@@ -152,7 +152,7 @@ int __cdecl CG_RegisterImpactEffects_NonFlesh(
 int __cdecl CG_RegisterImpactEffects_Generic_4_char_const_____cdecl_int__(
     const char **szEffectFile,
     const char *pszTypeName,
-    const FxEffectDef **fx,
+    Ptr32<const FxEffectDef> *fx,
     const char *(__cdecl *typeToNameFunc)(int),
     const char *defaultEffectName)
 {
@@ -190,7 +190,7 @@ int __cdecl CG_RegisterImpactEffects_Generic_4_char_const_____cdecl_int__(
 int __cdecl CG_RegisterImpactEffects_Flesh(
                 const char **szEffectFile,
                 const char *pszTypeName,
-                const FxEffectDef **fx,
+                Ptr32<const FxEffectDef> *fx,
                 char *defaultEffectName)
 {
     return CG_RegisterImpactEffects_Generic_4_char_const_____cdecl_int__(
@@ -240,7 +240,7 @@ void __cdecl CG_RegisterImpactEffectsForDir(char *dir, EffectFile *effectFile, c
             base[i] = qpath;
             qpath += strlen(qpath) + 1;
         }
-        qsort(base, num, 4u, (int (__cdecl *)(const void *, const void *))compare_impact_files);
+        qsort(base, num, sizeof(base[0]), (int (__cdecl *)(const void *, const void *))compare_impact_files);
         for ( i = 0; i < num; ++i )
         {
             qpath = va("%s/%s", dir, (const char *)base[i]);

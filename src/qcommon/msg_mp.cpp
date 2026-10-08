@@ -2461,7 +2461,7 @@ int __cdecl GetMinBitCountForNum(unsigned int num)
 {
     int v2; // eax
 
-    if (!_BitScanReverse((unsigned long *)&v2, num))
+    if (!_BitScanReverse(&v2, num))
     {
         //v2 = `CountLeadingZeros'::`2': : notFound;
         v2 = 63;

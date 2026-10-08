@@ -3787,7 +3787,7 @@ void __cdecl PM_Weapon_CheckForMelee(pmove_t *pm, pml_t *pml, int delayedAction)
             && !pm->oldcmd.button_bits.testBit(2u)
             && (ps->fWeaponPosFrac <= 0.0 || primaryWeapDef->overlayReticle == WEAPOVERLAYRETICLE_NONE) )
         {
-            if ( **((_BYTE **)weapVariantDef->szXAnims + 7) )
+            if ( weapVariantDef->szXAnims[7][0] )
             {
                 if ( (ps->eFlags2 & 0x10000000) == 0 )
                 {
@@ -5260,7 +5260,7 @@ WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef(const char *name)
 {
     bool v2; // [esp+4h] [ebp-8h]
 
-    v2 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
+    v2 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.string;
     if ( v2 || !useFastFile->current.enabled )
         return BG_LoadWeaponVariantDef_LoadObj((char*)name);
     else
@@ -5280,7 +5280,7 @@ WeaponVariantDef *__cdecl BG_LoadWeaponVariantDef_LoadObj(char *name)
     weapVariantDefa = (WeaponVariantDef*)BG_LoadWeaponVariantDefInternal("mp", (char*)"defaultweapon_mp");
     if ( !weapVariantDefa )
         Com_Error(ERR_DROP, "BG_LoadWeaponVariantDef: Could not find default weapon");
-    SetConfigString((char **)weapVariantDefa, name);
+    SetConfigString(&weapVariantDefa->szInternalName, name);
     return weapVariantDefa;
 }
 

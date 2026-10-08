@@ -6,6 +6,7 @@
 // bytecode→GLSL translator instead (task #5); when a vertex shader is bound this
 // built-in is bypassed.
 #include "gl_d3d9.h"
+#include "gl_platform.h"
 #include "gl_resources.h"
 #include "gl_format.h"   // D3DToGLFormat (?lmarray lightmap-array build)
 #include "gl_shader.h"   // GLAttribLocation / GLAttribName / GLBindAttribLocations
@@ -490,6 +491,55 @@ const char *kBuiltinFS =
     "  if (uUseTexture != 0) c *= texture(uTex, vTexCoord);\n"
     "  oColor = c;\n"
     "}\n";
+#elif defined(KB_GL_CORE)
+// The desktop built-in (colour op + alpha test) in the in/out dialect.
+const char *kBuiltinVS =
+    "#version 300 es\n"
+    "in vec4 aPos;\n"               // POSITIONT: x,y in screen pixels, z depth, w=rhw
+    "in vec4 aColor0;\n"
+    "in vec2 aTexCoord0;\n"
+    "uniform vec2 uViewport;\n"
+    "out vec4 vColor;\n"
+    "out vec2 vTexCoord;\n"
+    "void main() {\n"
+    "  float x = (aPos.x / uViewport.x) * 2.0 - 1.0;\n"
+    "  float y = 1.0 - (aPos.y / uViewport.y) * 2.0;\n"  // D3D top-left -> GL bottom-left
+    "  gl_Position = vec4(x, y, aPos.z, 1.0);\n"
+    "  vColor = aColor0;\n"
+    "  vTexCoord = aTexCoord0;\n"
+    "}\n";
+
+const char *kBuiltinFS =
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "uniform sampler2D uTex;\n"
+    "uniform int uUseTexture;\n"
+    "uniform int uColorOp;\n"    // 0 = SELECTARG1 (texture only), 1 = MODULATE (tex*diffuse)
+    "uniform int uAlphaFunc;\n"  // GL compare func (GL_NEVER..GL_ALWAYS), 0 = alpha test off
+    "uniform float uAlphaRef;\n" // reference in [0,1]
+    "in vec4 vColor;\n"
+    "in vec2 vTexCoord;\n"
+    "out vec4 oColor;\n"
+    "bool alphaPass(float a) {\n"
+    "  if (uAlphaFunc == 0) return true;\n"
+    "  if (uAlphaFunc == 0x0200) return false;\n"
+    "  if (uAlphaFunc == 0x0201) return a <  uAlphaRef;\n"
+    "  if (uAlphaFunc == 0x0202) return a == uAlphaRef;\n"
+    "  if (uAlphaFunc == 0x0203) return a <= uAlphaRef;\n"
+    "  if (uAlphaFunc == 0x0204) return a >  uAlphaRef;\n"
+    "  if (uAlphaFunc == 0x0205) return a != uAlphaRef;\n"
+    "  if (uAlphaFunc == 0x0206) return a >= uAlphaRef;\n"
+    "  return true;\n"
+    "}\n"
+    "void main() {\n"
+    "  vec4 c = vColor;\n"
+    "  if (uUseTexture != 0) {\n"
+    "    vec4 t = texture(uTex, vTexCoord);\n"
+    "    c = (uColorOp == 0) ? t : (t * vColor);\n"
+    "  }\n"
+    "  if (!alphaPass(c.a)) discard;\n"
+    "  oColor = c;\n"
+    "}\n";
 #else
 const char *kBuiltinVS =
     "#version 120\n"
@@ -540,7 +590,9 @@ const char *kBuiltinFS =
 
 unsigned compile(GLenum stage, const char *src) {
     unsigned s = glCreateShader(stage);
-    glShaderSource(s, 1, &src, nullptr);
+    const std::string glsl = KB_GLSLForContext(src);
+    const char *p = glsl.c_str();
+    glShaderSource(s, 1, &p, nullptr);
     glCompileShader(s);
     GLint ok = 0;
     glGetShaderiv(s, GL_COMPILE_STATUS, &ok);

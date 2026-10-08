@@ -1525,7 +1525,7 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                         v7 = SND_FindAliasId((char *)weaponDef->detonateSound);
                     goto LABEL_570;
                 case EV_NIGHTVISION_WEAR:
-                    if (isPlayerView && ((ps->eFlags & 0x300) != 0 || !**((_BYTE **)weaponVariantDef->szXAnims + 40)))
+                    if (isPlayerView && ((ps->eFlags & 0x300) != 0 || !weaponVariantDef->szXAnims[40][0]))
                         CG_PlaySound(localClientNum, p_nextState->number, 0, 0, 0, 1.0, cgMedia.nightVisionOn);
                     if (isPlayerView)
                         v7 = SND_FindAliasId((char *)weaponDef->nightVisionWearSoundPlayer);
@@ -1533,7 +1533,7 @@ void __cdecl CG_EntityEvent(int localClientNum, centity_s *cent, int event)
                         v7 = SND_FindAliasId((char *)weaponDef->nightVisionWearSound);
                     goto LABEL_570;
                 case EV_NIGHTVISION_REMOVE:
-                    if (isPlayerView && ((ps->eFlags & 0x300) != 0 || !**((_BYTE **)weaponVariantDef->szXAnims + 41)))
+                    if (isPlayerView && ((ps->eFlags & 0x300) != 0 || !weaponVariantDef->szXAnims[41][0]))
                         CG_PlaySound(localClientNum, p_nextState->number, 0, 0, 0, 1.0, cgMedia.nightVisionOff);
                     if (isPlayerView)
                         v7 = SND_FindAliasId((char *)weaponDef->nightVisionRemoveSoundPlayer);

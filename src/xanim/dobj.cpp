@@ -419,8 +419,9 @@ void __cdecl DObjCreateDuplicateParts(DObj *obj, DObjModel_s *dobjModels, unsign
     {
         __debugbreak();
     }
-    obj->localModels = (XModel **)MT_Alloc(5 * numModels, 13, SCRIPTINSTANCE_SERVER);
-    memcpy((unsigned __int8 *)obj->localModels, (unsigned __int8 *)models, 4 * numModels);
+    // model pointers followed by one parent byte per model
+    obj->localModels = (XModel **)MT_Alloc((sizeof(XModel *) + 1) * numModels, 13, SCRIPTINSTANCE_SERVER);
+    memcpy((unsigned __int8 *)obj->localModels, (unsigned __int8 *)models, sizeof(XModel *) * numModels);
     memcpy((unsigned __int8 *)&obj->localModels[numModels], modelParents, numModels);
     if (numModels != (unsigned __int8)numModels
         && !Assert_MyHandler(
@@ -578,7 +579,7 @@ void __cdecl DObjFree(DObj *obj)
     models = obj->localModels;
     if ( models )
     {
-        MT_Free((unsigned char*)models, 5 * obj->numModels, SCRIPTINSTANCE_SERVER);
+        MT_Free((unsigned char*)models, (sizeof(XModel *) + 1) * obj->numModels, SCRIPTINSTANCE_SERVER);
         obj->localModels = 0;
     }
     obj->numModels = 0;
@@ -804,7 +805,7 @@ void __cdecl DObjUnarchive(DObj *obj)
         model->model = savedObj.models[modelIndex];
         model->ignoreCollision = (savedObj.ignoreCollision & (1 << modelIndex)) != 0;
     }
-    MT_Free((_BYTE *)savedObj.models, 5 * savedObj.numModels, SCRIPTINSTANCE_SERVER);
+    MT_Free((_BYTE *)savedObj.models, (sizeof(XModel *) + 1) * savedObj.numModels, SCRIPTINSTANCE_SERVER);
     DObjCreateExt(
         dobjModels,
         savedObj.numModels,
@@ -910,7 +911,7 @@ const char *__cdecl DObjGetName(const DObj *obj)
     {
         __debugbreak();
     }
-    return **(const char ***)obj->localModels;
+    return (*obj->localModels)->name;
 }
 
 char *__cdecl DObjGetBoneName(const DObj *obj, int boneIndex)

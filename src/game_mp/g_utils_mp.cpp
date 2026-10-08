@@ -820,7 +820,7 @@ int __cdecl G_EntLinkToInternal(gentity_s *ent, gentity_s *parent, unsigned int 
         if ( !checkEnt->tagInfo )
             break;
     }
-    tagInfo = MT_Alloc(112, 17, SCRIPTINSTANCE_SERVER);
+    tagInfo = MT_Alloc(sizeof(tagInfo_s), 17, SCRIPTINSTANCE_SERVER);
     *(unsigned int *)tagInfo = (unsigned int)Ptr32_Encode(parent);
     *((_WORD *)tagInfo + 4) = 0;
     if ( tagName )
@@ -970,7 +970,7 @@ void __cdecl G_EntUnlink(gentity_s *ent)
             }
         }
         Scr_SetString(&tagInfo->name, 0, SCRIPTINSTANCE_SERVER);
-        MT_Free((unsigned char*)tagInfo, 112, SCRIPTINSTANCE_SERVER);
+        MT_Free((unsigned char*)tagInfo, sizeof(tagInfo_s), SCRIPTINSTANCE_SERVER);
         G_UpdateClientLinkInfo(ent);
     }
 }

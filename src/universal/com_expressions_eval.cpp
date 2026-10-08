@@ -4398,7 +4398,7 @@ void __cdecl GetCurrentItemMultiText(int localClientNum, itemDef_s *item, Operan
             {
                 if ( !I_stricmp(string, multiPtr->dvarStr[i]) )
                 {
-                    result.internals.intVal = (int)multiPtr->dvarList[i];
+                    result.internals.intVal = (int)Ptr32_Raw(multiPtr->dvarList[i]);
                     break;
                 }
             }
@@ -4411,7 +4411,7 @@ void __cdecl GetCurrentItemMultiText(int localClientNum, itemDef_s *item, Operan
             {
                 if ( multiPtr->dvarValue[j] == value )
                 {
-                    result.internals.intVal = (int)multiPtr->dvarList[j];
+                    result.internals.intVal = (int)Ptr32_Raw(multiPtr->dvarList[j]);
                     break;
                 }
             }
@@ -5526,7 +5526,7 @@ void __cdecl EmblemBackgroundMaterial(int localClientNum, itemDef_s *item, Opera
     id = BG_EmblemsGetBackgroundID(v3.intVal);
     mat = BG_EmblemsGetBackgroundMaterial(id);
     if ( mat )
-        result.internals.intVal = (int)mat->info.name;
+        result.internals.intVal = (int)Ptr32_Raw(mat->info.name);
     else
         result.internals.intVal = (int)Ptr32_Encode("");
     AddOperandToStack(dataStack, &result);
@@ -5558,7 +5558,7 @@ void __cdecl EmblemPlayerBackgroundMaterial(int localClientNum, itemDef_s *item,
             id = PCache_GetPlayerEmblemBackgroundID(controllerIndex, xuid);
         mat = BG_EmblemsGetBackgroundMaterial(id);
         if ( mat )
-            result.internals.intVal = (int)mat->info.name;
+            result.internals.intVal = (int)Ptr32_Raw(mat->info.name);
         else
             result.internals.intVal = (int)Ptr32_Encode("emblem_bg_nocod");
     }
@@ -7828,7 +7828,7 @@ void __cdecl GetPlayerCardTitle(int localClientNum, itemDef_s *item, OperandStac
     result.dataType = VAL_STRING;
     GetOperand(dataStack, &source);
     playerName = GetSourceString(source);
-    memset(&convArgs.args[1], 0, 32);
+    memset(&convArgs.args[1], 0, 8 * sizeof(convArgs.args[0]));
     convArgs.argCount = 1;
     convArgs.args[0] = playerName;
     v3 = UI_SafeTranslateString("MENU_PLAYERCARD_TITLE_CAPS");
@@ -9087,7 +9087,7 @@ void __cdecl GetCopyCustomGametypeClassConfirmationText(int localClientNum, item
         selectedClassIndex = classIndexToReplace;
         if ( classIndexToReplace >= classIndexToCopy )
             ++selectedClassIndex;
-        memset(&convArgs.args[2], 0, 28);
+        memset(&convArgs.args[2], 0, 7 * sizeof(convArgs.args[0]));
         convArgs.argCount = 2;
         convArgs.args[0] = g_customGameModeClassDescriptions[selectedClassIndex].name;
         convArgs.args[1] = g_customGameModeClassDescriptions[classIndexToCopy].name;
@@ -10475,7 +10475,7 @@ void __cdecl GetLbTypeWithButtons(int localClientNum, itemDef_s *item, OperandSt
     binding[1] = 0;
     binding[2] = 6;
     binding[3] = 0;
-    memset(&convArgs.args[2], 0, 28);
+    memset(&convArgs.args[2], 0, 7 * sizeof(convArgs.args[0]));
     convArgs.args[0] = binding;
     convArgs.args[1] = &binding[2];
     convArgs.argCount = 2;
@@ -11187,7 +11187,7 @@ void __cdecl GetCacFactionNameWithButtons(int localClientNum, itemDef_s *item, O
     binding[1] = 0;
     binding[2] = 6;
     binding[3] = 0;
-    memset(&convArgs.args[1], 0, 32);
+    memset(&convArgs.args[1], 0, 8 * sizeof(convArgs.args[0]));
     convArgs.argCount = 3;
     convArgs.args[0] = binding;
     convArgs.args[1] = UI_SafeTranslateString(factionName);
@@ -13680,7 +13680,7 @@ char __cdecl EvaluateExpression(
         if ( type == 1 )
         {
             i->type = 2;
-            i->data.cmd = rpnFunctions[Expression_GetFunctionForOp(i->data.cmdIdx)];
+            i->data.cmd = (void *)rpnFunctions[Expression_GetFunctionForOp(i->data.cmdIdx)];
             ((void (__cdecl *)(const int, itemDef_s *, OperandStack *))i->data.cmd)(localClientNum, item, &dataStack);
             continue;
         }

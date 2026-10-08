@@ -806,7 +806,7 @@ void __cdecl    G_InitGame(int levelTime, int randomSeed, int restart, int regis
     if (!restart)
     {
         memset(&bgs->animData->animScriptData, 0, sizeof(animScriptData_t)/*0x8D388u*/);
-        static_assert(sizeof(animScriptData_t) == 0x8D388);
+        static_assert(sizeof(void *) != 4 || sizeof(animScriptData_t) == 0x8D388);
 
         bgs->animData->animScriptData.soundAlias = SND_FindAlias;
         bgs->animData->animScriptData.playSoundAlias = G_AnimScriptSound;

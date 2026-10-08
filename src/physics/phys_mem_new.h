@@ -1,20 +1,24 @@
 #pragma once
 #include "phys_local.h"
 #include <tl/tl_system.h>
+#include <universal/ptr32.h>
 
 struct tagged_void_pointer_t // sizeof=0x8
 {                                       // XREF: phys_slot_pool/r
-    void *m_ptr;
+    // Ptr32_Encode'd slot: {ptr, tag} is CAS'd as one 64-bit value, and the
+    // free slots link to each other through the same 32-bit encoding.
+    unsigned int m_ptr;
     unsigned int m_tag;
 
     tagged_void_pointer_t() noexcept
-        : m_ptr(nullptr), m_tag(0) {
+        : m_ptr(0), m_tag(0) {
     }
 
     tagged_void_pointer_t(void *ptr, unsigned int tag) noexcept
-        : m_ptr(ptr), m_tag(tag) {
+        : m_ptr(Ptr32_Encode(ptr)), m_tag(tag) {
     }
 };
+static_assert(sizeof(tagged_void_pointer_t) == 8, "the free slot head is CAS'd as 64 bits");
 
 struct alignas(8) phys_slot_pool // sizeof=0x18
 {                                       // XREF: phys_memory_manager/r
@@ -70,7 +74,7 @@ struct phys_memory_manager // sizeof=0x3D0
 
     phys_memory_manager(char *memory_buffer, int memory_buffer_size);
 
-    int allocate(unsigned int size, unsigned int alignment);
+    char *allocate(unsigned int size, unsigned int alignment);
     phys_slot_pool *allocate_slot_pool();
     phys_slot_pool *get_slot_pool(unsigned int slot_size, unsigned int slot_alignment);
 };

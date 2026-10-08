@@ -302,7 +302,7 @@ void __cdecl SVC_RemoteCommand(netadr_t from)
     {
         lasttime = time;
         password = SV_Cmd_Argv(1);
-        if ( *(_BYTE *)Ptr32_Decode(rcon_password->current.integer) && !strcmp(password, rcon_password->current.string) )
+        if ( *(_BYTE *)rcon_password->current.string && !strcmp(password, rcon_password->current.string) )
         {
             valid = 1;
             v6 = SV_Cmd_Argv(2);
@@ -318,7 +318,7 @@ void __cdecl SVC_RemoteCommand(netadr_t from)
         }
         svs.redirectAddress = from;
         Com_BeginRedirect(sv_outputbuf, 0x7F0u, SV_FlushRedirect);
-        if ( *(_BYTE *)Ptr32_Decode(rcon_password->current.integer) )
+        if ( *(_BYTE *)rcon_password->current.string )
         {
             if ( valid )
             {
@@ -386,7 +386,7 @@ unsigned __int64 __cdecl SV_GetOwnerID()
     unsigned __int64 retval; // [esp+0h] [ebp-8h] BYREF
 
     retval = 0;
-    if ( sv_ownerid && *(_BYTE *)Ptr32_Decode(sv_ownerid->current.integer) )
+    if ( sv_ownerid && *(_BYTE *)sv_ownerid->current.string )
         StringToXUID(sv_ownerid->current.string, &retval);
     return retval;
 }

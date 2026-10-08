@@ -190,7 +190,7 @@ void __cdecl R_WorldLod_Init()
     memset(s_lodVals, 0xFFu, rgp.world->surfaceCount);
     for ( clientIdx = 0; clientIdx < 1; ++clientIdx )
     {
-        s_lodState[clientIdx] = (LodChainState *)Hunk_Alloc(12 * rgp.world->worldLodChainCount, "R_WorldLod_Init", 23);
+        s_lodState[clientIdx] = (LodChainState *)Hunk_Alloc(sizeof(LodChainState) * rgp.world->worldLodChainCount, "R_WorldLod_Init", 23);
         for (i = 0; i < rgp.world->worldLodChainCount; ++i)
         {
             //LodChainState::Init(&s_lodState[clientIdx][i], &rgp.world->worldLodChains[i], clientIdx);

@@ -140,7 +140,7 @@ void __cdecl R_MarkDynFoliageModels(GfxWorld *gfxWorld)
     const MaterialTechnique *tech; // [esp+Ch] [ebp-30h]
     int techIdx; // [esp+10h] [ebp-2Ch]
     int surfIdx; // [esp+18h] [ebp-24h]
-    Material **materialForSurf; // [esp+1Ch] [ebp-20h]
+    Ptr32<Material> *materialForSurf; // [esp+1Ch] [ebp-20h]
     int surfaceCount; // [esp+24h] [ebp-18h]
     XModel *xm; // [esp+2Ch] [ebp-10h]
     XSurface *surfaces; // [esp+30h] [ebp-Ch] BYREF

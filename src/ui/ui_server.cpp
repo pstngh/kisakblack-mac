@@ -182,7 +182,7 @@ void __cdecl UI_BuildServerDisplayList(int localClientNum, uiInfo_s *uiInfo, int
                             if (atoi(v13) != ui_browserHardcore->current.integer)
                                 goto LABEL_64;
                         }
-                        if ((*(char*)Ptr32_Decode(ui_browserGameMode->current.integer) == 48
+                        if ((*(char*)ui_browserGameMode->current.string == 48
                             || (v14 = Info_ValueForKey(info, "gametype"), !I_stricmp(ui_browserGameMode->current.string, v14)))
                             && (ui_browserMap->current.integer <= 0
                                 || ui_browserMap->current.integer >= sharedUiInfo.mapCount + 1
@@ -600,7 +600,9 @@ void __cdecl UI_StartServerRefresh(int localClientNum, int contextIndex, int ful
     Dvar_SetStringByName(dvarName, v6);
     if (full)
     {
-        *(_QWORD *)&sharedUiInfo.serverStatusInfo.lines[30][7] = 1;
+        // The 32-bit store wrote 1 over lines[30][7] and 0 over lines[31][0].
+        sharedUiInfo.serverStatusInfo.lines[30][7] = (const char *)1;
+        sharedUiInfo.serverStatusInfo.lines[31][0] = 0;
         sharedUiInfo.serverStatus.nextDisplayRefresh = uiInfo->uiDC.realTime + 1000;
         UI_ClearDisplayedServers();
         LAN_MarkServerDirty(ui_netSource->current.integer, -1, 1u);

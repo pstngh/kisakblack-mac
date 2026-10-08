@@ -250,14 +250,16 @@ unsigned __int64 __cdecl R_PixelCost_PackedKeyForMaterial(const Material *materi
         __debugbreak();
     }
     LOBYTE(key_4) = techType;
-    return __PAIR64__(key_4, (unsigned int)material);
+    return __PAIR64__(key_4, Ptr32_Encode(material));
 }
 
 bool __cdecl RB_PixelCost_DoesPrimMatch(unsigned __int64 packedKey)
 {
+    // the low dword of the packed key is the (encoded) material; key.mtl.material
+    // only aliases it on 32-bit builds
     return __PAIR64__(
                      HIDWORD(pixelCostGlob.records[pixelCostGlob.recordCount].key.packed),
-                     pixelCostGlob.records[pixelCostGlob.recordCount].key.mtl.material) == packedKey;
+                     LODWORD(pixelCostGlob.records[pixelCostGlob.recordCount].key.packed)) == packedKey;
 }
 
 void __cdecl RB_PixelCost_ResetPrim(unsigned __int64 packedKey)

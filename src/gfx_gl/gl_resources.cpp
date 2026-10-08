@@ -684,7 +684,7 @@ void GLTexture::uploadLevel(UINT Level) {
             for (size_t i = 0; i + 3 < swz.size(); i += 4) { unsigned char t = swz[i]; swz[i] = swz[i + 2]; swz[i + 2] = t; }
             if (format_ == D3DFMT_X8R8G8B8) for (size_t i = 3; i < swz.size(); i += 4) swz[i] = 255;
             pixels = swz.data();
-        } else if (format_ == D3DFMT_G16R16) {
+        } else if (format_ == D3DFMT_G16R16 && internal == GL_RG8) {
             // WebGL2 has no 16-bit unorm RG (GL_RG16); D3DToGLFormat maps G16R16 -> RG8, so
             // down-convert here. Source is 4 bytes/px: R16 then G16, each little-endian, so
             // the high byte of each 16-bit channel is the 8-bit value. (Restores the
@@ -698,6 +698,8 @@ void GLTexture::uploadLevel(UINT Level) {
             pixels = swz.data();
         }
         glTexImage2D(GL_TEXTURE_2D, Level, internal, w, h, 0, format, type, pixels);
+        if (Level == 0)
+            D3DApplyFormatSwizzle(GL_TEXTURE_2D, format_);
     }
     GLenum uerr = glGetError();
     glBindTexture(GL_TEXTURE_2D, 0);

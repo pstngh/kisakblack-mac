@@ -301,7 +301,7 @@ void __thiscall UIViewer::Show()
                     this->bgs.GetDObj = (DObj *(__cdecl *)(unsigned int, int))UIViewer::GetDObj;
                     this->bgs.Rand = CG_rand;
                     this->bgs.animData = &this->bgsAnim;
-                    memset(this->bgs.animData, 0, 0x8D388u);
+                    memset(this->bgs.animData, 0, sizeof(*this->bgs.animData));
                     //*(unsigned int *)(*((unsigned int *)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 8) = UIViewer::GetBGS();
                     ::bgs = UIViewer::GetBGS();
                     Scr_BeginLoadAnimTrees(SCRIPTINSTANCE_SERVER, 0);
@@ -668,7 +668,6 @@ void __thiscall UIViewer::Update(float deltaTime)
     bool v3; // al
     const char *String; // eax
     centity_s *PlayerEntity; // eax
-    unsigned int *v6; // [esp+8h] [ebp-158h]
     bool v7; // [esp+10h] [ebp-150h]
     const DvarValue *p_current; // [esp+2Ch] [ebp-134h]
     pml_t pml; // [esp+38h] [ebp-128h] BYREF
@@ -794,8 +793,7 @@ void __thiscall UIViewer::Update(float deltaTime)
             memset(&pml, 0, sizeof(pml));
             pml.msec = (int)(float)(deltaTime * 1000.0);
             PM_Weapon(&this->pmove, &pml);
-            v6 = (unsigned int *)((char *)UIViewer::GetPlayerEntity() + 804);
-            *v6 |= 2u;
+            UIViewer::GetPlayerEntity()->nextValid = 1;
             UIViewer::GetPlayerEntity()->nextState.eType = ET_PLAYER;
             UIViewer::GetPlayerEntity()->nextState.animState.state = this->ps.legsAnim;
             UIViewer::GetPlayerEntity()->nextState.anim.torsoAnim = this->ps.torsoAnim;
@@ -915,7 +913,7 @@ void __thiscall UIViewer::DrawDobj::Set(
 {
     this->weaponOptions.i = weapParam->weaponOptions.i;
     this->weaponOptions.i = (playerParams->facePatternIndex << 26)
-                                                | ((unsigned int)Ptr32_Encode(&objBuf[1758][1]) + 3) & this->weaponOptions.i;
+                                                | 0x3FFFFFF & this->weaponOptions.i;
     this->heroLighting = hero;
     this->startTime = cls.realtime;
     this->weaponVariantDef = wvd;
@@ -1054,7 +1052,7 @@ const WeaponVariantDef *__thiscall UIViewer::GetWeaponVariantDef(const UIViewer:
     while ( v11 );
     if ( isDualWield )
     {
-        v10 = (char *)&attachRefs[3] + 3;
+        v10 = weaponDefName - 1;
         while ( *++v10 )
             ;
         strcpy(v10, "dw");
@@ -1064,14 +1062,14 @@ const WeaponVariantDef *__thiscall UIViewer::GetWeaponVariantDef(const UIViewer:
         if ( attachRefs[i] && I_strcmp(attachRefs[i], "none") )
         {
             v7 = va("_%s", attachRefs[i]);
-            v8 = (unsigned int)Ptr32_Encode(&v7[strlen(v7) + 1]);
-            v6 = (char *)&attachRefs[3] + 3;
+            v8 = strlen(v7) + 1;
+            v6 = weaponDefName - 1;
             while ( *++v6 )
                 ;
-            memcpy(v6, v7, v8 - (unsigned int)Ptr32_Encode(v7));
+            memcpy(v6, v7, v8);
         }
     }
-    v4 = (char *)&attachRefs[3] + 3;
+    v4 = weaponDefName - 1;
     while ( *++v4 )
         ;
     strcpy(v4, "_mp");
@@ -1143,7 +1141,7 @@ void __thiscall UIViewer::HideWeaponTags(
         {
             if ( !DObjGetModelBoneIndex(
                             dobj,
-                            **(const char ***)weapon->weapDef->worldModel,
+                            weapon->weapDef->worldModel[0]->name,
                             weapon->hideTags[tagIndex],
                             &boneIndex) )
                 continue;
@@ -1353,7 +1351,6 @@ void __thiscall UIViewer::UpdatePlayerDObj(
 void __thiscall UIViewer::UpdatePlayerAnim(const WeaponVariantDef *weaponVariantDef)
 {
     int WeaponIndexForName; // eax
-    unsigned int *v3; // [esp+0h] [ebp-8h]
 
     if ( !weaponVariantDef
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_viewer.cpp", 1607, 0, "%s", "weaponVariantDef") )
@@ -1367,8 +1364,7 @@ void __thiscall UIViewer::UpdatePlayerAnim(const WeaponVariantDef *weaponVariant
         WeaponIndexForName = BG_GetWeaponIndexForName((char *)weaponVariantDef->szInternalName, 0);
         AssignToSmallerType<unsigned short>(&this->ps.weapon, WeaponIndexForName);
         UIViewer::GetPlayerEntity()->nextState.weapon = this->ps.weapon;
-        v3 = (unsigned int *)((char *)UIViewer::GetPlayerEntity() + 804);
-        *v3 |= 2u;
+        UIViewer::GetPlayerEntity()->nextValid = 1;
         UIViewer::GetPlayerEntity()->nextState.eType = ET_PLAYER;
         BG_SetConditionBit(0, 1, weaponVariantDef->weapDef->weapClass);
         BG_SetConditionBit(0, 0, weaponVariantDef->weapDef->playerAnimType);
@@ -1473,15 +1469,15 @@ void __thiscall UIViewer::AddPlayerToScene(
     if (strcmp(this->playerCameraName, this->playerCameraDvar->current.string))
     {
         if (this->ingame)
-            v7 = UIViewer::SetCameraPos((char*)Ptr32_Decode(this->playerCameraDvar->current.integer), (char*)"ingame", animate);
+            v7 = UIViewer::SetCameraPos((char*)this->playerCameraDvar->current.string, (char*)"ingame", animate);
         else
-            v7 = UIViewer::SetCameraPos((char *)Ptr32_Decode(this->playerCameraDvar->current.integer), (char *)"none", animate);
+            v7 = UIViewer::SetCameraPos((char *)this->playerCameraDvar->current.string, (char *)"none", animate);
         if (!v7)
         {
             Dvar_SetString((dvar_s*)this->playerCameraDvar, "player");
-            UIViewer::SetCameraPos((char *)Ptr32_Decode(this->playerCameraDvar->current.integer), (char *)"none", animate);
+            UIViewer::SetCameraPos((char *)this->playerCameraDvar->current.string, (char *)"none", animate);
         }
-        integer = (char*)Ptr32_Decode(this->playerCameraDvar->current.integer);
+        integer = (char*)this->playerCameraDvar->current.string;
         playerCameraName = this->playerCameraName;
         do
         {

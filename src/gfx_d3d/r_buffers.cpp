@@ -272,12 +272,15 @@ void __cdecl R_FreeStaticIndexBuffer(IDirect3DIndexBuffer9 *ib)
 void __cdecl Load_VertexBuffer(Ptr32<IDirect3DVertexBuffer9> *vb, unsigned __int8 *bufferData, int sizeInBytes)
 {
     unsigned __int8 *v3; // eax
+    IDirect3DVertexBuffer9 *vbLocal;
 
     if ( r_loadForRenderer->current.enabled && bufferData )
     {
         if ( Sys_IsRenderThread() )
         {
-            v3 = (unsigned __int8 *)R_AllocStaticVertexBuffer(vb, sizeInBytes);
+            vbLocal = NULL;
+            v3 = (unsigned __int8 *)R_AllocStaticVertexBuffer(&vbLocal, sizeInBytes);
+            *vb = vbLocal;
             memcpy(v3, bufferData, sizeInBytes);
             R_FinishStaticVertexBuffer(*vb);
         }

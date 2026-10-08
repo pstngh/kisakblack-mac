@@ -785,7 +785,7 @@ void __cdecl free_chull(chull_t *first)
         next = first->next;
         PMM_FREE((unsigned __int8 *)first->verts, 16 * first->nverts, 0x10u);
         PMM_FREE((unsigned __int8 *)first->inds, (2 * first->ninds + 3) & 0xFFFFFFFC, 4u);
-        PMM_FREE((unsigned __int8 *)first, 0x20u, 4u);
+        PMM_FREE((unsigned __int8 *)first, sizeof(chull_t), 4u);
         first = next;
     }
 }

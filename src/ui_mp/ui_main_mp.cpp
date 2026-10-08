@@ -370,7 +370,7 @@ void __cdecl UI_GetGameTypeOnMapName(char *outputString, const char *inputMapNam
     ConversionArguments convArgs; // [esp+4h] [ebp-28h] BYREF
 
     gametypeOnMap = UI_SafeTranslateString("MPUI_GAMETYPE_ON_MAP");
-    memset(&convArgs.args[2], 0, 28);
+    memset(&convArgs.args[2], 0, 7 * sizeof(convArgs.args[0]));
     convArgs.argCount = 2;
     convArgs.args[0] = UI_GetGameTypeName(inputGameType, 0);
     convArgs.args[1] = UI_GetMapName(inputMapName, 0);
@@ -2127,7 +2127,7 @@ void __cdecl UI_DrawWagerTier(
     Int = Dvar_GetInt("scr_wagerTier");
     Com_sprintf(currentTierString, 5u, "%i", Int);
     Com_sprintf(numTiersString, 5u, "%i", 3);
-    memset(&convArgs.args[2], 0, 28);
+    memset(&convArgs.args[2], 0, 7 * sizeof(convArgs.args[0]));
     convArgs.argCount = 2;
     convArgs.args[0] = currentTierString;
     convArgs.args[1] = numTiersString;

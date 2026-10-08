@@ -1946,7 +1946,7 @@ char __cdecl R_MarkFragments_AnimatedXModel(
     int surfIndex; // [esp+3D0h] [ebp-18h]
     unsigned int vertListIndex; // [esp+3D4h] [ebp-14h]
     int surfCount; // [esp+3D8h] [ebp-10h]
-    Material **materials; // [esp+3DCh] [ebp-Ch]
+    Ptr32<Material> *materials; // [esp+3DCh] [ebp-Ch]
     XSurface *surfaces; // [esp+3E0h] [ebp-8h] BYREF
     XSurface *surface; // [esp+3E4h] [ebp-4h]
     int savedregs; // [esp+3E8h] [ebp+0h] BYREF
@@ -2534,7 +2534,7 @@ char __cdecl R_MarkFragments_EntirelyRigidXModel(
 {
     int surfIndex; // [esp+C0h] [ebp-10h]
     int surfCount; // [esp+C4h] [ebp-Ch]
-    Material **materials; // [esp+C8h] [ebp-8h]
+    Ptr32<Material> *materials; // [esp+C8h] [ebp-8h]
     XSurface *surfaces; // [esp+CCh] [ebp-4h] BYREF
 
     surfCount = XModelGetSurfaces(xmodel, &surfaces, 0);

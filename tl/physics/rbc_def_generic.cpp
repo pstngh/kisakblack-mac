@@ -1254,7 +1254,7 @@ pulse_sum_normal *__thiscall pulse_sum_constraint_solver::create_pulse_sum_norma
   pulse_sum_normal **m_last_next_ptr; // ecx
 
   //v2 = (pulse_sum_normal **)phys_transient_allocator::allocate(&this->m_solver_memory_allocator, 160, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
-  v2 = (pulse_sum_normal **)this->m_solver_memory_allocator.allocate(160, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
+  v2 = (pulse_sum_normal **)this->m_solver_memory_allocator.allocate(sizeof(pulse_sum_normal), 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
   if ( !this->m_list_pulse_sum_normal.m_last_next_ptr
     && _tlAssert(
          "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
@@ -1288,7 +1288,7 @@ void __thiscall pulse_sum_constraint_solver::create_point(
   int savedregs; // [esp+18h] [ebp+0h] BYREF
 
   //v11 = (pulse_sum_point *)phys_transient_allocator::allocate(&this->m_solver_memory_allocator, 272, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
-  v11 = (pulse_sum_point *)this->m_solver_memory_allocator.allocate(272, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
+  v11 = (pulse_sum_point *)this->m_solver_memory_allocator.allocate(sizeof(pulse_sum_point), 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
   if ( !this->m_list_pulse_sum_point.m_last_next_ptr
     && _tlAssert(
          "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
@@ -1320,7 +1320,7 @@ pulse_sum_angular *__thiscall pulse_sum_constraint_solver::create_pulse_sum_angu
   int savedregs; // [esp+8h] [ebp+0h] BYREF
 
   //v8 = (pulse_sum_angular *)phys_transient_allocator::allocate(&this->m_solver_memory_allocator, 144, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
-  v8 = (pulse_sum_angular *)this->m_solver_memory_allocator.allocate(144, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
+  v8 = (pulse_sum_angular *)this->m_solver_memory_allocator.allocate(sizeof(pulse_sum_angular), 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
   if ( !this->m_list_pulse_sum_angular.m_last_next_ptr
     && _tlAssert(
          "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",

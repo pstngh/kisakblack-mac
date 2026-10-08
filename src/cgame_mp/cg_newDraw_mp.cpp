@@ -4749,31 +4749,38 @@ void __cdecl CG_DrawStanceHintPrints(
     const char *binding; // [esp+248h] [ebp-8h]
     float y; // [esp+24Ch] [ebp-4h]
 
-    memset(standCmds, 0, 24);
+    memset(standCmds[0], 0, sizeof(standCmds[0]));
     standCmds[1][0] = "gocrouch";
     standCmds[1][1] = "togglecrouch";
     standCmds[1][2] = "lowerstance";
     standCmds[1][3] = "+movedown";
-    *(_QWORD *)&standCmds[1][4] = 0;
+    standCmds[1][4] = 0;
+    standCmds[1][5] = 0;
     standCmds[2][0] = "goprone";
     standCmds[2][1] = "+prone";
-    *(_QWORD *)&standCmds[2][2] = 0;
-    *(_QWORD *)&standCmds[2][4] = 0;
+    standCmds[2][2] = 0;
+    standCmds[2][3] = 0;
+    standCmds[2][4] = 0;
+    standCmds[2][5] = 0;
     duckCmds[0][0] = "+gostand";
     duckCmds[0][1] = "raisestance";
     duckCmds[0][2] = "+moveup";
-    *(_QWORD *)&duckCmds[0][3] = 0;
+    duckCmds[0][3] = 0;
+    duckCmds[0][4] = 0;
     duckCmds[0][5] = 0;
     memset(duckCmds[1], 0, sizeof(const char *[6]));
     duckCmds[2][0] = "goprone";
     duckCmds[2][1] = "lowerstance";
     duckCmds[2][2] = "toggleprone";
     duckCmds[2][3] = "+prone";
-    *(_QWORD *)&duckCmds[2][4] = 0;
+    duckCmds[2][4] = 0;
+    duckCmds[2][5] = 0;
     proneCmds[0][0] = "+gostand";
     proneCmds[0][1] = "toggleprone";
-    *(_QWORD *)&proneCmds[0][2] = 0;
-    *(_QWORD *)&proneCmds[0][4] = 0;
+    proneCmds[0][2] = 0;
+    proneCmds[0][3] = 0;
+    proneCmds[0][4] = 0;
+    proneCmds[0][5] = 0;
     proneCmds[1][0] = "gocrouch";
     proneCmds[1][1] = "togglecrouch";
     proneCmds[1][2] = "raisestance";

@@ -239,7 +239,7 @@ void __cdecl Scr_CalcLocalVarsArrayVariableRef(sval_u expr, scr_block_s *block);
 void __cdecl Scr_CalcLocalVarsArrayPrimitiveExpressionRef(sval_u expr, scr_block_s *block);
 void __cdecl Scr_CalcLocalVarsAssignmentStatement(sval_u lhs, sval_u rhs, scr_block_s *block);
 void __cdecl Scr_CalcLocalVarsIfStatement(scriptInstance_t inst, sval_u stmt, scr_block_s *block, sval_u *ifStatBlock);
-void __cdecl Scr_CopyBlock(scr_block_s *from, scr_block_s **to);
+void __cdecl Scr_CopyBlock(scr_block_s *from, Ptr32<scr_block_s> *to);
 void __cdecl Scr_MergeChildBlocks(scr_block_s **childBlocks, int childCount, scr_block_s *block);
 int __cdecl Scr_FindLocalVar(scr_block_s *block, int startIndex, unsigned int name);
 void __cdecl Scr_CalcLocalVarsIfElseStatement(
@@ -315,6 +315,7 @@ void __cdecl EmitValue(scriptInstance_t inst, VariableCompileValue *constValue);
 void __cdecl EmitGetUndefined(scriptInstance_t inst, sval_u sourcePos);
 void __cdecl EmitGetInteger(scriptInstance_t inst, int value, sval_u sourcePos);
 void __cdecl EmitCodepos(scriptInstance_t inst, const char *pos);
+void __cdecl EmitInt(scriptInstance_t inst, int value);
 void __cdecl EmitGetFloat(scriptInstance_t inst, float value, sval_u sourcePos);
 void __cdecl EmitFloat(scriptInstance_t inst, float value);
 void __cdecl EmitGetString(scriptInstance_t inst, unsigned int value, sval_u sourcePos);

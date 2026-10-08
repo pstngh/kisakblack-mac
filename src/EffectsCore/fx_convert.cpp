@@ -76,7 +76,7 @@ const FxEffectDef *__cdecl FX_Convert(const FxEditorEffectDef *editorEffect, voi
                         Com_PrintError(
                             20,
                             "ERROR: no physics preset specified for the FX model [%s]\n",
-                            *(const char **)elemVisual->anonymous);
+                            (const char *)*(const Ptr32<const char> *)elemVisual->anonymous);
                     }
                 }
             }
@@ -244,12 +244,8 @@ int __cdecl FX_DecideVelocitySampleCount(const FxEditorElemDef *edElem, int inte
 {
     const FxCurve *curves[12]; // [esp+0h] [ebp-30h] BYREF
 
-    *(_QWORD *)curves = *(_QWORD *)&edElem->velShape[0][0][0];
-    *(_QWORD *)&curves[2] = *(_QWORD *)&edElem->velShape[0][1][0];
-    *(_QWORD *)&curves[4] = *(_QWORD *)&edElem->velShape[0][2][0];
-    *(_QWORD *)&curves[6] = *(_QWORD *)&edElem->velShape[1][0][0];
-    *(_QWORD *)&curves[8] = *(_QWORD *)&edElem->velShape[1][1][0];
-    *(_QWORD *)&curves[10] = *(_QWORD *)&edElem->velShape[1][2][0];
+    static_assert(sizeof(curves) == sizeof(edElem->velShape));
+    memcpy(curves, edElem->velShape, sizeof(curves));
     return FX_DecideSampleCount(12, curves, intervalLimit);
 }
 
@@ -1945,7 +1941,7 @@ void __cdecl FX_BoundFloatRange(FxFloatRange *range, float lower, float upper)
     }
 }
 
-void __cdecl FX_ConvertTrail(FxTrailDef **outTrailDef, const FxEditorElemDef *edElemDef, unsigned __int8 **mempool)
+void __cdecl FX_ConvertTrail(Ptr32<FxTrailDef> *outTrailDef, const FxEditorElemDef *edElemDef, unsigned __int8 **mempool)
 {
     if ( edElemDef->elemType != 5
         && !Assert_MyHandler(

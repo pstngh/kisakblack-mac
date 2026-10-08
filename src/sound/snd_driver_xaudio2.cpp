@@ -198,7 +198,7 @@ void __cdecl iSND_ReleaseStreamBuffer(unsigned int streamVoice, unsigned int buf
     iassert(streamVoice < SND_MAX_STREAM_VOICES);
     iassert(bufferIndex < StreamVoice::BUFFER_COUNT);
 
-    releaseWindow = (char *)Ptr32_Decode(InterlockedExchange((volatile unsigned int *)&g_sd.streamVoices[streamVoice].buffers[bufferIndex].pAudioData, 0));
+    releaseWindow = (char *)InterlockedExchangePointer((void **)&g_sd.streamVoices[streamVoice].buffers[bufferIndex].pAudioData, 0);
 
     if (releaseWindow)
     {

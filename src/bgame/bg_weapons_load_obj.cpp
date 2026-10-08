@@ -1083,7 +1083,7 @@ void __cdecl BG_ClearWeaponDefInternal()
     surfaceTypeSoundListCount = 0;
 }
 
-void __cdecl SetConfigString(char **ppszConfigString, const char *pszKeyValue)
+void __cdecl SetConfigString(Ptr32<const char> *ppszConfigString, const char *pszKeyValue)
 {
     char v2; // [esp+3h] [ebp-21h]
     char *v3; // [esp+8h] [ebp-1Ch]
@@ -1137,7 +1137,7 @@ flameTable *__cdecl BG_LoadFlameTableInternal(const char *folder, char *name)
                 FS_FCloseFile(f);
                 if ( Info_Validate(buffer) )
                 {
-                    SetConfigString((char **)&fTable->name, name);
+                    SetConfigString(&fTable->name, name);
                     if ( ParseConfigStringToStruct(
                                  (unsigned __int8 *)fTable,
                                  flameTableFields,
@@ -1200,7 +1200,7 @@ flameTable *__cdecl BG_LoadFlameTableInternal(const char *folder, char *name)
 
 void __cdecl SetConfigString2(unsigned __int8 *pMember, const char *pszKeyValue)
 {
-    SetConfigString((char **)pMember, pszKeyValue);
+    SetConfigString((Ptr32<const char> *)pMember, pszKeyValue);
 }
 
 void __cdecl InitFlameTable(flameTable *fTable)
@@ -1655,12 +1655,12 @@ char __cdecl BG_LoadWeaponVariantDefFile(WeaponFullDef *weapFullDef, const char 
     char v14; // [esp+417Ch] [ebp-24310h] BYREF
     _BYTE v15[64]; // [esp+1817Ch] [ebp-10310h] BYREF
     char v16[66116]; // [esp+181BCh] [ebp-102D0h] BYREF
-    char **ppszConfigString; // [esp+28400h] [ebp-8Ch]
+    Ptr32<const char> *ppszConfigString; // [esp+28400h] [ebp-8Ch]
     char outputName[64]; // [esp+28404h] [ebp-88h] BYREF
     char dest[64]; // [esp+28444h] [ebp-48h] BYREF
     int i; // [esp+28488h] [ebp-4h]
 
-    ppszConfigString = (char **)weapFullDef;
+    ppszConfigString = (Ptr32<const char> *)weapFullDef;
     for ( i = 0; i < 4; ++i )
     {
         v16[0x4000 * i + 320] = 0;
@@ -1854,7 +1854,7 @@ int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const cha
             weapDef->guidedMissileType = (guidedMissileType_t)arrayIndex;
             goto LABEL_104;
         case 27:
-            weapDef->bounceSound = (const char **)BG_RegisterSurfaceTypeSounds(pValue);
+            weapDef->bounceSound = BG_RegisterSurfaceTypeSounds(pValue);
             goto LABEL_104;
         case 28:
             arrayIndex = Weapon_GetStringArrayIndex(pValue, stickinessNames, 6);
@@ -2036,7 +2036,7 @@ int __cdecl Weapon_GetStringArrayIndex(const char *value, const char **stringArr
     return -1;
 }
 
-char **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase)
+Ptr32<const char> *__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase)
 {
     const char *v2; // eax
     unsigned __int8 *v3; // eax
@@ -2046,7 +2046,7 @@ char **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase)
     char v7; // [esp+23h] [ebp-129h]
     char *v8; // [esp+28h] [ebp-124h]
     char *v9; // [esp+2Ch] [ebp-120h]
-    char **result; // [esp+40h] [ebp-10Ch]
+    Ptr32<const char> *result; // [esp+40h] [ebp-10Ch]
     char aliasName[256]; // [esp+44h] [ebp-108h] BYREF
     int i; // [esp+148h] [ebp-4h]
 
@@ -2069,7 +2069,7 @@ char **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase)
     }
     if (surfaceTypeSoundListCount == 16)
         Com_Error(ERR_DROP, "Exceeded MAX_SURFACE_TYPE_SOUND_LISTS (%d)", 16);
-    result = (char **)Hunk_AllocLow(0x7Cu, "BG_RegisterSurfaceTypeSounds", 17);
+    result = (Ptr32<const char> *)Hunk_AllocLow(0x7Cu, "BG_RegisterSurfaceTypeSounds", 17);
     for (i = 0; i < 31; ++i)
     {
         v2 = Com_SurfaceTypeToName(i);
@@ -2077,7 +2077,7 @@ char **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase)
         v3 = Hunk_AllocLow(&aliasName[strlen(aliasName) + 1] - &aliasName[1] + 1, "BG_RegisterSurfaceTypeSounds", 17);
         result[i] = (char *)v3;
         v9 = aliasName;
-        v8 = result[i];
+        v8 = (char *)result[i];
         do
         {
             v7 = *v9;
@@ -2232,7 +2232,7 @@ void __cdecl InitWeaponDef(WeaponFullDef *weapFullDef)
     while ( iField < 748 )
     {
         if ( !pField->iFieldType )
-            *(const char **)((char *)&weapFullDef->weapVariantDef.szInternalName + pField->iOffset) = "";
+            *(Ptr32<const char> *)((char *)&weapFullDef->weapVariantDef.szInternalName + pField->iOffset) = "";
         ++iField;
         ++pField;
     }

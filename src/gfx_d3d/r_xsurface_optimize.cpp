@@ -55,6 +55,7 @@ void __cdecl XSurfaceOptimize(XModel *model, XSurface *surf)
     void *indexBuffer; // [esp+0h] [ebp-Ch]
     int rawIndexBytes; // [esp+4h] [ebp-8h]
     signed int indexBytes; // [esp+8h] [ebp-4h]
+    IDirect3DIndexBuffer9 *ib;
 
     if ( surf->indexBuffer )
         goto LABEL_10;
@@ -80,7 +81,9 @@ void __cdecl XSurfaceOptimize(XModel *model, XSurface *surf)
     {
         __debugbreak();
     }
-    indexBuffer = R_AllocStaticIndexBuffer(&surf->indexBuffer, indexBytes);
+    ib = NULL;
+    indexBuffer = R_AllocStaticIndexBuffer(&ib, indexBytes);
+    surf->indexBuffer = ib;
     if ( indexBuffer )
     {
         Com_Memcpy(indexBuffer, surf->triIndices, rawIndexBytes);

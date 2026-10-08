@@ -12,7 +12,7 @@
 #include "dobj_utils.h"
 #include <cgame/cg_drawtools.h>
 
-Material *g_materials[1];
+Ptr32<Material> g_materials[1];
 XModelDefault g_default;
 
 bool __cdecl XModelBad(const XModel *model)

@@ -35,7 +35,7 @@ void __cdecl FX_DrawProfile(int clientIndex, void (__cdecl *drawFunc)(char *), f
         }
         if ( !_InterlockedDecrement(&system->shared->iteratorCount) )
             FX_RunGarbageCollectionAndPrioritySort(system);
-        qsort(entryPool, entryCount, 0x1Cu, (int (__cdecl *)(const void *, const void *))FX_CompareProfileEntries);
+        qsort(entryPool, entryCount, sizeof(entryPool[0]), (int (__cdecl *)(const void *, const void *))FX_CompareProfileEntries);
         v11 = system->shared->firstNewEffect - system->shared->firstActiveEffect;
         v3 = va(
                      "%4i of %4i effect objects in use (%.0f%%; %i free)",
@@ -303,7 +303,7 @@ void __cdecl FX_DrawPriorityDebug(int clientIndex, void (__cdecl *drawFunc)(char
         v8 = num;
     for ( k = 0; k < v8; ++k )
     {
-        v7 = va("%4i     %4i     %s", *(unsigned __int8 *)Ptr32_Decode(base[2 * k] + 5), base[2 * k + 1], *(const char **)base[2 * k]);
+        v7 = va("%4i     %4i     %s", *(unsigned __int8 *)Ptr32_Decode(base[2 * k] + 5), base[2 * k + 1], (const char *)((const FxEffectDef *)Ptr32_Decode(base[2 * k]))->name);
         drawFunc(v7);
     }
 }

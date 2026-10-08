@@ -52,7 +52,7 @@ void __cdecl Scr_ArchiveCanonicalStrings(scriptInstance_t inst)
         "Scr_ArchiveCanonicalStrings1");
     gScrEvaluateGlob[inst].archivedCanonicalStrings = (ArchivedCanonicalStringInfo *)Hunk_UserAlloc(
         g_DebugHunkUser,
-        8
+        sizeof(ArchivedCanonicalStringInfo)
         * gScrVarPub[inst].canonicalStrCount,
         4,
         "Scr_ArchiveCanonicalStrings2");
@@ -106,7 +106,7 @@ void __cdecl Scr_ArchiveCanonicalStrings(scriptInstance_t inst)
     qsort(
         gScrEvaluateGlob[inst].archivedCanonicalStrings,
         gScrVarPub[inst].canonicalStrCount,
-        8u,
+        sizeof(ArchivedCanonicalStringInfo),
         (int(__cdecl *)(const void *, const void *))CompareCanonicalStrings);
     for (ia = 0; ia < (int)gScrVarPub[inst].canonicalStrCount; ++ia)
     {
@@ -715,14 +715,14 @@ void __cdecl Scr_CompilePrimitiveExpressionList(scriptInstance_t inst, sval_u *e
     expr_count = GetExpressionCount(*exprlist);
     if ( expr_count == 1 )
     {
-        nodea = *(sval_u **)exprlist->stringValue;
+        nodea = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist->stringValue);
         Scr_CompileExpression(inst, nodea->node);
         *exprlist = *nodea->node;
     }
     else if ( expr_count == 3 )
     {
         i = 0;
-        for ( node = *(sval_u **)exprlist->stringValue; node; node = node[1].node )
+        for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist->stringValue); node; node = node[1].node )
         {
             Scr_CompileExpression(inst, node->node);
             expr[i++] = *node->node;
@@ -789,7 +789,7 @@ void __cdecl Scr_CompileCallExpressionList(scriptInstance_t inst, sval_u *exprli
     sval_u expr; // [esp+Ch] [ebp-4h]
 
     expr = debugger_node0(inst, ENUM_NOP);
-    for ( node = *(sval_u **)exprlist->stringValue; node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist->stringValue); node; node = node[1].node )
     {
         Scr_CompileExpression(inst, node->node);
         expr = debugger_prepend_node(inst, *node->node, expr);
@@ -1074,11 +1074,11 @@ void __cdecl Scr_EvalPrimitiveExpression(
         break;
     case 0xD:
         value->type = 2;
-        value->u.intValue = SL_GetString_(inst, *(char **)(expr.stringValue + 4), 0, 20);
+        value->u.intValue = SL_GetString_(inst, (char *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(expr.stringValue + 4)), 0, 20);
         break;
     case 0xE:
         value->type = 3;
-        value->u.intValue = SL_GetString_(inst, *(char **)(expr.stringValue + 4), 0, 20);
+        value->u.intValue = SL_GetString_(inst, (char *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(expr.stringValue + 4)), 0, 20);
         break;
     case 0x13:
         Scr_EvalVariableExpression(inst, *(sval_u *)Ptr32_Decode(expr.stringValue + 4), localId, value);
@@ -1559,7 +1559,7 @@ void __cdecl Scr_EvalFunction(
     }
     //if ( !_setjmp3(g_script_error[inst][g_script_error_level[inst]], 0) )
     if ( !_setjmp(g_script_error[inst][g_script_error_level[inst]]) )
-        ((void (*)(void))func_name.stringValue)();
+        ((void (*)(void))Ptr32_Decode(func_name.stringValue))();
     if ( g_script_error_level[inst] < 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_evaluate.cpp",
@@ -1634,7 +1634,7 @@ void __cdecl Scr_PreEvalBuiltin(scriptInstance_t inst, sval_u params, unsigned i
         __debugbreak();
     }
     index = 0;
-    for (node = *(sval_u **)params.stringValue; node; node = node[1].node)
+    for (node = *(Ptr32<sval_u> *)Ptr32_Decode(params.stringValue); node; node = node[1].node)
         Scr_EvalExpression(inst, *node, localId, &gScrVmPub[inst].top[-index++]);
     gScrVmPub[inst].outparamcount = expr_count;
     if (!gScrVarPub[inst].evaluate
@@ -1768,7 +1768,8 @@ void __cdecl Scr_EvalMethod(
         entref = Scr_GetEntityIdRef(inst, objectId);
         RemoveRefToObject(inst, objectId);
         //LOWORD(v8) = entref.client;
-        ((void(__cdecl *)(_DWORD, int))func_name.stringValue)(*(_DWORD *)&entref.entnum, entref.client);
+        //((void(__cdecl *)(_DWORD, int))func_name.stringValue)(*(_DWORD *)&entref.entnum, entref.client);
+        ((void(__cdecl *)(scr_entref_t))Ptr32_Decode(func_name.stringValue))(entref); // same call the VM makes; (DWORD, int) mismatches the arm64 ABI
     }
     if (g_script_error_level[inst] < 0
         && !Assert_MyHandler(
@@ -2114,7 +2115,7 @@ bool __cdecl Scr_RefCall(scriptInstance_t inst, sval_u params)
     bool exprRemoved; // [esp+7h] [ebp-1h]
 
     exprRemoved = 0;
-    for ( node = *(sval_u **)params.stringValue; node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(params.stringValue); node; node = node[1].node )
     {
         if ( Scr_RefExpression(inst, *node) )
             exprRemoved = 1;

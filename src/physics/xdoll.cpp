@@ -159,7 +159,7 @@ void __cdecl XDoll_Update(int msec)
             {
                 cent = CG_GetEntity(body->client_index, body->entity_index);
                 obj = Com_GetClientDObj(body->entity_index, body->client_index);
-                if ( ((*((unsigned int *)cent + 201) >> 1) & 1) != 0 && cent->destructible && obj )
+                if ( cent->nextValid != 0 && cent->destructible && obj )
                 {
                     if ( body->userBodyBoneHash )
                     {
@@ -887,7 +887,7 @@ environment_rigid_body *__cdecl XDoll_GetRigidBody(XDollBody *body, const char *
         {
             if ( !body->bones[bi].rigidBody )
                 return 0;
-            return *(environment_rigid_body **)body->bones[bi].rigidBody;
+            return (environment_rigid_body *)((PhysObjUserData *)Ptr32_Decode(body->bones[bi].rigidBody))->body;
         }
     }
     return (environment_rigid_body *)rb;

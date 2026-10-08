@@ -99,10 +99,11 @@ const Material *__cdecl R_GetBspMaterial(unsigned int materialIndex)
     return Material_Register(materialName, 9);
 }
 
-void __cdecl R_CreateWorldVertexBuffer(IDirect3DVertexBuffer9 **vb, int *srcData, unsigned int sizeInBytes)
+void __cdecl R_CreateWorldVertexBuffer(Ptr32<IDirect3DVertexBuffer9> *vb, int *srcData, unsigned int sizeInBytes)
 {
     int dummyData; // [esp+0h] [ebp-8h] BYREF
     void *dstData; // [esp+4h] [ebp-4h]
+    IDirect3DVertexBuffer9 *vbLocal;
 
     if ( r_loadForRenderer->current.enabled )
     {
@@ -122,7 +123,9 @@ void __cdecl R_CreateWorldVertexBuffer(IDirect3DVertexBuffer9 **vb, int *srcData
             srcData = &dummyData;
             sizeInBytes = 4;
         }
-        dstData = R_AllocStaticVertexBuffer(vb, sizeInBytes);
+        vbLocal = NULL;
+        dstData = R_AllocStaticVertexBuffer(&vbLocal, sizeInBytes);
+        *vb = vbLocal;
         Com_Memcpy(dstData, srcData, sizeInBytes);
         R_FinishStaticVertexBuffer(*vb);
     }
@@ -689,7 +692,7 @@ void __cdecl R_LoadLightmaps(GfxBspLoad *load)
         while ( oldLmapBaseIndex < oldLmapCount )
         {
             if ( newLmapIndex
-                && groupInfo[newLmapIndex].wideCount > *(&height + 2 * newLmapIndex)
+                && groupInfo[newLmapIndex].wideCount > groupInfo[newLmapIndex - 1].wideCount
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_bsp_load_obj.cpp",
                             1014,
@@ -700,7 +703,7 @@ void __cdecl R_LoadLightmaps(GfxBspLoad *load)
                 __debugbreak();
             }
             if ( newLmapIndex
-                && groupInfo[newLmapIndex].highCount > (int)Ptr32_Encode((&buf_p)[2 * newLmapIndex])
+                && groupInfo[newLmapIndex].highCount > groupInfo[newLmapIndex - 1].highCount
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_bsp_load_obj.cpp",
                             1015,
@@ -2601,7 +2604,7 @@ signed int R_SortSurfaces()
     //    80 * surfaceCount / 80,
     //    (unsigned __int8 (*)(void))R_CompareSurfaces);
 
-    std::sort(s_world.dpvs.surfaces, s_world.dpvs.surfaces + surfaceCount, R_CompareSurfaces);
+    std::sort((GfxSurface *)s_world.dpvs.surfaces, s_world.dpvs.surfaces + surfaceCount, R_CompareSurfaces);
 
     for ( surfIndexa = 0; surfIndexa < surfaceCount; ++surfIndexa )
     {
@@ -2856,7 +2859,7 @@ unsigned int R_CalculateVertexStream2Usage()
     {
         v2 = &s_world.dpvs.surfaces[i];
         if ( v2->tris.stream2ByteOffset )
-            v2->tris.stream2ByteOffset = *(unsigned int *)Ptr32_Decode(v2->tris.stream2ByteOffset + 4);
+            v2->tris.stream2ByteOffset = ((Stream2Usage *)Ptr32_Decode(v2->tris.stream2ByteOffset))->byteOffset;
         else
             v2->tris.stream2ByteOffset = -1;
     }
@@ -2892,13 +2895,13 @@ Stream2Usage *__cdecl AllocateUsage()
 {
     unsigned int *v2; // [esp+4h] [ebp-4h]
 
-    v2 = (unsigned int*)operator new(0x10u);
+    v2 = (unsigned int*)operator new(sizeof(Stream2Usage));
     if ( !v2 )
         return 0;
     *v2 = -1;
     v2[1] = -1;
     *((_WORD *)v2 + 4) = 0;
-    v2[3] = 0;
+    ((Stream2Usage *)v2)->next = 0;
     return (Stream2Usage *)v2;
 }
 
@@ -3614,9 +3617,9 @@ void __cdecl R_MaterialUsage(Material *material, unsigned int firstVertex, int v
             if ( firstVertex == vertUsage->index )
                 return;
         }
-        v4 = Z_Malloc(8, "R_MaterialUsage", 0);
+        v4 = Z_Malloc(sizeof(VertUsage), "R_MaterialUsage", 0);
         *v4 = firstVertex;
-        v4[1] = (unsigned int)Ptr32_Encode(materialUsage->verts);
+        ((VertUsage *)v4)->next = materialUsage->verts; // native pointer (VertUsage is runtime-only)
         materialUsage->verts = (VertUsage *)v4;
         materialUsage->memory += 44 * vertexCount;
     }
@@ -4047,7 +4050,7 @@ bool __cdecl IsDynamicModel(const XModel *const xm)
     const MaterialTechnique *tech; // [esp+0h] [ebp-28h]
     int techIdx; // [esp+4h] [ebp-24h]
     int surfIdx; // [esp+Ch] [ebp-1Ch]
-    Material **materialForSurf; // [esp+10h] [ebp-18h]
+    Ptr32<Material> *materialForSurf; // [esp+10h] [ebp-18h]
     int surfaceCount; // [esp+14h] [ebp-14h]
     XSurface *surfaces; // [esp+20h] [ebp-8h] BYREF
     bool hasDynModelTech; // [esp+27h] [ebp-1h]
@@ -4813,7 +4816,7 @@ void __cdecl R_LoadCells(unsigned int bspVersion)
         out->maxs[1] = *((float *)in + 4);
         out->maxs[2] = *((float *)in + 5);
         out->aabbTree = &rgl.aabbTrees[*((unsigned __int16 *)in + 12)];
-        out->portals = (GfxPortal *)Ptr32_Decode(68 * *((unsigned int *)in + 7));
+        Ptr32_SetRaw(out->portals, 68 * *((unsigned int *)in + 7)); // byte offset, fixed up in R_LoadPortals
         out->portalCount = *((unsigned int *)in + 8);
         cullGroupCount = *((unsigned int *)in + 10);
         if ( cullGroupCount )
@@ -4941,7 +4944,7 @@ int R_LoadPortals()
         if ( cellIndex >= s_world.dpvsPlanes.cellCount )
             break;
         if ( s_world.cells[cellIndex].portalCount )
-            v1 = &out[(int)s_world.cells[cellIndex].portals / 68];
+            v1 = &out[(int)Ptr32_Raw(s_world.cells[cellIndex].portals) / 68];
         else
             v1 = 0;
         s_world.cells[cellIndex].portals = v1;
@@ -5185,7 +5188,7 @@ void __cdecl R_GenerateHighmipAabbs()
     MAX_HIGHMIP_AABBS = 0x2000;
     MIN_HIGHMIP_PER_LEAF = 8;
     maxElemCount = s_world.dpvs.smodelCount + s_world.surfaceCount;
-    memset(&options, 0, 12);
+    memset(&options, 0, offsetof(GenericAabbTreeOptions, maintainValidBounds)); // items, itemCount, itemSize
     options.maintainValidBounds = 1;
     options.mins = (float (*)[3])operator new[](
                                                                  4

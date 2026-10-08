@@ -3822,7 +3822,7 @@ void __cdecl Load_FxEffectDefHandle(bool atStreamStart)
         if ( *varFxEffectDefHandle == (const FxEffectDef *)-1 || value == -2 )
         {
             *varFxEffectDefHandle = (const FxEffectDef *)AllocLoad_FxElemVisStateSample();
-            varFxEffectDef = *(FxEffectDef**)varFxEffectDefHandle;  //de-const
+            varFxEffectDef = (FxEffectDef *)*varFxEffectDefHandle;  //de-const
             if ( value == -2 )
                 inserted = DB_InsertPointer();
             else
@@ -4062,7 +4062,7 @@ void __cdecl Mark_FxEffectDefHandle()
 {
     if ( *varFxEffectDefHandle )
     {
-        varFxEffectDef = *(FxEffectDef**)varFxEffectDefHandle; //de-const
+        varFxEffectDef = (FxEffectDef *)*varFxEffectDefHandle; //de-const
         Mark_FxEffectDefAsset(varFxEffectDef);
         Mark_FxEffectDef();
     }

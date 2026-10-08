@@ -558,7 +558,7 @@ void __cdecl R_GetStaticModelLightSurfs(const GfxLight *visibleLights, int visib
     unsigned int surfaceCount; // [esp+64h] [ebp-844h]
     const GfxLight *light; // [esp+68h] [ebp-840h]
     GfxStaticModelId staticModelId; // [esp+6Ch] [ebp-83Ch]
-    Material *const *pMaterial; // [esp+70h] [ebp-838h]
+    const Ptr32<Material> *pMaterial; // [esp+70h] [ebp-838h]
     unsigned __int16 list[2]; // [esp+74h] [ebp-834h] BYREF
     unsigned int *lodData; // [esp+78h] [ebp-830h]
     int lod; // [esp+7Ch] [ebp-82Ch]

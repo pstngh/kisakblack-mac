@@ -75,7 +75,7 @@ struct ObjectInfo // sizeof=0x8
 
 struct __declspec(align(4)) VariableStackBuffer // sizeof=0x10
 {
-        const char *pos;
+        Ptr32<const char> pos; // 32-bit: the VM addresses this buffer with fixed offsets (+4 size, +8 localId, +13 buf)
         unsigned __int16 size;
         unsigned __int16 bufLen;
         unsigned int localId;

@@ -347,7 +347,7 @@ void __cdecl CL_WriteDemoFromContinuousStateBuffer(int localClientNum, int conti
 {
     ClientArchiveData dst; // [esp+8h] [ebp-1080h] BYREF
     unsigned __int8 data[4096]; // [esp+38h] [ebp-1050h] BYREF
-    int v4; // [esp+103Ch] [ebp-4Ch]
+    demoContinuousStateBuffer_t *v4; // [esp+103Ch] [ebp-4Ch]
     msg_t buf; // [esp+1040h] [ebp-48h] BYREF
     int v6; // [esp+1070h] [ebp-18h] BYREF
     clientConnection_t *LocalClientConnection; // [esp+1074h] [ebp-14h]
@@ -358,25 +358,25 @@ void __cdecl CL_WriteDemoFromContinuousStateBuffer(int localClientNum, int conti
 
     v8 = 0;
     LocalClientConnection = CL_GetLocalClientConnection(localClientNum);
-    v4 = (int)Ptr32_Encode(&LocalClientConnection->demoContinuousStateBuffer[continuousStateBufferIndex]);
+    v4 = &LocalClientConnection->demoContinuousStateBuffer[continuousStateBufferIndex];
     MSG_Init(&buf, data, 4096);
     count = 48;
-    index = *(unsigned int *)Ptr32_Decode(v4 + 16);
-    while ( index != *(unsigned int *)Ptr32_Decode(v4 + 20) )
+    index = v4->startClientArchiveIndex;
+    while ( index != v4->endClientArchiveIndex )
     {
         //BLOPS_NULLSUB();
-        memcpy((unsigned __int8 *)&dst, (unsigned __int8 *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(v4 + 12) + count * v8), count);
+        memcpy((unsigned __int8 *)&dst, &v4->archive[count * v8], count);
         CL_WriteDemoClientArchive(LocalClientConnection->demofile, 1u, &dst, index);
         index = (index + 1) % 256;
         ++v8;
     }
     buffer = 0;
     FS_WriteToDemo(&buffer, 1u, LocalClientConnection->demofile);
-    v6 = *(unsigned int *)Ptr32_Decode(v4);
+    v6 = v4->serverMessageSequence;
     FS_WriteToDemo((char *)&v6, 4u, LocalClientConnection->demofile);
-    v6 = *(unsigned int *)Ptr32_Decode(v4 + 8);
+    v6 = v4->msgLen;
     FS_WriteToDemo((char *)&v6, 4u, LocalClientConnection->demofile);
-    FS_WriteToDemo(*(char **)(v4 + 4), *(unsigned int *)Ptr32_Decode(v4 + 8), LocalClientConnection->demofile);
+    FS_WriteToDemo((char *)v4->msgData, v4->msgLen, LocalClientConnection->demofile);
 }
 
 void __cdecl CL_StopRecord_f()
@@ -1713,7 +1713,7 @@ void __cdecl CL_DownloadsComplete(int localClientNum)
     else
     {
         Com_SyncThreads();
-        if ( fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer) )
+        if ( fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.string )
         {
             v1 = va("%s/%s", fs_homepath->current.string, fs_gameDirVar->current.string);
             Sys_Mkdir(v1);
@@ -2622,11 +2622,11 @@ void __cdecl AllocatePerLocalClientMemory(int maxLocalClients, int maxClients, u
     clients = (clientActive_t *)Hunk_UserAlloc(perLocalClientMemHunk, 1728768 * maxLocalClients, 4, "clients");
     clientConnections = (clientConnection_t *)Hunk_UserAlloc(
                                                                                             perLocalClientMemHunk,
-                                                                                            720712 * maxLocalClients,
+                                                                                            sizeof(clientConnection_t) * maxLocalClients,
                                                                                             4,
                                                                                             "clientConnections");
     memset(clients, 0, 1728768 * maxLocalClients);
-    memset(clientConnections, 0, 720712 * maxLocalClients);
+    memset(clientConnections, 0, sizeof(clientConnection_t) * maxLocalClients);
     memset(&cls.gameState, 0, sizeof(cls.gameState));
     cls.serverId = 0;
     if ( (flags & 1) == 0 )

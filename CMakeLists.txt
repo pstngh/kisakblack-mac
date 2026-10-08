@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
+
+# macOS builds default to native Apple Silicon (must be set before project()).
+if (CMAKE_HOST_APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "macOS target architecture" FORCE)
+endif()
+
 project(KisakBlack)
 
 set(BIN_NAME "KisakBlack")

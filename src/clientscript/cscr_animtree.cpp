@@ -1246,7 +1246,7 @@ void __cdecl ConnectScriptToAnim(
         anim.tree = treeIndex;
         for ( codePos = (char *)Ptr32_Decode(value->next); codePos; codePos = (char *)nextCodePos )
         {
-            nextCodePos = *(const char **)codePos;
+            nextCodePos = (const char *)Ptr32_Decode(*(unsigned int *)codePos); // 4-byte link in the code slot
             *(scr_anim_s *)codePos = anim;
         }
         value->next = 0;

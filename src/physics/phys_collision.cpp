@@ -306,9 +306,11 @@ contact_point_info *__cdecl contact_point_info::create_cpi(
     {
         __debugbreak();
     }
-    v3 = (32 * point_pair_count + 95) & 0xFFFFFFF0;
+    // header + b1/b2 r_loc arrays, then the pulse_sum_cache_info array (the
+    // decompiled sizes had sizeof(contact_point_info) == 80 folded in)
+    v3 = (sizeof(contact_point_info) + 2 * sizeof(phys_vec3) * point_pair_count + 15) & 0xFFFFFFF0;
     //result = (contact_point_info *)phys_transient_allocator::mt_allocate(
-    result = (contact_point_info *)allocator->mt_allocate(v3 + ((12 * point_pair_count + 15) & 0xFFFFFFF0), 16, 1, "contact_point_info buffer overflow");
+    result = (contact_point_info *)allocator->mt_allocate(v3 + ((sizeof(contact_point_info::pulse_sum_cache_info) * point_pair_count + 15) & 0xFFFFFFF0), 16, 1, "contact_point_info buffer overflow");
     if ( result )
     {
         result->m_fric_coef = -1.0;
@@ -387,7 +389,7 @@ void __thiscall phys_contact_manifold::set_get_feature_params(
 {
     phys_memory_heap *m_allocator; // edi
     const char *v7; // ecx
-    unsigned int v8; // eax
+    char *v8; // eax
 
     this->m_feature_hitp.x = hitp->x;
     this->m_feature_hitp.y = hitp->y;
@@ -399,9 +401,9 @@ void __thiscall phys_contact_manifold::set_get_feature_params(
     this->m_feature_distance_eps = feature_distance_eps;
     this->m_sin_feautre_angular_eps_sq = sin_feautre_angular_eps_sq;
     v7 = g_contact_manifold_error_msg;
-    v8 = (int)Ptr32_Encode(m_allocator->m_buffer_cur + 15) & 0xFFFFFFF0;
-    m_allocator->m_buffer_cur = (char *)Ptr32_Decode(v8);
-    if ( (char *)Ptr32_Decode(v8) >= m_allocator->m_buffer_end
+    v8 = (char *)(((uintptr_t)m_allocator->m_buffer_cur + 15) & ~(uintptr_t)15);
+    m_allocator->m_buffer_cur = v8;
+    if ( v8 >= m_allocator->m_buffer_end
         && _tlAssert(
                  "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
                  114,
@@ -1195,7 +1197,7 @@ phys_auto_activate_callback *__cdecl create_ent_aac(gjk_physics_collision_visito
     {
         if (collision_visitor->cent->destructible && (collision_visitor->bpeqi->env_collision_flags & 8) != 0)
         {
-            v7 = (destructible_ent_aa *)collision_visitor->allocate(sizeof(destructible_ent_aa), 4, 0);
+            v7 = (destructible_ent_aa *)collision_visitor->allocate(sizeof(destructible_ent_aa), alignof(destructible_ent_aa), 0);
             if (!v7)
                 return 0;
             //cent = (phys_auto_activate_callback_vtbl *)collision_visitor->cent;
@@ -1228,7 +1230,7 @@ phys_auto_activate_callback *__cdecl create_ent_aac(gjk_physics_collision_visito
         {
             __debugbreak();
         }
-        v6 = (dynamic_ent_aa *)collision_visitor->allocate(sizeof(dynamic_ent_aa), 4, 0);
+        v6 = (dynamic_ent_aa *)collision_visitor->allocate(sizeof(dynamic_ent_aa), alignof(dynamic_ent_aa), 0);
         if (!v6)
             return 0;
         dynEntDef = (DynEntityDef*)collision_visitor->dynEntDef;
@@ -1259,7 +1261,7 @@ void create_entity_bpi(gjk_physics_collision_visitor *collision_visitor, int mas
         bpei->m_mutex.Lock();
         if (!bpei->m_data)
         {
-            ebpih = (entity_bpi_header *)collision_visitor->allocate(sizeof(entity_bpi_header), 4, 0);
+            ebpih = (entity_bpi_header *)collision_visitor->allocate(sizeof(entity_bpi_header), alignof(entity_bpi_header), 0);
             if (collision_visitor->rb->is_environment_rigid_body())
                 ebpih->m_mat = create_ent_mat(collision_visitor);
             else
@@ -1559,30 +1561,26 @@ int __cdecl get_physics_contents_mask(char phys_env_collision_flags)
 
 broad_phase_info *__cdecl allocate_bpi_env()
 {
-    signed __int32 v1; // [esp+0h] [ebp-4Ch]
-    void *v2; // [esp+40h] [ebp-Ch]
+    broad_phase_info *v1; // [esp+0h] [ebp-4Ch]
     broad_phase_info *first; // [esp+44h] [ebp-8h]
 
     _InterlockedExchangeAdd(&G_BPM->m_bpi_env_count, 1u);
     //v2 = phys_transient_allocator::mt_allocate(
-    v2 = G_BPM->g_collision_memory_buffer.mt_allocate(
-        112,
+    v1 = (broad_phase_info *)G_BPM->g_collision_memory_buffer.mt_allocate(
+        sizeof(broad_phase_info),
         16,
         0,
         "broad phase collision out of memory.");
-    if (v2)
-        v1 = (signed __int32)Ptr32_Encode(v2);
-    else
-        v1 = 0;
+    // lock-free push onto G_BPM->m_list_bpi_env (linked through m_list_bpb_cluster_next)
     do
     {
         first = G_BPM->m_list_bpi_env;
-        *(_DWORD *)Ptr32_Decode(v1 + 56) = (DWORD)Ptr32_Encode(first);
-    } while ((broad_phase_info *)Ptr32_Decode(_InterlockedCompareExchange(
-        (volatile unsigned __int32 *)&G_BPM->m_list_bpi_env,
+        v1->m_list_bpb_cluster_next = first;
+    } while ((broad_phase_info *)InterlockedCompareExchangePointer(
+        (PVOID volatile *)&G_BPM->m_list_bpi_env,
         v1,
-        (signed __int32)first)) != first);
-    return (broad_phase_info *)Ptr32_Decode(v1);
+        first) != first);
+    return v1;
 }
 
 char are_intersecting(

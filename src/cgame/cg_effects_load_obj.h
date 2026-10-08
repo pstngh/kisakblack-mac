@@ -26,11 +26,11 @@ FxImpactTable *__cdecl CG_RegisterImpactEffects_LoadObj(const char *mapname);
 int __cdecl CG_RegisterImpactEffects_NonFlesh(
                 const char **szEffectFile,
                 const char *pszTypeName,
-                const FxEffectDef **fx);
+                Ptr32<const FxEffectDef> *fx);
 int __cdecl CG_RegisterImpactEffects_Flesh(
                 const char **szEffectFile,
                 const char *pszTypeName,
-                const FxEffectDef **fx,
+                Ptr32<const FxEffectDef> *fx,
                 char *defaultEffectName);
 const char *__cdecl CG_FleshTypeToName(unsigned int fleshTypeId);
 void __cdecl CG_RegisterImpactEffectsForDir(char *dir, EffectFile *effectFile, char *listbuf);

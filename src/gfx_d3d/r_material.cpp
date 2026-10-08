@@ -454,6 +454,7 @@ unsigned __int8 *__cdecl Material_Alloc(unsigned int size)
 void __cdecl Load_CreateMaterialPixelShader(GfxPixelShaderLoadDef *loadDef, MaterialPixelShader *mtlShader)
 {
     HRESULT hr; // [esp+0h] [ebp-8h]
+    IDirect3DPixelShader9 *ps;
 
     if ( loadDef != &mtlShader->prog.loadDef
         && !Assert_MyHandler(
@@ -470,7 +471,10 @@ void __cdecl Load_CreateMaterialPixelShader(GfxPixelShaderLoadDef *loadDef, Mate
         ProfLoad_Begin("Create pixel shader");
         if ( Sys_IsRenderThread() )
         {
-            hr = dx.device->CreatePixelShader((DWORD*)loadDef->program, (IDirect3DPixelShader9 **)&mtlShader->prog);
+            // prog.ps is a 4-byte Ptr32 slot followed by loadDef: don't let the device write a native pointer into it
+            ps = NULL;
+            hr = dx.device->CreatePixelShader((DWORD*)loadDef->program, &ps);
+            mtlShader->prog.ps = ps;
             if ( hr < 0 )
             {
                 g_hr = hr;
@@ -495,6 +499,7 @@ void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, Ma
 {
     const char *v2; // eax
     int hr; // [esp+4h] [ebp-8h]
+    IDirect3DVertexShader9 *vs;
 
     if ( loadDef != &mtlShader->prog.loadDef
         && !Assert_MyHandler(
@@ -513,7 +518,9 @@ void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, Ma
         {
             if ( r_logFile && r_logFile->current.integer )
                 RB_LogPrint("dx.device->CreateVertexShader( loadDef->program, &mtlShader->prog.vs )\n");
-            hr = dx.device->CreateVertexShader(loadDef->program, (IDirect3DVertexShader9 **)&mtlShader->prog);
+            vs = NULL;
+            hr = dx.device->CreateVertexShader(loadDef->program, &vs);
+            mtlShader->prog.vs = vs;
             if ( hr < 0 )
             {
                 ++g_disableRendering;
@@ -985,21 +992,21 @@ Material *__cdecl Material_Duplicate(Material *mtlCopy, char *name)
         mtlNew = Material_Alloc(v3 + 193);
         memcpy(mtlNew, mtlCopy, 0xC0u);
         *(unsigned int *)mtlNew = (unsigned int)Ptr32_Encode(mtlNew + 192);
-        memcpy(*(unsigned __int8 **)mtlNew, (unsigned __int8 *)name, v3 + 1);
+        memcpy((unsigned __int8 *)Ptr32_Decode(*(unsigned int *)mtlNew), (unsigned __int8 *)name, v3 + 1);
         stateBitsTableSize = 8 * mtlCopy->stateBitsCount;
         *((unsigned int *)mtlNew + 47) = (unsigned int)Ptr32_Encode(Material_Alloc(stateBitsTableSize));
-        memcpy(*((unsigned __int8 **)mtlNew + 47), (unsigned __int8 *)mtlCopy->stateBitsTable, stateBitsTableSize);
+        memcpy((unsigned __int8 *)Ptr32_Decode(*((unsigned int *)mtlNew + 47)), (unsigned __int8 *)mtlCopy->stateBitsTable, stateBitsTableSize);
         if ( mtlCopy->textureTable )
         {
             textureTableSize = 16 * mtlCopy->textureCount;
             *((unsigned int *)mtlNew + 45) = (unsigned int)Ptr32_Encode(Material_Alloc(textureTableSize));
-            memcpy(*((unsigned __int8 **)mtlNew + 45), (unsigned __int8 *)mtlCopy->textureTable, textureTableSize);
+            memcpy((unsigned __int8 *)Ptr32_Decode(*((unsigned int *)mtlNew + 45)), (unsigned __int8 *)mtlCopy->textureTable, textureTableSize);
         }
         if ( mtlCopy->localConstantTable )
         {
             constantTableSize = 32 * mtlCopy->constantCount;
             *((unsigned int *)mtlNew + 46) = (unsigned int)Ptr32_Encode(Material_Alloc(constantTableSize));
-            memcpy(*((unsigned __int8 **)mtlNew + 46), (unsigned __int8 *)mtlCopy->localConstantTable, constantTableSize);
+            memcpy((unsigned __int8 *)Ptr32_Decode(*((unsigned int *)mtlNew + 46)), (unsigned __int8 *)mtlCopy->localConstantTable, constantTableSize);
         }
         Material_Add((Material *)mtlNew, hashIndex[0]);
         return (Material *)mtlNew;
@@ -1108,7 +1115,7 @@ void __cdecl Material_GetHashIndex(const char *name, unsigned __int16 *hashIndex
 Material *__cdecl Material_Register(char *name, int imageTrack)
 {
     if ( useFastFile->current.enabled )
-        return (Material *)Ptr32_Decode(((int (__cdecl *)(char *, int))Material_Register_FastFile)(name, imageTrack));
+        return Material_Register_FastFile(name);
     else
         return Material_Register_LoadObj(name, imageTrack);
 }
@@ -1197,17 +1204,21 @@ void __cdecl R_MaterialList_f()
 {
     const char *fmt; // [esp+8h] [ebp-8150h]
     unsigned int i; // [esp+138h] [ebp-8020h]
-    const char **p_name; // [esp+13Ch] [ebp-801Ch]
+    Ptr32<const char> *p_name; // [esp+13Ch] [ebp-801Ch]
     int v3; // [esp+140h] [ebp-8018h]
     MaterialMemory *v4; // [esp+144h] [ebp-8014h]
-    unsigned int inData; // [esp+148h] [ebp-8010h] BYREF
-    MaterialMemory v6[4097]; // [esp+14Ch] [ebp-800Ch] BYREF
+    // R_GetMaterialList appends entries right after the count, so keep the two adjacent
+    struct
+    {
+        unsigned int inData; // [esp+148h] [ebp-8010h] BYREF
+        MaterialMemory v6[4097]; // [esp+14Ch] [ebp-800Ch] BYREF
+    } materialList;
     float v7; // [esp+8154h] [ebp-4h]
 
     v3 = 0;
     Com_Printf(8, "-----------------------\n");
-    inData = 0;
-    DB_EnumXAssets(ASSET_TYPE_MATERIAL, (void (__cdecl *)(XAssetHeader, void *))R_GetMaterialList, &inData, 0);
+    materialList.inData = 0;
+    DB_EnumXAssets(ASSET_TYPE_MATERIAL, (void (__cdecl *)(XAssetHeader, void *))R_GetMaterialList, &materialList, 0);
 
     //std::_Sort<RagdollSortStruct *,int,bool (__cdecl *)(RagdollSortStruct const &,RagdollSortStruct const &)>(
     //    v6,
@@ -1215,12 +1226,12 @@ void __cdecl R_MaterialList_f()
     //    (int)(8 * inData) >> 3,
     //    (bool (__cdecl *)(const MaterialMemory *, const MaterialMemory *))R_MaterialCompare);
 
-    std::sort(v6, v6 + inData, R_MaterialCompare);
+    std::sort(materialList.v6, materialList.v6 + materialList.inData, R_MaterialCompare);
 
     Com_Printf(8, "geo KB     name\n");
-    for ( i = 0; i < inData; ++i )
+    for ( i = 0; i < materialList.inData; ++i )
     {
-        v4 = &v6[i];
+        v4 = &materialList.v6[i];
         p_name = &v4->material->info.name;
         if ( !v4->material
             && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material.cpp", 1733, 0, "%s", "material") )
@@ -1234,11 +1245,11 @@ void __cdecl R_MaterialList_f()
         else
             fmt = "%6.1f";
         Com_Printf(8, fmt, v7);
-        Com_Printf(8, "     %s\n", *p_name);
+        Com_Printf(8, "     %s\n", (const char *)*p_name);
     }
     Com_Printf(8, "-----------------------\n");
     Com_Printf(8, "current total    %5.1f MB\n", (float)((float)v3 / 1048576.0));
-    Com_Printf(8, "%i total geometry materials\n", inData);
+    Com_Printf(8, "%i total geometry materials\n", materialList.inData);
     Com_Printf(8, "Related commands: meminfo, imagelist, gfx_world, gfx_model, cg_drawfps, com_statmon, tempmeminfo\n");
 }
 
@@ -1877,7 +1888,7 @@ unsigned int __cdecl Material_LoadFile(const char *filename, int *file)
 
 bool __cdecl IsValidMaterialHandle(Material *const handle)
 {
-    if ( ((unsigned __int8)Ptr32_Encode(handle) & 3) != 0
+    if ( ((unsigned __int8)(uintptr_t)handle & 3) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_material.cpp",
                     2407,

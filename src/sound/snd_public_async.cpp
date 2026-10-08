@@ -63,7 +63,7 @@ void __cdecl SND_PlayInternal(
 #ifdef _DEBUG
         if ( snd_assert_on_enqueue
             && snd_assert_on_enqueue->current.integer
-            && *(_BYTE *)snd_assert_on_enqueue->current.integer
+            && *snd_assert_on_enqueue->current.string
             && SND_HashName(snd_assert_on_enqueue->current.string) == id
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\sound\\snd_public_async.cpp",

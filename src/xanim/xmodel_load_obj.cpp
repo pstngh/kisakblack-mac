@@ -315,7 +315,7 @@ XModel *__cdecl XModelLoadFile(
                             __debugbreak();
                         }
                         model->surfs = (XSurface *)Alloc(68 * v49);
-                        model->materialHandles = (Material **)Alloc(4 * v49);
+                        model->materialHandles = (Ptr32<Material> *)Alloc(4 * v49);
                         v34 = 0;
                         for ( i = 0; i < 4; ++i )
                         {
@@ -1183,7 +1183,7 @@ void __cdecl XModelGenerateHighMipVolume(XModel *model)
     float texSize[2]; // [esp+134h] [ebp-20h] BYREF
     int lod; // [esp+13Ch] [ebp-18h]
     int surfCount; // [esp+140h] [ebp-14h]
-    Material *const *materials; // [esp+144h] [ebp-10h]
+    const Ptr32<Material> *materials; // [esp+144h] [ebp-10h]
     XSurface *surfaces; // [esp+148h] [ebp-Ch] BYREF
     int surfIter; // [esp+14Ch] [ebp-8h]
     int surfCountPrevLods; // [esp+150h] [ebp-4h]

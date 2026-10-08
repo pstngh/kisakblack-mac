@@ -539,7 +539,9 @@ broad_phase_info *__cdecl create_broad_phase_info()
     phys_free_list<broad_phase_info>::T_internal *v2; // esi
 
     p_g_list_broad_phase_info = &G_BPM->g_list_broad_phase_info;
-    v1 = (phys_free_list<broad_phase_info>::T_internal *)PMM_ALLOC(0x90u, 0x10u);
+    v1 = (phys_free_list<broad_phase_info>::T_internal *)PMM_ALLOC(
+        sizeof(phys_free_list<broad_phase_info>::T_internal),
+        phys_slot_alignment(sizeof(phys_free_list<broad_phase_info>::T_internal)));
     v2 = v1;
     if (v1)
     {
@@ -1156,8 +1158,8 @@ PhysObjUserData * Phys_CreateBodyFromState(
             v100 = &physGlob;
             if (&physGlob == (PhysGlob *)i.m_ptr)
                 break;
-            userData = (PhysObjUserData *)&i.m_ptr[2];
-            if (i.m_ptr[29].m_next_T_internal == (phys_free_list<PhysObjUserData>::T_internal_base *)Ptr32_Decode(state->id))
+            userData = &((phys_free_list<PhysObjUserData>::T_internal *)i.m_ptr)->m_data;
+            if (userData->id == state->id)
             {
                 destroy_gjk_geom(gjk_geom_list);
                 ++userData->refcount;
@@ -1755,11 +1757,10 @@ void __cdecl fixup_wheel_constraints(rigid_body *rb)
     wci_end = &g_physics_system->m_list_rbc_wheel;
     while ( wci_end != (phys_free_list<rigid_body_constraint_wheel> *)wci )
     {
-        if ( wci != (phys_free_list<rigid_body_constraint_wheel>::T_internal_base *)-16
-            && (rigid_body *)wci[2].m_next_T_internal == rb )
+        if ( ((phys_free_list<rigid_body_constraint_wheel>::T_internal *)wci)->m_data.b2 == rb )
         {
             //rigid_body_constraint_wheel::set_no_collision((rigid_body_constraint_wheel *)&wci[2]);
-            ((rigid_body_constraint_wheel *)&wci[2])->set_no_collision();
+            ((phys_free_list<rigid_body_constraint_wheel>::T_internal *)wci)->m_data.set_no_collision();
         }
         wci = wci->m_next_T_internal;
     }
@@ -2424,7 +2425,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                 ClientDObj = Com_GetClientDObj(v43[j], v32);
                 if ( ClientDObj )
                 {
-                    if ( ((*((unsigned int *)Entity + 201) >> 15) & 1) != 0 )
+                    if ( Entity->bIsTrigger != 0 )
                         v26 = (const float *)v44;
                     else
                         v26 = (const float *)v45;
@@ -2434,7 +2435,7 @@ void    Phys_FindAndRenderEntityBrushes(const float *pos, int contentmask)
                 }
                 else if (Entity->nextState.solid == 0xFFFFFF)
                 {
-                    if ( ((*((unsigned int *)Entity + 201) >> 15) & 1) != 0 )
+                    if ( Entity->bIsTrigger != 0 )
                         v25 = (const float *)v44;
                     else
                         v25 = (const float *)v45;
@@ -3014,11 +3015,11 @@ int __cdecl buoyancy_worker()
 
     for ( i = g_pop_iter.m_ptr; g_pop_iter_end.m_ptr != i; i = g_pop_iter.m_ptr )
     {
-        if ( (phys_free_list<PhysObjUserData>::T_internal_base *)Ptr32_Decode(_InterlockedCompareExchange(
-                                                                                                                             (volatile unsigned __int32 *)&g_pop_iter,
-                                                                                                                             (signed __int32)i->m_next_T_internal,
-                                                                                                                             (signed __int32)i)) == i )
-            Phys_BodyGrabSnapshotNitrous((PhysObjUserData *)&i[2], g_delta_t);
+        if ( (phys_free_list<PhysObjUserData>::T_internal_base *)InterlockedCompareExchangePointer(
+                 (PVOID volatile *)&g_pop_iter.m_ptr,
+                 i->m_next_T_internal,
+                 i) == i )
+            Phys_BodyGrabSnapshotNitrous(&((phys_free_list<PhysObjUserData>::T_internal *)i)->m_data, g_delta_t);
     }
     return 0;
 }
@@ -3401,7 +3402,7 @@ void collide_vehicle_wheels(PhysObjUserData *userData)
                 //rigid_body_constraint_wheel::get_wheel_collide_segment(v33, v41, &rb->m_mat, &v30, &v31);
                 v33->get_wheel_collide_segment(&rb->m_mat, &v30, &v31);
                 v29 = (float)(v30.z - v31.z) * 0.30000001;
-                LODWORD(p0[3]) = (DWORD)Ptr32_Encode(&v30.z);
+                // (the decompiled code stored &v30.z into p0[3] here; never read)
                 v30.z = v30.z + v29;
                 Phys_NitrousVecToVec3(&v30, p0);
                 Phys_NitrousVecToVec3(&v31, p1);
@@ -3433,10 +3434,12 @@ void collide_vehicle_wheels(PhysObjUserData *userData)
                     v21.x = v15->x;
                     v21.y = v15->y;
                     v21.z = v15->z;
-                    LODWORD(v14.z) = (DWORD)Ptr32_Encode(phys_inv_multiply((phys_vec3 *)&v14.w, &TraceResultsRigidBody->m_mat, &v20));
-                    v20.x = *(float *)Ptr32_Decode(LODWORD(v14.z));
-                    v20.y = *(float *)Ptr32_Decode(LODWORD(v14.z) + 4);
-                    v20.z = *(float *)Ptr32_Decode(LODWORD(v14.z) + 8);
+                    // (decompiled: the result went to the stack slot at &v14.w and its
+                    // address through v14.z; use the v16 temp instead)
+                    phys_inv_multiply(&v16, &TraceResultsRigidBody->m_mat, &v20);
+                    v20.x = v16.x;
+                    v20.y = v16.y;
+                    v20.z = v16.z;
                     //rigid_body_constraint_wheel::set_collision(v33, TraceResultsRigidBody, &v21, &v20);
                     v33->set_collision(TraceResultsRigidBody, &v21, &v20);
                     LODWORD(v14.y) = (traceResults.sflags & 0x3F00000) >> 20;
@@ -3514,11 +3517,11 @@ int __cdecl wheel_collision_worker(jqBatch *__)
 
     for (i = g_wpop_iter.m_ptr; g_wpop_iter_end.m_ptr != i; i = g_wpop_iter.m_ptr)
     {
-        if ((phys_free_list<PhysObjUserData>::T_internal_base *)Ptr32_Decode(_InterlockedCompareExchange(
-            (volatile unsigned __int32 *)&g_wpop_iter,
-            (signed __int32)i->m_next_T_internal,
-            (signed __int32)i)) == i)
-            collide_vehicle_wheels((PhysObjUserData *)&i[2]);
+        if ((phys_free_list<PhysObjUserData>::T_internal_base *)InterlockedCompareExchangePointer(
+            (PVOID volatile *)&g_wpop_iter.m_ptr,
+            i->m_next_T_internal,
+            i) == i)
+            collide_vehicle_wheels(&((phys_free_list<PhysObjUserData>::T_internal *)i)->m_data);
     }
     return 0;
 }
@@ -3565,7 +3568,7 @@ void    Phys_CollisionCallback()
         rbc_i_end.m_ptr = &g_physics_system->m_list_rbc_contact.m_dummy_head;
         while (rbc_i_end.m_ptr != rbc_i.m_ptr)
         {
-            render_contact((rigid_body_constraint_contact *)&rbc_i.m_ptr[1]);
+            render_contact(&((phys_free_list<rigid_body_constraint_contact>::T_internal *)rbc_i.m_ptr)->m_data);
             rbc_i.m_ptr = rbc_i.m_ptr->m_next_T_internal;
         }
     }

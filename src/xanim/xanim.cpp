@@ -408,8 +408,8 @@ XAnim_s *__cdecl XAnimCreateAnimsWithValues(
         }
         while ( v5 );
         anims->debugName = newDebugName;
-        anims->debugAnimNames = (const char **)Hunk_UserAlloc(g_DebugHunkUser, 4 * size, 4, "XAnimCreateAnims");
-        memset(anims->debugAnimNames, 0, 4 * size);
+        anims->debugAnimNames = (const char **)Hunk_UserAlloc(g_DebugHunkUser, sizeof(const char *) * size, sizeof(const char *), "XAnimCreateAnims");
+        memset(anims->debugAnimNames, 0, sizeof(const char *) * size);
     }
     anims->wasLoggedIfMissing = (bool *)Hunk_UserAlloc(g_DebugHunkUser, size, 4, "XAnimCreateAnims");
     memset(anims->wasLoggedIfMissing, 0, size);

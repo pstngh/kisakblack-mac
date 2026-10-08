@@ -149,7 +149,7 @@ void tlAtomicMutex::Unlock()
   if ( this->LockCount-- == 1 )
   {
       volatile int barrier = 0;
-      InterlockedExchange((volatile long *)&barrier, 0);
+      InterlockedExchange((volatile LONG *)&barrier, 0);
 
       ThreadId = 0;
   }
@@ -190,7 +190,7 @@ void tlSharedAtomicMutex::Unlock()
     tlSharedAtomicMutex *m = ThisPtr;
     const uint32_t tid = GetCurrentThreadId();
 
-    int newCount = InterlockedDecrement((volatile long *)&m->LockCount);
+    int newCount = InterlockedDecrement((volatile LONG *)&m->LockCount);
 
     if (newCount == 0)
     {
@@ -261,7 +261,7 @@ void tlSharedAtomicMutex::Lock()
 
     // weird compiler artifact from original code
     volatile int target = 0;
-    InterlockedExchange((volatile long *)&target, 0);
+    InterlockedExchange((volatile LONG *)&target, 0);
 
     m->LockCount = 1;
 #endif
@@ -729,9 +729,9 @@ void __cdecl jqAttachQueueToWorkers(jqQueue *Queue, unsigned int ProcessorMask)
         }
 
         // Atomically assign the queue to the worker
-        while (_InterlockedCompareExchange(
-            reinterpret_cast<volatile LONG *>(&worker->Queues[queueSlot]),
-            reinterpret_cast<LONG>(Queue),
+        while (InterlockedCompareExchangePointer(
+            (PVOID volatile *)&worker->Queues[queueSlot],
+            Queue,
             0) != 0)
         {
             // retry until successful
@@ -836,7 +836,7 @@ bool __cdecl jqPoll(jqBatchGroup *GroupID)
     p_group = GroupID;
     if (!GroupID)
         p_group = &jqPool.group;
-    if (((unsigned __int8)Ptr32_Encode(p_group) & 7) != 0
+    if (((unsigned __int8)(uintptr_t)p_group & 7) != 0
         && _tlAssert(
             "c:\\projects_pc\\cod\\codsrc\\tl\\jobqueue\\jobqueue.cpp",
             390,
@@ -934,7 +934,7 @@ void __cdecl jqCheckDMALS(const void *addr)
 {
   if ( !addr )
     tlFatal("%s (LS) is NULL.", jqCheckContext);
-  if ( ((unsigned __int8)Ptr32_Encode(addr) & 0xF) != 0 )
+  if ( ((unsigned __int8)(uintptr_t)addr & 0xF) != 0 )
     tlFatal("%s 0x%x (LS) not 16byte aligned.", jqCheckContext, addr);
   if ( (unsigned int)Ptr32_Encode(addr) > 0x40000 )
     tlFatal("%s 0x%x (LS) is > 256k.", jqCheckContext, addr);
@@ -946,7 +946,7 @@ void __cdecl jqCheckDMAMain(const void *addr)
 {
   if ( !addr )
     tlFatal("%s (Main) is NULL.", jqCheckContext);
-  if ( ((unsigned __int8)Ptr32_Encode(addr) & 0xF) != 0 )
+  if ( ((unsigned __int8)(uintptr_t)addr & 0xF) != 0 )
     tlFatal("%s 0x%x (Main) not 16byte aligned.", jqCheckContext, addr);
   if ( (unsigned int)Ptr32_Encode(addr) < 0x40000 )
     tlFatal("%s 0x%x (Main) is < 256k.", jqCheckContext, addr);
@@ -1736,7 +1736,10 @@ void __cdecl jqTempWorkerLoop(jqWorker *Worker, jqBatchGroup *GroupID, bool (__c
         if ( !freeList )
         {
 
-          block = (jqAtomicQueue<jqBatch, 32>::NodeType *)tlMemAlloc(sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8, 4u, 0);
+          // 32 nodes + the NodeBlockEntry punned onto block[32] (8 bytes on 32-bit, 16 on 64-bit)
+          block = (jqAtomicQueue<jqBatch, 32>::NodeType *)tlMemAlloc(
+              sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + sizeof(jqAtomicQueue<jqBatch, 32>::NodeBlockEntry),
+              alignof(jqAtomicQueue<jqBatch, 32>::NodeType), 0);
           static_assert(sizeof(void *) != 4 || sizeof(jqAtomicQueue<jqBatch, 32>::NodeType) * 32 + 8 == 0x1008);
 
           //v12 = block;
@@ -2397,14 +2400,11 @@ void jqAtomicHeap::Init(
   unsigned int HeapSize; // edi
   unsigned int v7; // eax
   int v8; // ebx
-  int *p_NBlocks; // edi
   int v10; // ecx
   unsigned __int8 *v11; // eax
   unsigned __int8 *LevelData; // ebx
   unsigned __int64 *v13; // edi
-  unsigned __int64 **p_CellAvailable; // ecx
   signed int v15; // kr04_4
-  unsigned int *v16; // esi
   int i; // [esp+14h] [ebp+8h]
   int ia; // [esp+14h] [ebp+8h]
 
@@ -2441,15 +2441,15 @@ void jqAtomicHeap::Init(
   i = 0;
   if ( this->NLevels > 0 )
   {
-    p_NBlocks = &this->Levels[0].NBlocks;
+    // LevelInfo holds pointers: index it, don't stride 5 ints
     do
     {
-      p_NBlocks += 5;
-      *(p_NBlocks - 6) = this->BlockSize << v8;
-      v10 = this->NLevels - v8++ - 1;
-      *(p_NBlocks - 5) = 1 << v10;
-      *(p_NBlocks - 4) = (unsigned int)((1 << v10) + 63) >> 6;
-      i += (int)((*(p_NBlocks - 5) + 1023) & 0xFFFFFC00) / 8;
+      this->Levels[v8].BlockSize = this->BlockSize << v8;
+      v10 = this->NLevels - v8 - 1;
+      this->Levels[v8].NBlocks = 1 << v10;
+      this->Levels[v8].NCells = (unsigned int)((1 << v10) + 63) >> 6;
+      i += (int)((this->Levels[v8].NBlocks + 1023) & 0xFFFFFC00) / 8;
+      ++v8;
     }
     while ( v8 < this->NLevels );
   }
@@ -2461,22 +2461,19 @@ void jqAtomicHeap::Init(
   ia = 0;
   if ( this->NLevels > 0 )
   {
-    p_CellAvailable = &this->Levels[0].CellAvailable;
     do
     {
-      v15 = ((unsigned int)Ptr32_Encode(*(p_CellAvailable - 2)) + 1023) & 0xFFFFFC00;
-      *p_CellAvailable = (unsigned __int64 *)LevelData;
-      p_CellAvailable[1] = v13;
+      v15 = (this->Levels[ia].NBlocks + 1023) & 0xFFFFFC00;
+      this->Levels[ia].CellAvailable = (unsigned __int64 *)LevelData;
+      this->Levels[ia].CellAllocated = v13;
       LevelData += v15 / 8;
       v13 = (unsigned __int64 *)((char *)v13 + v15 / 8);
-      p_CellAvailable += 5;
       ++ia;
     }
     while ( ia < this->NLevels );
   }
-  v16 = (unsigned int *)Ptr32_Decode(*((unsigned int *)&this->TotalBlocks + 5 * this->NLevels));
-  *v16 = 1;
-  v16[1] = 0;
+  // the top level's single block starts out available
+  this->Levels[this->NLevels - 1].CellAvailable[0] = 1;
 }
 
 //void jqAtomicQueue<jqBatch,32>::Init(jqAtomicQueue<jqBatch,32> *SharedFreeList)

@@ -146,7 +146,7 @@ void __cdecl FX_UnregisterAll();
 unsigned __int8 *__cdecl FX_AllocMem(unsigned int size);
 PhysPreset *__cdecl FX_RegisterPhysPreset(const char *name);
 XModel *__cdecl FX_RegisterModel(char *modelName);
-bool __cdecl FX_RegisterMarkMaterials(const char *materialName, Material **materials);
+bool __cdecl FX_RegisterMarkMaterials(const char *materialName, Ptr32<Material> *materials);
 Material *__cdecl FX_RegisterMaterial(char *material);
 bool __cdecl FX_ParseName(const char **parse, FxEditorElemDef *edElemDef);
 bool __cdecl FX_ParseNonAtlasFlags(const char **parse, FxEditorElemDef *edElemDef);

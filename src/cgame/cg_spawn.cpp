@@ -18,8 +18,8 @@ const cent_field_t client_spawn_fields[5] =
 {
   { "origin", 48, F_VECTOR },
   { "angles", 60, F_VECTOR },
-  { "model", 682, F_MODEL },
-  { "targetname", 694, F_STRING },
+  { "model", offsetof(centity_s, nextState.index.xmodel), F_MODEL },
+  { "targetname", offsetof(centity_s, nextState.targetname), F_STRING },
   { NULL, 0, F_INT }
 };
 

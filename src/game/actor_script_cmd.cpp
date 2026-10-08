@@ -1568,7 +1568,7 @@ void __cdecl Actor_GetEntType(int entnum)
     }
     else
     {
-        if ( ((unsigned int)Ptr32_Encode(&objBuf[1758][2]) & level.gentities[entnum].flags) != 0 )
+        if ( (0x4000000 & level.gentities[entnum].flags) != 0 )
             obstacle = scr_const.obstacle;
         else
             obstacle = scr_const.world;

@@ -111,7 +111,7 @@ void __cdecl R_WritePrimDrawSurfData(GfxDelayedCmdBuf *delayedCmdBuf, unsigned _
 
 GfxStaticModelId __cdecl R_GetStaticModelId(unsigned int smodelIndex, int lod)
 {
-    Material **Skins; // eax
+    Ptr32<Material> *Skins; // eax
     const MaterialTechnique *technique; // [esp+10h] [ebp-24h]
     const XModelLodInfo *lodInfo; // [esp+14h] [ebp-20h]
     XModel *model; // [esp+1Ch] [ebp-18h]
@@ -605,7 +605,7 @@ void __cdecl R_SkinStaticModelsCameraForLod_Internal(
 {
     __int64 v12; // rax
     bool enabled; // [esp+Eh] [ebp-2Eh]
-    Material **materialForSurf; // [esp+10h] [ebp-2Ch]
+    Ptr32<Material> *materialForSurf; // [esp+10h] [ebp-2Ch]
     GfxDrawSurf drawSurf; // [esp+14h] [ebp-28h]
     const Material *material; // [esp+24h] [ebp-18h]
     unsigned int surfaceIndex; // [esp+28h] [ebp-14h]
@@ -1255,7 +1255,7 @@ void __cdecl R_SkinStaticModelsShadowForLod(
     bool v6; // zf
     const char *v7; // eax
     bool enabled; // [esp+Fh] [ebp-2Dh]
-    Material **materialForSurf; // [esp+18h] [ebp-24h]
+    Ptr32<Material> *materialForSurf; // [esp+18h] [ebp-24h]
     GfxDrawSurf drawSurf; // [esp+1Ch] [ebp-20h]
     unsigned __int8 shadowmapBuildTechType; // [esp+27h] [ebp-15h]
     const Material *material; // [esp+28h] [ebp-14h]

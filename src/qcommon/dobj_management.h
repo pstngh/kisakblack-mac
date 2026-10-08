@@ -23,4 +23,6 @@ void __cdecl DB_SaveDObjs();
 void __cdecl DB_LoadDObjs();
 DObj *__cdecl Com_GetClientDObj(unsigned int handle, int localClientNum);
 
-extern unsigned int objBuf[3072][31];
+// One DObj per slot (31 ints on 32-bit builds; DObj is larger on 64-bit).
+#define DOBJ_SLOT_WORDS (sizeof(DObj) / sizeof(unsigned int))
+extern unsigned int objBuf[3072][DOBJ_SLOT_WORDS];

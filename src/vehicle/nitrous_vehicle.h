@@ -261,7 +261,7 @@ struct vehicle_info_t // sizeof=0x1DD8
     int addToCompass;
     int addToCompassEnemy;
     char compassIcon[64];
-    Material *compassIconMaterial;
+    Ptr32<Material> compassIconMaterial; // 4-byte slots: s_vehicleFields uses 32-bit offsets
     int gasButton;
     int boostButton;
     int reverseBrakeButton;
@@ -275,8 +275,8 @@ struct vehicle_info_t // sizeof=0x1DD8
     int firePickupButton;
     int swapPickupButton;
     int dropDeployableButton;
-    GraphFloat *steerGraph;
-    GraphFloat *accelGraph;
+    Ptr32<GraphFloat> steerGraph;
+    Ptr32<GraphFloat> accelGraph;
     int isNitrous;
     int isFourWheelSteering;
     float max_fric_tilt_angle;

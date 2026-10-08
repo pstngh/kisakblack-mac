@@ -19,7 +19,7 @@ void __cdecl XModelSetSModelCacheForLod(
 int __cdecl XModelGetStaticModelCacheVertCount(XModel *model, unsigned int lod);
 void __cdecl XModelGetSurfaceStreamBounds(const XModel *model, int surfIndex, float *outMins, float *outMaxs);
 unsigned int __cdecl XModelGetSurfCount(const XModel *model, int lod);
-Material **__cdecl XModelGetSkins(const XModel *model, int lod);
+Ptr32<Material> *__cdecl XModelGetSkins(const XModel *model, int lod);
 XModelLodRampType __cdecl XModelGetLodRampType(const XModel *model);
 int __cdecl XModelGetNumLods(const XModel *model);
 double __cdecl XModelGetLodOutDist(const XModel *model);

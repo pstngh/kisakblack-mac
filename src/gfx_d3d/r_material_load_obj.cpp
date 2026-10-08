@@ -1333,7 +1333,7 @@ MaterialTechnique *__cdecl Material_LoadTechnique(char *name)
     bool error; // [esp+15Bh] [ebp-69h]
     MaterialPass passes[4]; // [esp+15Ch] [ebp-68h] BYREF
     const char *token; // [esp+1ACh] [ebp-18h]
-    MaterialStateMap **stateMapForPass; // [esp+1B0h] [ebp-14h]
+    Ptr32<MaterialStateMap> *stateMapForPass; // [esp+1B0h] [ebp-14h]
     unsigned __int16 passCount; // [esp+1B4h] [ebp-10h]
     const char *formatString; // [esp+1B8h] [ebp-Ch]
     const char *text; // [esp+1BCh] [ebp-8h] BYREF
@@ -1392,14 +1392,16 @@ MaterialTechnique *__cdecl Material_LoadTechnique(char *name)
             stateMapSize = 4 * passCount;
             nameSize = strlen(name) + 1;
             technique = Material_Alloc(nameSize + 24 * passCount + 8);
-            stateMapForPass = (MaterialStateMap **)&technique[20 * passCount + 8];
+            // the technique blob uses 32-bit layout: name (Ptr32), flags, passCount,
+            // passArray, then one 4-byte state map slot per pass, then the name text
+            stateMapForPass = (Ptr32<MaterialStateMap> *)&technique[20 * passCount + 8];
             *(unsigned int *)technique = (unsigned int)Ptr32_Encode(&stateMapForPass[passCount]);
-            memcpy(*(unsigned __int8 **)technique, (unsigned __int8 *)name, nameSize);
+            memcpy((unsigned __int8 *)Ptr32_Decode(*(unsigned int *)technique), (unsigned __int8 *)name, nameSize);
 
             *((_WORD *)technique + 2) = techFlags;
-            if ( !strcmp(*(const char **)technique, "zprepass")
-                || !strncmp(*(const char **)technique, "pimp_technique_zprepass_", 0x18u)
-                || !strncmp(*(const char **)technique, "pimp_technique_layer_zprepass_", 0x1Eu) )
+            if ( !strcmp((const char *)Ptr32_Decode(*(unsigned int *)technique), "zprepass")
+                || !strncmp((const char *)Ptr32_Decode(*(unsigned int *)technique), "pimp_technique_zprepass_", 0x18u)
+                || !strncmp((const char *)Ptr32_Decode(*(unsigned int *)technique), "pimp_technique_layer_zprepass_", 0x1Eu) )
             {
                 *((_WORD *)technique + 2) |= 4u;
             }
@@ -1424,7 +1426,8 @@ MaterialTechnique *__cdecl Material_LoadTechnique(char *name)
             }
             *((_WORD *)technique + 3) = passCount;
             memcpy(technique + 8, (unsigned __int8 *)passes, 20 * passCount);
-            memcpy((unsigned __int8 *)stateMapForPass, (unsigned __int8 *)stateMap, stateMapSize);
+            for ( passIndex = 0; passIndex < passCount; ++passIndex )
+                stateMapForPass[passIndex] = stateMap[passIndex];
             return (MaterialTechnique *)technique;
         }
         else
@@ -1750,7 +1753,7 @@ MaterialStateMap *__cdecl Material_LoadStateMap(char *name)
         Com_SetSpaceDelimited(0);
         v2 = strlen(name);
         nameSize = v2 + 1;
-        stateMap = (MaterialStateMap *)Material_Alloc(v2 + 45);
+        stateMap = (MaterialStateMap *)Material_Alloc(v2 + 1 + sizeof(MaterialStateMap)); // name follows the struct
         stateMap->name = (const char *)&stateMap[1];
         memcpy((unsigned __int8 *)stateMap->name, (unsigned __int8 *)name, nameSize);
         if ( !Material_ParseStateMap((char **)&text, stateMap) )
@@ -2569,6 +2572,7 @@ MaterialVertexShader *__cdecl Material_RegisterVertexShader(char *shaderName)
 
 MaterialVertexShader *__cdecl Material_LoadVertexShader(char *shaderName)
 {
+    IDirect3DVertexShader9 *vs;
     unsigned __int8 *v2; // eax
     const char *v3; // eax
     ID3DXBuffer *v4; // [esp-8h] [ebp-50h]
@@ -2606,8 +2610,10 @@ MaterialVertexShader *__cdecl Material_LoadVertexShader(char *shaderName)
     v4 = shader;
     v2 = (unsigned __int8 *)shader->GetBufferPointer();
     //v2 = (unsigned __int8 *)((int (__thiscall *)(ID3DXBuffer *))shader->GetBufferPointer)(shader);
-    memcpy((unsigned __int8 *)program, v2, (unsigned int)Ptr32_Encode(v4));
-    hr = dx.device->CreateVertexShader((const DWORD*)program, &mtlShader->prog.vs);
+    memcpy((unsigned __int8 *)program, v2, programSize);
+    vs = NULL;
+    hr = dx.device->CreateVertexShader((const DWORD*)program, &vs);
+    mtlShader->prog.vs = vs;
     //hr = ((int (__stdcall *)(IDirect3DDevice9 *, unsigned int *, MaterialVertexShaderProgram *, unsigned int))dx.device->CreateVertexShader)(
     //             dx.device,
     //             program,
@@ -2696,12 +2702,12 @@ LABEL_22:
     if ( v22[0] )
     {
         v13 = 0;
-        v6 = (const char *)Ptr32_Decode((*(int (__stdcall **)(unsigned int))(*(unsigned int *)Ptr32_Decode(v22[0]) + 12))(v22[0]));
+        v6 = (const char *)((ID3DXBuffer *)Ptr32_Decode(v22[0]))->GetBufferPointer();
         if ( I_stristr(v6, "error") )
             v12 = Com_ScriptError;
         else
             v12 = Com_ScriptWarning;
-        errorMessage = (char *)Ptr32_Decode((*(int (__stdcall **)(unsigned int))(*(unsigned int *)Ptr32_Decode(v22[0]) + 12))(v22[0]));
+        errorMessage = (char *)((ID3DXBuffer *)Ptr32_Decode(v22[0]))->GetBufferPointer();
         Material_FileIncludeFileAndLineNumber(&prog, errorMessage, &fileName, lineNumber);
         if ( v12 )
         {
@@ -2722,7 +2728,7 @@ LABEL_22:
             Com_SetScriptWarningPrefix(prefix);
             Com_SetScriptErrorPrefix(ScriptErrorPrefix);
         }
-        (*(void (__thiscall **)(unsigned int, unsigned int))(*(unsigned int *)Ptr32_Decode(v22[0]) + 8))(v22[0], v22[0]);
+        ((ID3DXBuffer *)Ptr32_Decode(v22[0]))->Release();
     }
     if ( hr < 0 )
     {
@@ -2740,12 +2746,12 @@ LABEL_22:
             Hunk_FreeTempMemory(shaderString);
             return 0;
         }
-        (*(void (__stdcall **)(int))(*(unsigned int *)Ptr32_Decode(v18) + 8))(v18);
+        ((IUnknown *)Ptr32_Decode(v18))->Release();
         Material_CacheShaderDX(shaderString, shaderTextLen, entryPoint, target, shader, 0);
         goto LABEL_22;
     }
     if ( v18 )
-        (*(void (__stdcall **)(int))(*(unsigned int *)Ptr32_Decode(v18) + 8))(v18);
+        ((IUnknown *)Ptr32_Decode(v18))->Release();
     Com_ScriptError("%s compilation failed - NULL shader\n", dest);
     Hunk_FreeTempMemory(shaderString);
     return 0;
@@ -5208,6 +5214,7 @@ MaterialPixelShader *__cdecl Material_RegisterPixelShader(char *shaderName)
 
 MaterialPixelShader *__cdecl Material_LoadPixelShader(char *shaderName)
 {
+    IDirect3DPixelShader9 *ps;
     unsigned __int8 *v2; // eax
     const char *v3; // eax
     ID3DXBuffer *v4; // [esp-8h] [ebp-50h]
@@ -5247,7 +5254,9 @@ MaterialPixelShader *__cdecl Material_LoadPixelShader(char *shaderName)
     //memcpy((unsigned __int8 *)program, v2, (unsigned int)v4);
     memcpy(program, shader->GetBufferPointer(), programSize);
 
-    hr = dx.device->CreatePixelShader(program, &mtlShader->prog.ps);
+    ps = NULL;
+    hr = dx.device->CreatePixelShader(program, &ps);
+    mtlShader->prog.ps = ps;
     //hr = ((int (__stdcall *)(IDirect3DDevice9 *, unsigned int *, MaterialPixelShaderProgram *, unsigned int))dx.device->CreatePixelShader)(
     //             dx.device,
     //             program,
@@ -7189,7 +7198,7 @@ void __cdecl Material_BuildStateBitsTable(Material *material, __int16 toolFlags,
                 Material_RemapStateBits(
                     material,
                     toolFlags,
-                    *(const MaterialStateMap **)(v5 + 4 * j),
+                    ((Ptr32<MaterialStateMap> *)Ptr32_Decode(v5))[j],
                     refStateBits,
                     (unsigned int *)&stateBitsOut[j]);
             material->stateBitsEntry[i] = Material_AddStateBitsArrayToTable(
@@ -7388,7 +7397,7 @@ void __cdecl Material_PreLoadAllShaderText()
     shaderListLib3 = FS_ListFilesInLocation("shaders/", (char *)"fx", FS_LIST_PURE_ONLY, &fileCountLib3, 8);
     mtlLoadGlob.cachedShaderCount = fileCountLib3 + fileCountLib2 + fileCountLib1;
     mtlLoadGlob.cachedShaderText = (GfxCachedShaderText *)Hunk_Alloc(
-                                                                                                                    12 * (fileCountLib3 + fileCountLib2 + fileCountLib1),
+                                                                                                                    sizeof(GfxCachedShaderText) * (fileCountLib3 + fileCountLib2 + fileCountLib1),
                                                                                                                     "Material_PreLoadShaderText",
                                                                                                                     23);
     cachedIndex = 0;

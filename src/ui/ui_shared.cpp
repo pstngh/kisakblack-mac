@@ -314,7 +314,7 @@ itemDef_s *__cdecl Menu_GetMatchingItemByNumber(menuDef_t *menu, int index, char
     wildcard = -1;
     v3 = strstr(name, "*");
     if ( v3 )
-        wildcard = (unsigned int)Ptr32_Encode(v3) - (unsigned int)Ptr32_Encode(name);
+        wildcard = v3 - name;
     for ( i = 0; i < menu->itemCount; ++i )
     {
         if ( wildcard == -1 )
@@ -988,7 +988,7 @@ int __cdecl Menu_ItemsMatchingGroup(menuDef_t *menu, char *name)
     wildcard = -1;
     v2 = strstr(name, "*");
     if ( v2 )
-        wildcard = (unsigned int)Ptr32_Encode(v2) - (unsigned int)Ptr32_Encode(name);
+        wildcard = v2 - name;
     for ( i = 0; i < menu->itemCount; ++i )
     {
         if ( wildcard == -1 )
@@ -2981,7 +2981,6 @@ void __cdecl Item_RunEventScript(int localClientNum, UiContext *dc, itemDef_s *i
 
 void __cdecl Item_RunScript(int localClientNum, UiContext *dc, itemDef_s *item, const char *s)
 {
-    __int64 v4; // [esp-8h] [ebp-420h]
     int bRan; // [esp+0h] [ebp-418h]
     int controllerIndex; // [esp+4h] [ebp-414h]
     char command[1028]; // [esp+8h] [ebp-410h] BYREF
@@ -3009,9 +3008,7 @@ void __cdecl Item_RunScript(int localClientNum, UiContext *dc, itemDef_s *item, 
                 }
                 if ( !bRan )
                 {
-                    HIDWORD(v4) = (DWORD)Ptr32_Encode(s);
-                    LODWORD(v4) = (DWORD)Ptr32_Encode(&p);
-                    UI_RunMenuScript(localClientNum, dc->contextIndex, v4);
+                    UI_RunMenuScript(localClientNum, dc->contextIndex, &p, s);
                 }
             }
         }
@@ -5975,7 +5972,7 @@ int __cdecl Item_DvarEnum_EnumIndex(itemDef_s *item)
     }
     for ( enumIndexa = 0; enumIndexa < enumDvar->domain.enumeration.stringCount; ++enumIndexa )
     {
-        if ( !I_stricmp(enumString, *(const char **)(enumDvar->domain.integer.max + 4 * enumIndexa)) )
+        if ( !I_stricmp(enumString, enumDvar->domain.enumeration.strings[enumIndexa]) )
             return enumIndexa;
     }
     return 0;
@@ -6209,7 +6206,7 @@ void __cdecl Scroll_ListBox_AutoFunc(int localClientNum, UiContext *dc, void *p)
 {
     if ( dc->realTime > *(unsigned int *)p )
     {
-        Item_ListBox_HandleKey(0, dc, *((itemDef_s **)p + 6), *((unsigned int *)p + 3), 1, 0);
+        Item_ListBox_HandleKey(0, dc, ((scrollInfo_s *)p)->item, *((unsigned int *)p + 3), 1, 0);
         *(unsigned int *)p = *((unsigned int *)p + 2) + dc->realTime;
     }
     if ( dc->realTime > *((unsigned int *)p + 1) )
@@ -8104,7 +8101,7 @@ char    Menu_Paint(
 
     ScopedScrPlaceViewStack scopedScrPlaceStack(scrPlaceViewStack, scrPlace); // [esp+B4h] [ebp-138h] BYREF
     //ScopedScrPlaceViewStack::ScopedScrPlaceViewStack(&scopedScrPlaceStack, scrPlaceViewStack, scrPlace);
-    if (*(_BYTE *)Ptr32_Decode(ui_showMenuOnly->current.integer)
+    if (*ui_showMenuOnly->current.string
         && menu->window.name
         && I_stricmp(menu->window.name, ui_showMenuOnly->current.string))
     {
@@ -9430,7 +9427,7 @@ const char *__cdecl Item_DvarEnum_Setting(itemDef_s *item)
                         v2) )
             __debugbreak();
     }
-    return *(const char **)(enumDvar->domain.integer.max + 4 * enumIndex);
+    return enumDvar->domain.enumeration.strings[enumIndex];
 }
 
 void __cdecl Item_Slider_Paint(UiContext *dc, itemDef_s *item)

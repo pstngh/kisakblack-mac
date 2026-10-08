@@ -1776,7 +1776,7 @@ void __cdecl constraint_solver_process(
     if (m_list_island_count > 0)
     {
         g_list_island_cur = 0;
-        input = (constraint_solver_task_input *)transient_buffer->allocate(sizeof(constraint_solver_task_input), 4, 0, "phys_transient_allocator out of memory.");
+        input = (constraint_solver_task_input *)transient_buffer->allocate(sizeof(constraint_solver_task_input), alignof(constraint_solver_task_input), 0, "phys_transient_allocator out of memory.");
         input->m_list_island = m_list_island;
         input->m_list_island_count = m_list_island_count;
         input->m_list_island_cur = &g_list_island_cur;
@@ -1876,7 +1876,7 @@ void __thiscall pulse_sum_constraint_solver::add_urb(
             if ( !v7 )
             {
                 //v7 = (pulse_sum_constraint_solver::temp_user_rigid_body *)phys_transient_allocator::allocate(&this->m_solver_memory_allocator, 464, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
-                v7 = (pulse_sum_constraint_solver::temp_user_rigid_body *)this->m_solver_memory_allocator.allocate(464, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
+                v7 = (pulse_sum_constraint_solver::temp_user_rigid_body *)this->m_solver_memory_allocator.allocate(sizeof(pulse_sum_constraint_solver::temp_user_rigid_body), 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
                 //user_rigid_body::operator=(v7, (const user_rigid_body *)*p_b1);
                 *(user_rigid_body*)v7 = (user_rigid_body *)*p_b1;
                 //phys_inplace_avl_tree<user_rigid_body *,pulse_sum_constraint_solver::temp_user_rigid_body,pulse_sum_constraint_solver::temp_user_rigid_body::avl_tree_accessor>::add(turb_search_tree, (user_rigid_body **)p_b1, v7);
@@ -1885,7 +1885,7 @@ void __thiscall pulse_sum_constraint_solver::add_urb(
                 list_turb->m_first = v7;
             }
             //v8 = (pulse_sum_constraint_solver::user_rigid_body_restore_info *)phys_transient_allocator::allocate(&this->m_solver_memory_allocator, 12, 4, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
-            v8 = (pulse_sum_constraint_solver::user_rigid_body_restore_info *)this->m_solver_memory_allocator.allocate(12, 4, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
+            v8 = (pulse_sum_constraint_solver::user_rigid_body_restore_info *)this->m_solver_memory_allocator.allocate(sizeof(pulse_sum_constraint_solver::user_rigid_body_restore_info), alignof(pulse_sum_constraint_solver::user_rigid_body_restore_info), 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
             v8->m_rbc_urb = (user_rigid_body **)p_b1;
             v8->m_original_urb = (user_rigid_body *)*p_b1;
             *p_b1 = v7;
@@ -4638,7 +4638,7 @@ void __thiscall pulse_sum_constraint_solver::execute_constraint_solver(rigid_bod
             do
             {
                 //v26 = (pulse_sum_node *)phys_transient_allocator::allocate(p_m_solver_memory_allocator, 128, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
-                v26 = (pulse_sum_node *)p_m_solver_memory_allocator->allocate(128, 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
+                v26 = (pulse_sum_node *)p_m_solver_memory_allocator->allocate(sizeof(pulse_sum_node), 16, 0, SOLVER_MEMORY_ALLOCATOR_ERROR_MSG);
                 if ( !this->m_list_pulse_sum_node.m_last_next_ptr
                     && _tlAssert(
                              "C:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",

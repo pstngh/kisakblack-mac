@@ -87,7 +87,7 @@ void __cdecl FX_CopyMarkVisuals(const FxEditorElemDef *edElemDef, FxElemMarkVisu
 void __cdecl FX_CopyVisuals(const FxEditorElemDef *edElemDef, FxElemVisuals *visualsArray);
 void __cdecl FX_ConvertEffectDefRef(FxEffectDefRef *ref, const FxEffectDef *effectDef);
 void __cdecl FX_BoundFloatRange(FxFloatRange *range, float lower, float upper);
-void __cdecl FX_ConvertTrail(FxTrailDef **outTrailDef, const FxEditorElemDef *edElemDef, unsigned __int8 **mempool);
+void __cdecl FX_ConvertTrail(Ptr32<FxTrailDef> *outTrailDef, const FxEditorElemDef *edElemDef, unsigned __int8 **mempool);
 void __cdecl FX_ConvertTrail_CompileVertices(
                 const FxEditorElemDef *edElemDef,
                 FxTrailDef *outTrailDef,

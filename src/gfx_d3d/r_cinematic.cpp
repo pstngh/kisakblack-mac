@@ -287,7 +287,7 @@ const char *R_Cinematic_CheckBinkError()
                                                          "%s\n\t%s",
                                                          "!binkError || binkError[0] == '\\0'",
                                                          v1);
-        if ( !(_BYTE)Ptr32_Encode(result) )
+        if ( !(_BYTE)(uintptr_t)result )
             __debugbreak();
     }
     return result;
@@ -448,7 +448,7 @@ void __cdecl R_Cinematic_Init()
     iassert(!cinematicGlob.memPool);
     iassert(!g_cinematicInitialized);
 
-    memset(&cinematicGlob, 0, 0x9F4u);
+    memset(&cinematicGlob, 0, sizeof(cinematicGlob));
     cinematicGlob.activeImageFrame = -1;
     R_Cinematic_ReserveMemory();
 
@@ -1110,7 +1110,7 @@ char __cdecl R_Cinematic_StartPlayback_Now(const char *filename, unsigned int pl
             __debugbreak();
         }
         R_Cinematic_InitBinkVolumes();
-        memset(&cinematicGlob.binkTextureSet, 0, 0xD8u);
+        memset(&cinematicGlob.binkTextureSet, 0, sizeof(cinematicGlob.binkTextureSet));
         BinkGetFrameBuffersInfo(cinematicGlob.bink, &cinematicGlob.binkTextureSet.bink_buffers);
         R_Cinematic_CheckBinkError();
         R_Cinematic_InitBinkTextures();

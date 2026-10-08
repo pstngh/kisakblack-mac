@@ -19,28 +19,28 @@ void __cdecl AIFIELD_NULLSUB(actor_s *pSelf, const actor_fields_s *pField)
 
 const actor_fields_s sentientfields[12] =
 {
-  { "threatbias", 12, { 4 }, F_INT, NULL, NULL },
-  { "node", 96, { 4 }, F_PATHNODE, &ActorScr_ReadOnly, NULL },
-  { "prevnode", 100, { 4 }, F_PATHNODE, &ActorScr_ReadOnly, NULL },
-  { "enemy", 56, { 4 }, F_ENTHANDLE, &ActorScr_ReadOnly, NULL },
-  { "scriptenemy", 60, { 4 }, F_ENTHANDLE, &ActorScr_ReadOnly, NULL },
-  { "scriptenemytag", 64, { 2 }, F_STRING, &ActorScr_ReadOnly, NULL },
-  { "syncedmeleetarget", 52, { 4 }, F_ENTHANDLE, NULL, NULL },
-  { "ignoreme", 20, { 1 }, F_BYTE, NULL, NULL },
-  { "ignoreall", 21, { 1 }, F_BYTE, NULL, NULL },
-  { "maxvisibledist", 36, { 4 }, F_FLOAT, NULL, NULL },
-  { "ignoreforfriendlyfire", 22, { 1 }, F_BYTE, NULL, NULL },
+  { "threatbias", offsetof(sentient_s, iThreatBias), { 4 }, F_INT, NULL, NULL },
+  { "node", offsetof(sentient_s, pClaimedNode), { 4 }, F_PATHNODE, &ActorScr_ReadOnly, NULL },
+  { "prevnode", offsetof(sentient_s, pPrevClaimedNode), { 4 }, F_PATHNODE, &ActorScr_ReadOnly, NULL },
+  { "enemy", offsetof(sentient_s, targetEnt), { 4 }, F_ENTHANDLE, &ActorScr_ReadOnly, NULL },
+  { "scriptenemy", offsetof(sentient_s, scriptTargetEnt), { 4 }, F_ENTHANDLE, &ActorScr_ReadOnly, NULL },
+  { "scriptenemytag", offsetof(sentient_s, scriptTargetTag), { 2 }, F_STRING, &ActorScr_ReadOnly, NULL },
+  { "syncedmeleetarget", offsetof(sentient_s, syncedMeleeEnt), { 4 }, F_ENTHANDLE, NULL, NULL },
+  { "ignoreme", offsetof(sentient_s, bIgnoreMe), { 1 }, F_BYTE, NULL, NULL },
+  { "ignoreall", offsetof(sentient_s, bIgnoreAll), { 1 }, F_BYTE, NULL, NULL },
+  { "maxvisibledist", offsetof(sentient_s, maxVisibleDist), { 4 }, F_FLOAT, NULL, NULL },
+  { "ignoreforfriendlyfire", offsetof(sentient_s, bIgnoreForFriendlyFire), { 1 }, F_BYTE, NULL, NULL },
   { NULL, 0, { 0 }, F_INT, NULL, NULL }
 };
 
 const actor_fields_s entfields[7] =
 {
-  { "health", 404, { 4 }, F_INT, NULL, NULL },
-  { "maxhealth", 408, { 4 }, F_INT, NULL, NULL },
-  { "targetname", 360, { 2 }, F_STRING, NULL, NULL },
-  { "classname", 356, { 2 }, F_STRING, &ActorScr_ReadOnly, NULL },
-  { "spawnflags", 368, { 4 }, F_INT, NULL, NULL },
-  { "model", 348, { 2 }, F_MODEL, &ActorScr_ReadOnly, NULL },
+  { "health", offsetof(gentity_s, health), { 4 }, F_INT, NULL, NULL },
+  { "maxhealth", offsetof(gentity_s, maxHealth), { 4 }, F_INT, NULL, NULL },
+  { "targetname", offsetof(gentity_s, targetname), { 2 }, F_STRING, NULL, NULL },
+  { "classname", offsetof(gentity_s, classname), { 2 }, F_STRING, &ActorScr_ReadOnly, NULL },
+  { "spawnflags", offsetof(gentity_s, spawnflags), { 4 }, F_INT, NULL, NULL },
+  { "model", offsetof(gentity_s, model), { 2 }, F_MODEL, &ActorScr_ReadOnly, NULL },
   { NULL, 0, { 0 }, F_INT, NULL, NULL }
 };
 
@@ -343,7 +343,7 @@ void __cdecl ActorScr_SetTime(actor_s *pSelf, const actor_fields_s *pField)
         __debugbreak();
     }
     v2 = Scr_GetFloat(0, SCRIPTINSTANCE_SERVER) * 1000.0;
-    *(gentity_s **)((char *)&pSelf->ent + pField->ofs) = (gentity_s *)Ptr32_Decode((int)(v2 + 9.313225746154785e-10));
+    *(int *)((char *)&pSelf->ent + pField->ofs) = (int)(v2 + 9.313225746154785e-10);
 }
 
 void __cdecl ActorScr_GetTime(actor_s *pSelf, const actor_fields_s *pField)
@@ -390,7 +390,7 @@ void __cdecl ActorScr_SetWeapon(actor_s *pSelf, const actor_fields_s *pField)
         Scr_ParamError(0, v2, SCRIPTINSTANCE_SERVER);
     }
     String = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-    *(gentity_s **)((char *)&pSelf->ent + pField->ofs) = (gentity_s *)Ptr32_Decode(G_GetWeaponIndexForName(String));
+    *(int *)((char *)&pSelf->ent + pField->ofs) = G_GetWeaponIndexForName(String);
 }
 
 void __cdecl ActorScr_GetWeapon(actor_s *pSelf, const actor_fields_s *pField)

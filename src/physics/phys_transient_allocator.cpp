@@ -43,13 +43,18 @@ void __thiscall phys_transient_allocator::reset_to_state(const phys_transient_al
         }
         while ( m_next_block != as->m_first_block );
     }
-    *(phys_transient_allocator::allocator_state *)&this->m_first_block = *as;
+    // field by field: on 64-bit allocator_state's tail padding overlaps m_mutex
+    this->m_first_block = as->m_first_block;
+    this->m_cur = as->m_cur;
+    this->m_end = as->m_end;
+    this->m_total_memory_allocated = as->m_total_memory_allocated;
 }
 
 void __thiscall phys_transient_allocator::resize()
 {
     phys_slot_pool *m_slot_pool; // eax
     char *v3; // eax
+    phys_transient_allocator::block_header *bh;
 
     m_slot_pool = (phys_slot_pool *)this->m_slot_pool;
     if ( !m_slot_pool )
@@ -60,30 +65,34 @@ void __thiscall phys_transient_allocator::resize()
     v3 = PSP_ALLOC(m_slot_pool);
     if ( v3 )
     {
-        *(unsigned int *)v3 = 0x4000;
-        *((unsigned int *)v3 + 1) = 4;
-        *((unsigned int *)v3 + 2) = (unsigned int)Ptr32_Encode(this->m_first_block);
-        this->m_first_block = (phys_transient_allocator::block_header *)v3;
+        bh = (phys_transient_allocator::block_header *)v3;
+        bh->m_block_size = 0x4000;
+        bh->m_block_alignment = 4;
+        bh->m_next_block = this->m_first_block;
+        this->m_first_block = bh;
         this->m_total_memory_allocated += 0x4000;
-        this->m_cur = v3 + 12;
+        this->m_cur = v3 + sizeof(phys_transient_allocator::block_header);
         this->m_end = v3 + 0x4000;
     }
 }
 
-int phys_transient_allocator::mt_allocate_internal(int size, int alignment)
+char *phys_transient_allocator::mt_allocate_internal(int size, int alignment)
 {
     char *cur; // [esp+Ch] [ebp-4h]
+    char *aligned;
 
+    // lock-free bump of m_cur (pointer-sized CAS)
     do
     {
         cur = this->m_cur;
-        if ((char *)Ptr32_Decode(size + (~(alignment - 1) & (unsigned int)Ptr32_Encode(&cur[alignment - 1]))) > this->m_end)
+        aligned = (char *)(((uintptr_t)cur + alignment - 1) & ~(uintptr_t)(alignment - 1));
+        if (&aligned[size] > this->m_end)
             return 0;
-    } while ((char *)Ptr32_Decode(_InterlockedCompareExchange(
-        (volatile unsigned __int32 *)&this->m_cur,
-        size + (~(alignment - 1) & (unsigned int)&cur[alignment - 1]),
-        (signed __int32)cur)) != cur);
-    return ~(alignment - 1) & (unsigned int)Ptr32_Encode(&cur[alignment - 1]);
+    } while ((char *)InterlockedCompareExchangePointer(
+        (PVOID volatile *)&this->m_cur,
+        &aligned[size],
+        cur) != cur);
+    return aligned;
 }
 
 void *__thiscall phys_transient_allocator::allocate(
@@ -92,16 +101,16 @@ void *__thiscall phys_transient_allocator::allocate(
     int no_error,
     const char *error_msg)
 {
-    int v7; // [esp+4h] [ebp-14h]
-    int v8; // [esp+Ch] [ebp-Ch]
+    char *v7; // [esp+4h] [ebp-14h]
+    char *v8; // [esp+Ch] [ebp-Ch]
     void *ptr; // [esp+14h] [ebp-4h]
 
     transient_allocator_update_largest_size();
-    v8 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
-    if ((char *)Ptr32_Decode(size + v8) <= this->m_end)
+    v8 = (char *)(((uintptr_t)this->m_cur + alignment - 1) & ~(uintptr_t)(alignment - 1));
+    if (&v8[size] <= this->m_end)
     {
-        this->m_cur = (char *)Ptr32_Decode(size + v8);
-        ptr = (void *)Ptr32_Decode(v8);
+        this->m_cur = &v8[size];
+        ptr = v8;
     }
     else
     {
@@ -111,11 +120,11 @@ void *__thiscall phys_transient_allocator::allocate(
     {
         //phys_transient_allocator::resize();
         this->resize();
-        v7 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
-        if ((char *)Ptr32_Decode(size + v7) <= this->m_end)
+        v7 = (char *)(((uintptr_t)this->m_cur + alignment - 1) & ~(uintptr_t)(alignment - 1));
+        if (&v7[size] <= this->m_end)
         {
-            this->m_cur = (char *)Ptr32_Decode(size + v7);
-            ptr = (void *)Ptr32_Decode(v7);
+            this->m_cur = &v7[size];
+            ptr = v7;
         }
         else
         {
@@ -150,25 +159,25 @@ void *__thiscall phys_transient_allocator::mt_allocate(
     int no_error,
     const char *error_msg)
 {
-    int v7; // [esp+Ch] [ebp-40h]
-    int v8; // [esp+14h] [ebp-38h]
+    char *v7; // [esp+Ch] [ebp-40h]
+    char *v8; // [esp+14h] [ebp-38h]
     void *ptr; // [esp+48h] [ebp-4h]
 
     transient_allocator_update_largest_size();
     //minspec_read_write_mutex::ReadLock(&this->m_mutex);
     this->m_mutex.ReadLock();
-    ptr = (void *)Ptr32_Decode(phys_transient_allocator::mt_allocate_internal(size, alignment));
+    ptr = phys_transient_allocator::mt_allocate_internal(size, alignment);
     //minspec_read_write_mutex::ReadUnlock(&this->m_mutex);
     this->m_mutex.ReadUnlock();
     if (!ptr)
     {
         //minspec_read_write_mutex::WriteLock(&this->m_mutex);
         this->m_mutex.WriteLock();
-        v8 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
-        if ((char *)Ptr32_Decode(size + v8) <= this->m_end)
+        v8 = (char *)(((uintptr_t)this->m_cur + alignment - 1) & ~(uintptr_t)(alignment - 1));
+        if (&v8[size] <= this->m_end)
         {
-            this->m_cur = (char *)Ptr32_Decode(size + v8);
-            ptr = (void *)Ptr32_Decode(v8);
+            this->m_cur = &v8[size];
+            ptr = v8;
         }
         else
         {
@@ -177,11 +186,11 @@ void *__thiscall phys_transient_allocator::mt_allocate(
         if (!ptr)
         {
             phys_transient_allocator::resize();
-            v7 = ~(alignment - 1) & (int)Ptr32_Encode(&this->m_cur[alignment - 1]);
-            if ((char *)Ptr32_Decode(size + v7) <= this->m_end)
+            v7 = (char *)(((uintptr_t)this->m_cur + alignment - 1) & ~(uintptr_t)(alignment - 1));
+            if (&v7[size] <= this->m_end)
             {
-                this->m_cur = (char *)Ptr32_Decode(size + v7);
-                ptr = (void *)Ptr32_Decode(v7);
+                this->m_cur = &v7[size];
+                ptr = v7;
             }
             else
             {

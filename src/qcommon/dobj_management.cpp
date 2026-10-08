@@ -4,7 +4,8 @@
 int objFreeCount;
 __int16 clientObjMap[1537];
 __int16 serverObjMap[1024];
-unsigned int objBuf[3072][31];
+alignas(DObj) unsigned int objBuf[3072][DOBJ_SLOT_WORDS];
+static_assert(sizeof(void *) != 4 || DOBJ_SLOT_WORDS == 31, "32-bit DObj slots are 31 ints");
 bool objAlloced[3072];
 
 int com_lastDObjIndex;

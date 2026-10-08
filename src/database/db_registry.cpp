@@ -2765,7 +2765,7 @@ void __cdecl DB_GetXAsset(XAssetType type, XAssetHeader header)
     XAssetEntry *assetEntry; // [esp+14h] [ebp-4h]
 
     if ( s_inuseCacheEnabled
-        && s_inuseCache[((unsigned int)header.xmodelPieces >> 2) & 0x1FFF] == HIWORD(header.physPreset) )
+        && s_inuseCache[(Ptr32_Raw(header.xmodelPieces) >> 2) & 0x1FFF] == HIWORD(header.physPreset) )
     {
         ++s_inuseCacheHits;
     }
@@ -2784,7 +2784,7 @@ void __cdecl DB_GetXAsset(XAssetType type, XAssetHeader header)
             {
                 assetEntry->inuse = 1;
                 if ( s_inuseCacheEnabled )
-                    s_inuseCache[((unsigned int)header.xmodelPieces >> 2) & 0x1FFF] = HIWORD(header.physPreset);
+                    s_inuseCache[(Ptr32_Raw(header.xmodelPieces) >> 2) & 0x1FFF] = HIWORD(header.physPreset);
                 return;
             }
         }
@@ -4037,10 +4037,10 @@ void __cdecl DB_ModXFileHandle(const char *zoneName, void **zoneFile, FF_DIR *zo
     bool v6; // [esp+4h] [ebp-10Ch]
     char filename[260]; // [esp+8h] [ebp-108h] BYREF
 
-    v6 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
+    v6 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.string;
     if ( !v6 || I_stricmp(zoneName, "mod") )
     {
-        if ( fs_usermapDir && *(_BYTE *)Ptr32_Decode(fs_usermapDir->current.integer) )
+        if ( fs_usermapDir && *(_BYTE *)fs_usermapDir->current.string )
         {
             String = Dvar_GetString("fs_usermapDir");
             v4 = va("%s\\%s", String, zoneName);
@@ -4067,7 +4067,7 @@ void __cdecl DB_BuildOSPath_FromSource(const char *zoneName, FF_DIR source, unsi
     {
         if ( source == FFD_MOD_DIR )
         {
-            v4 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
+            v4 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.string;
             if ( !v4
                 && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\database\\db_registry.cpp",
@@ -4926,7 +4926,7 @@ char __cdecl DB_ModFileExists()
     char filename[256]; // [esp+4h] [ebp-108h] BYREF
     void *zoneFile; // [esp+108h] [ebp-4h]
 
-    if ( !fs_gameDirVar || !*(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer) )
+    if ( !fs_gameDirVar || !*(_BYTE *)fs_gameDirVar->current.string )
         return 0;
     DB_BuildOSPath_FromSource("mod", FFD_MOD_DIR, 0x100u, filename);
     zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);

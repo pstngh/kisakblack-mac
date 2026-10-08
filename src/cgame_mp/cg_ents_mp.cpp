@@ -3509,8 +3509,8 @@ XAnim_s *__cdecl CG_GetMG42Anims(centity_s *cent)
         __debugbreak();
     }
     XAnimBlend(pAnims, 0, "root", 1u, 2u, 0);
-    BG_CreateXAnim(pAnims, 1u, *((char **)weapVariantDef->szXAnims + 1));
-    BG_CreateXAnim(pAnims, 2u, *((char **)weapVariantDef->szXAnims + 3));
+    BG_CreateXAnim(pAnims, 1u, (char *)weapVariantDef->szXAnims[1]);
+    BG_CreateXAnim(pAnims, 2u, (char *)weapVariantDef->szXAnims[3]);
     return pAnims;
 }
 

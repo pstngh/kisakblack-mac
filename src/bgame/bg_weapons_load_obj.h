@@ -18,12 +18,12 @@ struct WeaponFullDef // sizeof=0xC48
     WeaponVariantDef weapVariantDef;
     WeaponDef weapDef;                  // XREF: BG_WeaponUpdateField(char const *,char const *)+58/o
                                         // BG_WeaponUpdateField(char const *,char const *)+AC/o
-    XModel *gunXModel[16];
-    const char *szXAnims[66];
+    Ptr32<XModel> gunXModel[16];
+    Ptr32<const char> szXAnims[66];
     unsigned __int16 hideTags[32];
     unsigned __int16 notetrackSoundMapKeys[20];
     unsigned __int16 notetrackSoundMapValues[20];
-    XModel *worldModel[16];
+    Ptr32<XModel> worldModel[16];
     float parallelBounce[31];
     float perpendicularBounce[31];
     float locationDamageMultipliers[19];
@@ -55,7 +55,7 @@ struct SurfaceTypeSoundList // sizeof=0x8
 {                                       // XREF: .data:SurfaceTypeSoundList * surfaceTypeSoundLists/r
     char *surfaceSoundBase;             // XREF: BG_RegisterSurfaceTypeSounds+74/r
                                         // BG_RegisterSurfaceTypeSounds+25E/w ...
-    char **soundAliasList;              // XREF: BG_RegisterSurfaceTypeSounds+8B/r
+    Ptr32<const char> *soundAliasList;  // XREF: BG_RegisterSurfaceTypeSounds+8B/r
                                         // BG_RegisterSurfaceTypeSounds+2DC/w
 };
 
@@ -67,7 +67,7 @@ const char *__cdecl BG_GetWeaponInventoryTypeName(weapInventoryType_t type);
 void __cdecl BG_LoadWeaponStrings();
 void __cdecl BG_LoadPlayerAnimTypes();
 void __cdecl BG_ClearWeaponDefInternal();
-void __cdecl SetConfigString(char **ppszConfigString, const char *pszKeyValue);
+void __cdecl SetConfigString(Ptr32<const char> *ppszConfigString, const char *pszKeyValue);
 flameTable *__cdecl BG_LoadFlameTableInternal(const char *folder, char *name);
 void __cdecl SetConfigString2(unsigned __int8 *pMember, const char *pszKeyValue);
 void __cdecl InitFlameTable(flameTable *fTable);
@@ -90,7 +90,7 @@ int __cdecl BG_MergeWeaponDefSpecialCases(const char *fieldName, char **value, c
 char __cdecl BG_LoadWeaponVariantDefFile(WeaponFullDef *weapFullDef, const char *folder, char *name);
 int __cdecl BG_ParseWeaponDefSpecificFieldType(WeaponFullDef *pStruct, const char *pValue, int iFieldType);
 int __cdecl Weapon_GetStringArrayIndex(const char *value, const char **stringArray, int arraySize);
-char **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase);
+Ptr32<const char> *__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSoundBase);
 WeaponFullDef *__cdecl BG_LoadWeaponVariantDefInternal(const char *folder, char *name);
 void __cdecl BG_SetupTransitionTimes(WeaponVariantDef *weapVariantDef);
 void __cdecl BG_CheckWeaponDamageRanges(WeaponDef *weapDef);

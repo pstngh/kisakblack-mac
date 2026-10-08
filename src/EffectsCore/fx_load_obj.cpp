@@ -243,7 +243,7 @@ XModel *__cdecl FX_RegisterModel(char *modelName)
     return R_RegisterModel(modelName);
 }
 
-bool __cdecl FX_RegisterMarkMaterials(const char *materialName, Material **materials)
+bool __cdecl FX_RegisterMarkMaterials(const char *materialName, Ptr32<Material> *materials)
 {
     Material *v2; // eax
     char materialNameWithPrefix[260]; // [esp+14h] [ebp-118h] BYREF
@@ -1050,7 +1050,9 @@ bool __cdecl FX_ParseSound(const char **parse, FxEditorElemDef *edElemDef)
 
 bool __cdecl FX_RegisterAsset_SoundAliasName(char *name, FxElemVisuals *visuals)
 {
-    ReplaceString((const char **)visuals, name, "FX_RegisterAsset_SoundAliasName", 11, SCRIPTINSTANCE_SERVER);
+    const char *soundName = visuals->soundName;
+    ReplaceString(&soundName, name, "FX_RegisterAsset_SoundAliasName", 11, SCRIPTINSTANCE_SERVER);
+    visuals->soundName = soundName;
     return 1;
 }
 
@@ -1076,7 +1078,9 @@ bool __cdecl FX_ParseElemSpawnSoundAsset(const char **parse, FxEditorElemDef *ed
         if ( *token )
         {
             I_strncpyz(name, token, 260);
-            ReplaceString(&edElemDef->spawnSound.spawnSound, name, "FX_ParseElemSpawnSoundAsset", 11, SCRIPTINSTANCE_SERVER);
+            const char *spawnSound = edElemDef->spawnSound.spawnSound;
+            ReplaceString(&spawnSound, name, "FX_ParseElemSpawnSoundAsset", 11, SCRIPTINSTANCE_SERVER);
+            edElemDef->spawnSound.spawnSound = spawnSound;
         }
     }
     Com_ScriptError("Only 1 element spawn sound allowed\n");
@@ -1480,7 +1484,7 @@ const FxEffectDef *__cdecl FX_LoadFailed(const char *name)
     memcpy(effectDef, (unsigned __int8 *)fx_load.defaultEffect, baseBytesNeeded);
     *(unsigned int *)effectDef = (unsigned int) Ptr32_Encode(& effectDef[baseBytesNeeded]);
     v4 = name;
-    v3 = *(_BYTE **)effectDef;
+    v3 = (_BYTE *)Ptr32_Decode(*(unsigned int *)effectDef);
     do
     {
         v2 = *v4;

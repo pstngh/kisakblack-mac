@@ -929,7 +929,7 @@ DestructibleDef *__cdecl DestructibleDefLoadFile(const char *name, void *(__cdec
                                                             v13 = j;
                                                             v11 = i;
                                                             v9 = model->name;
-                                                            v7 = **(const char ***)(*((unsigned int *)pStruct + 4) + 312 * i + 48 * j + 44);
+                                                            v7 = ((PhysPreset *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(*((unsigned int *)pStruct + 4) + 312 * i + 48 * j + 44)))->name;
                                                             v6 = SL_ConvertToString(namea, SCRIPTINSTANCE_SERVER);
                                                             Com_PrintError(
                                                                 20,

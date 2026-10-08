@@ -18,6 +18,9 @@
 #define _InterlockedExchangeAdd(p, v)          __sync_fetch_and_add((p), (v))
 #define _InterlockedCompareExchange(p, e, c)   __sync_val_compare_and_swap((p), (c), (e))
 #define _InterlockedCompareExchange64(p, e, c) __sync_val_compare_and_swap((p), (c), (e))
+// Pointer-sized CAS on a `PVOID volatile *` (Win32 name; MSVC gets it from
+// <windows.h>). Same (dest, exch, comp) order, returns the OLD pointer.
+#define InterlockedCompareExchangePointer(p, e, c) __sync_val_compare_and_swap((p), (void *)(c), (void *)(e))
 #define _InterlockedExchange(p, v)             __sync_lock_test_and_set((p), (v))
 #define _InterlockedIncrement(p)               __sync_add_and_fetch((p), 1)
 #define _InterlockedDecrement(p)               __sync_sub_and_fetch((p), 1)

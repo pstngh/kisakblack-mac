@@ -34,12 +34,12 @@ void __cdecl FX_AllocateClientMemory(HunkUser *hunk, int maxLocalClients)
     int i; // [esp+0h] [ebp-4h]
 
     fx_maxLocalClients = maxLocalClients;
-    fx_systemPool = (FxSystemContainer *)Hunk_UserAlloc(hunk, 2976 * maxLocalClients, 128, "fx_systemPool");
-    memset(fx_systemPool, 0, 2976 * maxLocalClients);
+    fx_systemPool = (FxSystemContainer *)Hunk_UserAlloc(hunk, sizeof(FxSystemContainer) * maxLocalClients, 128, "fx_systemPool");
+    memset(fx_systemPool, 0, sizeof(FxSystemContainer) * maxLocalClients);
     fx_systemBufferPool = (FxSystemBuffers *)Hunk_UserAlloc(hunk, 402560 * maxLocalClients, 128, "fx_systemBufferPool");
     memset(fx_systemBufferPool, 0, 402560 * maxLocalClients);
-    fx_marksSystemPool = (FxMarksSystem *)Hunk_UserAlloc(hunk, 155688 * maxLocalClients, 128, "fx_marksSystemPool");
-    memset(fx_marksSystemPool, 0, 155688 * maxLocalClients);
+    fx_marksSystemPool = (FxMarksSystem *)Hunk_UserAlloc(hunk, sizeof(FxMarksSystem) * maxLocalClients, 128, "fx_marksSystemPool");
+    memset(fx_marksSystemPool, 0, sizeof(FxMarksSystem) * maxLocalClients);
     for ( i = 0; i < maxLocalClients; ++i )
     {
         fx_systemPool[i].system.shared = &fx_systemPool[i].shared;
@@ -3283,15 +3283,15 @@ bool __cdecl FX_SpawnModelPhysics(
     {
         __debugbreak();
     }
-    elem->physObjId = (int)Phys_ObjCreate(
+    elem->physObjId = (int)Ptr32_Encode(Phys_ObjCreate(
         1,
         worldOrigin,
         quat,
         velocity,
-        *((const PhysPreset **)visuals.anonymous + 59),
+        visuals.model->physPreset,
         &gjk_geom_list,
         1,
-        id);
+        id));
     if (elem->physObjId)
         Phys_ObjSetAngularVelocity(elem->physObjId, angularVelocity);
     Sys_LeaveCriticalSection(CRITSECT_PHYSICS);

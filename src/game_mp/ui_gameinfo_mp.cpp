@@ -92,11 +92,11 @@ void __cdecl UI_LoadArenas()
     sharedUiInfo.mapCount = 0;
     ui_numArenas = 0;
     ModArenas = 0;
-    if (fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer))
+    if (fs_gameDirVar && *fs_gameDirVar->current.string)
         ModArenas = UI_LoadModArenas();
-    if (!ModArenas || (!fs_gameDirVar || !*(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer) ? (v7 = 0) : (v7 = 1), !v7))
+    if (!ModArenas || (!fs_gameDirVar || !*fs_gameDirVar->current.string ? (v7 = 0) : (v7 = 1), !v7))
         UI_LoadArenasFromFile();
-    v6 = fs_gameDirVar && *(_BYTE *)Ptr32_Decode(fs_gameDirVar->current.integer);
+    v6 = fs_gameDirVar && *fs_gameDirVar->current.string;
     if (v6 && !ModArenas)
     {
         UI_LoadModsMap(FFD_MOD_DIR);
@@ -337,7 +337,7 @@ const char *UI_LoadArenasFromFile_LoadObj()
                 FS_Read((unsigned __int8 *)buffer, len, f);
                 buffer[len] = 0;
                 FS_FCloseFile(f);
-                ui_numArenas += UI_ParseInfos(buffer, 128 - ui_numArenas, (char **)(4 * ui_numArenas + 160058192));
+                ui_numArenas += UI_ParseInfos(buffer, 128 - ui_numArenas, &ui_arenaInfos[ui_numArenas]);
             }
             else
             {

@@ -1892,22 +1892,26 @@ int __cdecl CG_AllocateClientMemory_SizeRequired(int maxLocalClients)
     return size;
 }
 
+// The original IKState was 3680 bytes; ikStates[] is indexed with the decompiled
+// struct, which is larger (and larger still on 64-bit).
+static const int kIkStateSize = sizeof(IKState) > 3680 ? sizeof(IKState) : 3680;
+
 void __cdecl CG_AllocateClientMemory(HunkUser *hunk, int maxLocalClients)
 {
     int localClientNum; // [esp+0h] [ebp-4h]
 
-    cgArray = (cg_s *)Hunk_UserAlloc(hunk, 466048 * maxLocalClients, 128, "cgArray");
-    cgsArray = (cgs_t *)Hunk_UserAlloc(hunk, 12712 * maxLocalClients, 8, "cgsArray");
-    cg_fakeEntitiesArray = (fake_centity_s *)Hunk_UserAlloc(hunk, 415744 * maxLocalClients, 4, "cg_fakeEntitiesArray");
-    cg_viewModelArray = (ViewModelInfo *)Hunk_UserAlloc(hunk, 52 * maxLocalClients, 4, "cg_viewModelArray");
+    cgArray = (cg_s *)Hunk_UserAlloc(hunk, (sizeof(cg_s) > 466048 ? sizeof(cg_s) : 466048) * maxLocalClients, 128, "cgArray");
+    cgsArray = (cgs_t *)Hunk_UserAlloc(hunk, sizeof(cgs_t) * maxLocalClients, 8, "cgsArray");
+    cg_fakeEntitiesArray = (fake_centity_s *)Hunk_UserAlloc(hunk, 512 * sizeof(fake_centity_s) * maxLocalClients, 4, "cg_fakeEntitiesArray");
+    cg_viewModelArray = (ViewModelInfo *)Hunk_UserAlloc(hunk, sizeof(ViewModelInfo) * maxLocalClients, 4, "cg_viewModelArray");
     for ( localClientNum = 0; localClientNum < maxLocalClients; ++localClientNum )
     {
-        cg_weaponsArray[localClientNum] = (weaponInfo_s *)Hunk_UserAlloc(hunk, 73728, 4, "cg_weaponsArray");
-        cg_entitiesArray[localClientNum] = (centity_s *)Hunk_UserAlloc(hunk, 827392, 4, "cg_entitiesArray");
+        cg_weaponsArray[localClientNum] = (weaponInfo_s *)Hunk_UserAlloc(hunk, 2048 * sizeof(weaponInfo_s), 4, "cg_weaponsArray");
+        cg_entitiesArray[localClientNum] = (centity_s *)Hunk_UserAlloc(hunk, 1024 * sizeof(centity_s), 4, "cg_entitiesArray");
         cg_entityOriginArray[localClientNum] = (float (*)[3])Hunk_UserAlloc(hunk, 18432, 4, "cg_entityOriginArray");
-        cg_destructibles[localClientNum] = (Destructible *)Hunk_UserAlloc(hunk, 24768, 4, "cg_destructibles");
-        cg_ikBuf[localClientNum] = (unsigned __int8 *)Hunk_UserAlloc(hunk, 117760, 16, "ikStatesArray");
-        memset(cg_ikBuf[localClientNum], 0, 0x1CC00u);
+        cg_destructibles[localClientNum] = (Destructible *)Hunk_UserAlloc(hunk, 144 * sizeof(Destructible), 4, "cg_destructibles");
+        cg_ikBuf[localClientNum] = (unsigned __int8 *)Hunk_UserAlloc(hunk, 32 * kIkStateSize, 16, "ikStatesArray");
+        memset(cg_ikBuf[localClientNum], 0, 32 * kIkStateSize);
         IK_AllocateLocalClientMemory(cg_ikBuf[localClientNum], localClientNum);
     }
 }
@@ -3543,7 +3547,7 @@ void __cdecl CG_InitEntities(int localClientNum)
         }
         cent->pose.localClientNum = localClientNum;
     }
-    memset(&cg_fakeEntitiesArray[512 * localClientNum], 0, 0x65800u);
+    memset(&cg_fakeEntitiesArray[512 * localClientNum], 0, 512 * sizeof(fake_centity_s));
     CG_InitFakeEntities(localClientNum, 1);
     LocalClientGlobals = CG_GetLocalClientGlobals(localClientNum);
     LocalClientGlobals->predictedPlayerEntity.pose.localClientNum = localClientNum;

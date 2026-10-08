@@ -265,7 +265,7 @@ char *__cdecl Scr_GetNextCodepos(
                 if (gScrVmPub[inst].function_count >= 32)
                     goto LABEL_23;
                 *localId = 0;
-                result = *(char **)pos;
+                result = (char *)Ptr32_Decode(*(unsigned int *)pos);
                 break;
             case 'S':
             case 'W':
@@ -536,7 +536,7 @@ char *__cdecl Scr_GetNextCodepos(
             {
                 v12 = *(_DWORD *)posa;
                 posc = posa + 4;
-                v11 = *(const char **)posc;
+                v11 = (const char *)Ptr32_Decode(*(unsigned int *)posc);
                 posa = posc + 4;
                 if (v12 == caseValue)
                 {
@@ -1121,7 +1121,7 @@ void __cdecl VM_Notify(
                     stackValue.intValue = tempValue->intValue;
                     if (*(_BYTE *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(tempValue->intValue) - 1) == 119)
                     {
-                        size = **(char **)stackValue.intValue;
+                        size = *(char *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(stackValue.intValue));
                         if (size < 0
                             && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_vm.cpp",
@@ -1187,8 +1187,8 @@ void __cdecl VM_Notify(
                             {
                                 RuntimeError(
                                     inst,
-                                    *(char **)stackValue.intValue,
-                                    **(char **)stackValue.intValue - size + 3,
+                                    (char *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(stackValue.intValue)),
+                                    *(char *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(stackValue.intValue)) - size + 3,
                                     gScrVarPub[inst].error_message,
                                     gScrVmGlob[inst].dialog_error_message);
                                 Scr_ClearErrorMessage(inst);
@@ -1304,7 +1304,7 @@ void __cdecl VM_Notify(
                         {
                             newStackValue = (VariableStackBuffer *)MT_Alloc(bufLen, 1, inst);
                             newStackValue->bufLen = bufLen;
-                            newStackValue->pos = *(const char **)stackValue.intValue;
+                            newStackValue->pos = (const char *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(stackValue.intValue));
                             newStackValue->localId = *(_DWORD *)Ptr32_Decode(stackValue.intValue + 8);
                             memcpy((unsigned __int8 *)newStackValue->buf, (unsigned __int8 *)Ptr32_Decode(stackValue.intValue + 13), len);
                             MT_Free((uint8*)Ptr32_Decode(stackValue.intValue), *(unsigned __int16 *)Ptr32_Decode(stackValue.intValue + 6), inst);
@@ -1343,7 +1343,7 @@ void __cdecl VM_Notify(
                             buf += 4;
                             --newSize;
                         } while (newSize);
-                        if (&buf[-stackValue.intValue] != (char *)Ptr32_Decode(bufLen)
+                        if (buf - (char *)Ptr32_Decode(stackValue.intValue) != bufLen
                             && !Assert_MyHandler(
                                 "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_vm.cpp",
                                 4217,
@@ -1505,12 +1505,12 @@ void __cdecl VM_TerminateStack(
     int size = stackValue->size;
     unsigned int localId = stackValue->localId;
     const char *buf = stackValue->buf;
-    buf += (sizeof(const char *) + sizeof(unsigned char)) * size;
+    buf += (sizeof(VariableUnion) + sizeof(unsigned char)) * size; // 5-byte entries: type + 32-bit value
 
     while (size)
     {
-        buf -= sizeof(const char *);
-        u.codePosValue = *(const char **)buf;
+        buf -= sizeof(VariableUnion);
+        u.intValue = *(const int *)buf;
         buf -= sizeof(unsigned char);
         unsigned char type = buf[0];
         size--;
@@ -2072,10 +2072,10 @@ unsigned __int16 __cdecl Scr_ReadUnsignedShort(const char **pos)
     return v2;
 }
 
-uintptr_t Scr_ReadUnsigned(const char **pos)
+unsigned int Scr_ReadUnsigned(const char **pos)
 {
-    uintptr_t value = *(reinterpret_cast<const uintptr_t *>(*pos));
-    *pos += sizeof(uintptr_t);
+    unsigned int value = *(reinterpret_cast<const unsigned int *>(*pos)); // 4-byte bytecode operand
+    *pos += sizeof(unsigned int);
     return value;
 }
 
@@ -3295,7 +3295,7 @@ void __cdecl Scr_AddAnim(scr_anim_s value, scriptInstance_t inst)
 {
     IncInParam(inst);
     gScrVmPub[inst].top->type = 11;
-    gScrVmPub[inst].top->u.intValue = (int)value.linkPointer;
+    gScrVmPub[inst].top->u.intValue = (int)Ptr32_Raw(value.linkPointer);
 }
 
 void __cdecl Scr_AddUndefined(scriptInstance_t inst)
@@ -4100,7 +4100,7 @@ void __cdecl VM_UnarchiveStack(scriptInstance_t inst, unsigned int startLocalId,
 {
     VariableValue *top; // [esp+8h] [ebp-14h]
     char *buf; // [esp+Ch] [ebp-10h]
-    const char **bufa; // [esp+Ch] [ebp-10h]
+    Ptr32<const char> *bufa; // [esp+Ch] [ebp-10h] (stack buffer values are 32-bit)
     unsigned int localId; // [esp+10h] [ebp-Ch]
     int function_count; // [esp+14h] [ebp-8h]
     int size; // [esp+18h] [ebp-4h]
@@ -4147,7 +4147,7 @@ void __cdecl VM_UnarchiveStack(scriptInstance_t inst, unsigned int startLocalId,
         --size;
         top[1].type = (unsigned __int8)*buf;
         ++top;
-        bufa = (const char **)(buf + 1);
+        bufa = (Ptr32<const char> *)(buf + 1);
         if (top->type == 7)
         {
             if (gScrVmPub[inst].function_count >= 32
@@ -4166,7 +4166,7 @@ void __cdecl VM_UnarchiveStack(scriptInstance_t inst, unsigned int startLocalId,
         }
         else
         {
-            top->u.intValue = (int)Ptr32_Encode(*bufa);
+            top->u.intValue = *(int *)bufa;
         }
         buf = (char *)(bufa + 1);
     }
@@ -5429,7 +5429,7 @@ CallBuiltin:
                 gScrVmPub[inst].outparamcount = outparamcount;
             }
             gScrVmPub[inst].top = localFs.top;
-            ((void (*)(void))gScrCompilePub[inst].func_table[builtinIndex])();
+            ((void (*)(void))Ptr32_Decode(gScrCompilePub[inst].func_table[builtinIndex]))();
             goto post_builtin;
         case OP_CallBuiltinMethod0:
         case OP_CallBuiltinMethod1:
@@ -5554,7 +5554,7 @@ negWait:
             gFs[inst] = localFs;
             //LOWORD(v63) = entref.client;
             //((void(__cdecl *)(_DWORD, int))gScrCompilePub[inst].func_table[builtinIndex])(*(_DWORD *)&entref.entnum, entref.client);
-            ((void(*)(scr_entref_t))gScrCompilePub[inst].func_table[builtinIndex]) (entref);
+            ((void(*)(scr_entref_t))Ptr32_Decode(gScrCompilePub[inst].func_table[builtinIndex])) (entref);
 post_builtin:
             localFs.top = gScrVmPub[inst].top;
             localFs.pos = gScrVmPub[inst].function_frame->fs.pos;
@@ -5612,7 +5612,7 @@ $LN205_0:
                 localFs.localId = AllocChildThread(inst, selfId, localFs.localId);
                 gScrVmPub[inst].function_frame->fs.pos = localFs.pos;
                 function_frame = gScrVmPub[inst].function_frame;
-                v68 = *(const char **)function_frame->fs.pos;
+                v68 = (const char *)Ptr32_Decode(*(unsigned int *)function_frame->fs.pos);
                 function_frame->fs.pos += 4;
                 localFs.pos = v68;
                 goto function_call;

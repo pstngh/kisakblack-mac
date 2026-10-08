@@ -416,7 +416,7 @@ void __cdecl R_SkinXSurfaceRigid(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)Ptr32_Encode(vertices) & 0xF) != 0
+    if ( ((unsigned __int8)(uintptr_t)vertices & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_model_skin.cpp",
                     3907,
@@ -426,7 +426,7 @@ void __cdecl R_SkinXSurfaceRigid(
     {
         __debugbreak();
     }
-    if ( ((unsigned __int8)Ptr32_Encode(boneMatrix) & 0xF) != 0
+    if ( ((unsigned __int8)(uintptr_t)boneMatrix & 0xF) != 0
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_model_skin.cpp",
                     3908,
@@ -531,7 +531,7 @@ void R_SkinXModelCmd(SkinXModelCmd *data)
                 if (sseStateUsed)
                 {
                     sseStateUsed = 0;
-                    _m_empty();
+                    _mm_empty();
                 }
 
                 DObjSkelMat mat0, mat1;
@@ -563,13 +563,13 @@ void R_SkinXModelCmd(SkinXModelCmd *data)
 
         if (skinnedSurf->skinnedCachedOffset < 0)
         {
-            iassert(((reinterpret_cast<uint>(skinnedSurf->skinnedVert) & 15) == 0));
+            iassert(((reinterpret_cast<uintptr_t>((GfxPackedVertex *)skinnedSurf->skinnedVert) & 15) == 0));
             skinVerticesOut = skinnedSurf->skinnedVert;
         }
         else
         {
             iassert(gfxBuf.skinnedCacheLockAddr);
-            iassert((reinterpret_cast<uint>(gfxBuf.skinnedCacheLockAddr) & 15) == 0);
+            iassert((reinterpret_cast<uintptr_t>(gfxBuf.skinnedCacheLockAddr) & 15) == 0);
             iassert((skinnedSurf->skinnedCachedOffset & 15) == 0);
 
             skinVerticesOut = (GfxPackedVertex *)&gfxBuf.skinnedCacheLockAddr[skinnedSurf->skinnedCachedOffset];
@@ -580,7 +580,7 @@ void R_SkinXModelCmd(SkinXModelCmd *data)
             if (!sseStateUsed)
             {
                 sseStateUsed = 1;
-                _m_empty();
+                _mm_empty();
             }
             normalIn = 0;
             normalOut = 0;
@@ -600,7 +600,7 @@ void R_SkinXModelCmd(SkinXModelCmd *data)
     }
 
     if (sseStateUsed)
-        _m_empty();
+        _mm_empty();
 }
 
 void __cdecl R_MultiplySkelMat(const DObjSkelMat *mat0, const DObjSkelMat *mat1, DObjSkelMat *out)

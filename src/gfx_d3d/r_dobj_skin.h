@@ -55,8 +55,8 @@ struct __declspec(align(2)) GfxModelSurfaceInfo // sizeof=0xC
     //$428C0DFD0D9970E1A3749A5754AD806F ___u0;
     union //$428C0DFD0D9970E1A3749A5754AD806F // sizeof=0x4
     {                                       // XREF: GfxModelSurfaceInfo/r
-        const DObjAnimMat *baseMat;
-        const DObjAnimMat *baseMat_local;
+        Ptr32<const DObjAnimMat> baseMat;
+        Ptr32<const DObjAnimMat> baseMat_local;
     };
     unsigned __int8 boneIndex;
     unsigned __int8 boneCount;
@@ -66,15 +66,17 @@ struct __declspec(align(2)) GfxModelSurfaceInfo // sizeof=0xC
     // padding byte
 };
 
+// These records are packed into frontEndDataOut->surfsBuffer with 32-bit
+// strides (24/56 bytes, offsets in 4-byte units), so the pointers are Ptr32.
 struct GfxModelSkinnedSurface // sizeof=0x18
 {                                       // XREF: GfxModelRigidSurface/r
     int skinnedCachedOffset;
-    XSurface *xsurf;
+    Ptr32<XSurface> xsurf;
     GfxModelSurfaceInfo info;
     //$BFB86953EFC7B86272823EA22BE25520 ___u3;
     union //$BFB86953EFC7B86272823EA22BE25520 // sizeof=0x4
     {                                       // XREF: GfxModelSkinnedSurface/r
-        GfxPackedVertex *skinnedVert;
+        Ptr32<GfxPackedVertex> skinnedVert;
         int oldSkinnedCachedOffset;
     };
 };

@@ -3263,7 +3263,7 @@ void __cdecl BG_UpdatePlayerDObj(
         dobjModels[iNumModels].boneName = SL_FindString(ci->attachTagNames[i], SCRIPTINSTANCE_SERVER);
         dobjModels[iNumModels].ignoreCollision = (attachIgnoreCollision & (1 << i)) != 0;
         if ( es->lerp.u.player.stowedWeapon
-            && !I_strcmp(ci->attachModelNames[i], **(const char ***)weapDefStowed->worldModel) )
+            && !I_strcmp(ci->attachModelNames[i], weapDefStowed->worldModel[0]->name) )
         {
             iStowedWeaponModelIndex = iNumModels;
         }
@@ -3320,7 +3320,7 @@ void __cdecl BG_UpdatePlayerDObj(
                     boneIndex = -2;
                     if (DObjGetModelBoneIndex(
                         dobj,
-                        **(const char ***)weapDefDW->worldModel,
+                        weapDefDW->worldModel[0]->name,
                         weapVariantDefDW->hideTags[tagIndex],
                         &boneIndex))
                     {

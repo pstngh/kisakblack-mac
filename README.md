@@ -35,6 +35,20 @@ Install the 32-bit GCC, SDL2, GLEW, OpenAL, Speex, VPX, and JPEG development pac
 
 The executable is written to `build_linux/blackops`.
 
+### macOS (Apple Silicon) / OpenGL
+
+Work in progress: the native arm64 port does not build yet. Install Xcode and the
+Homebrew dependencies, then configure:
+
+```sh
+brew install cmake ninja ccache sdl2 glew openal-soft speex libvpx sse2neon
+cmake -S . -B build_macos -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build_macos
+```
+
+This is the first 64-bit target; see [docs/64bit.md](docs/64bit.md) for how
+32-bit assets, network fields and pointers stored in ints are handled.
+
 
 ```
 Keep in Mind: This is a ~20 year old game with some known exploits. We will try to fix these as we become aware of them.

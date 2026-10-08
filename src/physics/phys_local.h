@@ -1,6 +1,7 @@
 #pragma once
 #include <universal/assertive.h>
 #include <cstring>
+#include <new>
 
 #include <windows.h> // interlockedxchg
 #include <cmath>
@@ -717,6 +718,15 @@ char *__cdecl PMM_ALLOC(unsigned int size, unsigned int alignment);
 void __cdecl PMM_VALIDATE(char *ptr, unsigned int size, unsigned int alignment);
 void __cdecl PMM_FREE(unsigned __int8 *ptr, unsigned int size, unsigned int alignment);
 
+// The slot alignment phys_simple_allocator / phys_free_list pass for an object
+// of this size. The slot pool is keyed on (size, alignment), so every
+// PMM_ALLOC / PMM_FREE / PMM_VALIDATE of a type must use sizeof() and this,
+// not the 32-bit byte counts.
+inline constexpr unsigned int phys_slot_alignment(unsigned int size)
+{
+    return size % 16 == 0 ? 16 : 4;
+}
+
 template <typename T>
 struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal> // sizeof=0x4
 {                                                                             // XREF: phys_heap_gjk_cache_system_avl_tree/r
@@ -731,7 +741,7 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
         {
             char *slot; // [esp+18h] [ebp-4h]
 
-            slot = PMM_ALLOC(sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+            slot = PMM_ALLOC(sizeof(T), phys_slot_alignment(sizeof(T)));
             if (!slot)
             {
                 // lwss add
@@ -748,10 +758,10 @@ struct phys_simple_allocator//<phys_heap_gjk_cache_system_avl_tree::phys_gjk_cac
         {
             if (slot)
             {
-                PMM_VALIDATE((char *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+                PMM_VALIDATE((char *)slot, sizeof(T), phys_slot_alignment(sizeof(T)));
                 --this->m_count;
                 slot->~T(); // disgusting
-                PMM_FREE((unsigned __int8 *)slot, sizeof(T), sizeof(T) % 16 == 0 ? 16 : 4);
+                PMM_FREE((unsigned __int8 *)slot, sizeof(T), phys_slot_alignment(sizeof(T)));
             }
         }
 
@@ -977,7 +987,7 @@ public:
 
     T *add(int no_error, const char *error_msg)
     {
-        T_internal *ptr = (T_internal *)PMM_ALLOC(sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
+        T_internal *ptr = (T_internal *)PMM_ALLOC(sizeof(T_internal), phys_slot_alignment(sizeof(T_internal)));
 
         if (ptr)
         {
@@ -1027,7 +1037,7 @@ public:
         prev->m_next_T_internal = next;
         next->m_prev_T_internal = prev;
         //data->m_data.~T();
-        PMM_FREE((unsigned __int8 *)data, sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
+        PMM_FREE((unsigned __int8 *)data, sizeof(T_internal), phys_slot_alignment(sizeof(T_internal)));
     }
 
     void remove(T *data_)
@@ -1035,7 +1045,7 @@ public:
         if (data_)
         {
             T_internal *ti = (T_internal *)((char *)data_ - offsetof(T_internal, m_data));
-            PMM_VALIDATE((char *)ti, sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
+            PMM_VALIDATE((char *)ti, sizeof(T_internal), phys_slot_alignment(sizeof(T_internal)));
             remove(ti);
         }
     }
@@ -1053,7 +1063,7 @@ public:
             prev->m_next_T_internal = next;
             next->m_prev_T_internal = prev;
             //data->m_data.~T();
-            PMM_FREE((unsigned __int8 *)data, sizeof(T_internal), sizeof(T_internal) % 16 == 0 ? 16 : 4);
+            PMM_FREE((unsigned __int8 *)data, sizeof(T_internal), phys_slot_alignment(sizeof(T_internal)));
         }
     }
 
@@ -1066,7 +1076,7 @@ public:
             i != (T_internal_base *)this;
             ++ptr_array)
         {
-            *ptr_array = (T*)&i[1];
+            *ptr_array = &((T_internal *)i)->m_data;
             i = i->m_next_T_internal;
         }
     }
@@ -1083,7 +1093,7 @@ public:
         if (ptr_array_size > 0)
         {
             v4 = ptr_array;
-            p_m_avl_key = (T_internal_base *) & (*ptr_array)[-1].m_avl_key;
+            p_m_avl_key = (T_internal_base *)((char *)*ptr_array - offsetof(T_internal, m_data));
             v6 = &ptr_array[ptr_array_size - 1];
             p_m_avl_key->m_prev_T_internal = &this->m_dummy_head;
             this->m_dummy_head.m_next_T_internal = p_m_avl_key;
@@ -1091,9 +1101,9 @@ public:
             {
                 do
                 {
-                    v7 = (T_internal_base *)v4[1];
+                    v7 = (T_internal_base *)((char *)v4[1] - offsetof(T_internal, m_data));
                     ++v4;
-                    p_m_avl_key->m_next_T_internal = --v7;
+                    p_m_avl_key->m_next_T_internal = v7;
                     v7->m_prev_T_internal = p_m_avl_key;
                     p_m_avl_key = v7;
                 } while (v4 < v6);

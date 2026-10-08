@@ -3089,7 +3089,7 @@ void __cdecl Path_ConnectPathsForEntity(gentity_s *ent)
     {
         __debugbreak();
     }
-    ent->flags |= (unsigned int)Ptr32_Encode(&objBuf[1758][2]);
+    ent->flags |= 0x4000000;
     oldInfoIndex = ent->disconnectedLinks;
     if ( oldInfoIndex )
     {

@@ -1,5 +1,6 @@
 // gl_shader.cpp — DX9 bytecode → GLSL 120 translator + GL shader objects.
 #include "gl_shader.h"
+#include "gl_platform.h"
 #include "gl_optrace.h"
 
 #include <GL/glew.h>
@@ -137,7 +138,7 @@ static std::string kbSrcAsm(const Operand &o) {
 // GLSL output dialect. The desktop build emits `#version 120` compat GLSL; the
 // WebGL2 build emits `#version 300 es` (GLSL ES 3.00). The translator is
 // parameterized on this — the 120 path is preserved verbatim, not replaced.
-#if defined(__EMSCRIPTEN__)
+#if defined(KB_GL_MODERN_GLSL)
 static const bool kEmitES_default = true;
 #else
 static const bool kEmitES_default = false;
@@ -759,7 +760,8 @@ static unsigned compileGL(GLenum stage, const std::string &src, const char *labe
         return 0;
     }
     while (glGetError() != GL_NO_ERROR) {}  // drain stale errors so the report below is ours
-    const char *p = src.c_str();
+    const std::string glsl = KB_GLSLForContext(src.c_str());
+    const char *p = glsl.c_str();
     glShaderSource(s, 1, &p, nullptr);
     glCompileShader(s);
     GLint ok = 0;

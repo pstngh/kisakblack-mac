@@ -7,6 +7,9 @@
 // links against it yet (the engine is still being brought to compile), but the
 // implementations are real so the eventual link behaves correctly.
 #include <universal/ptr32.h>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
 #include <windows.h>
 
 #include <pthread.h>
@@ -296,9 +299,15 @@ DWORD GetCurrentDirectoryA(DWORD len, char *buf) {
 }
 DWORD GetModuleFileNameA(HMODULE, char *buf, DWORD size) {
     if (!buf || size == 0) return 0;
+#if defined(__APPLE__)
+    uint32_t len = size;
+    if (_NSGetExecutablePath(buf, &len) != 0) { buf[0] = '\0'; return 0; }
+    return (DWORD)strlen(buf);
+#else
     ssize_t n = readlink("/proc/self/exe", buf, size - 1);
     if (n < 0) { buf[0] = '\0'; return 0; }
     buf[n] = '\0'; return (DWORD)n;
+#endif
 }
 
 // ---- Virtual / global memory (mmap-backed) ---------------------------------

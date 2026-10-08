@@ -165,7 +165,7 @@ typedef     signed short    sint16;
 typedef unsigned short    uint16;
 typedef __int32				int32;
 typedef unsigned __int32 uint32;
-typedef signed long			sint32;
+typedef signed int			sint32;
 typedef ll                            int64;
 typedef ll                            sint64;
 typedef ull                         uint64;

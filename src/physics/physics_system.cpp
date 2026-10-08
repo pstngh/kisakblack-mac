@@ -2,6 +2,7 @@
 #include "physics_system_internal.h"
 #include "phys_assert.h"
 #include "phys_broad_phase.h"
+#include <type_traits>
 
 phys_assert_info pai_create_rbc_contact = { 0, 2, true };
 
@@ -379,7 +380,7 @@ void __cdecl phys_sys::destroy(rigid_body *const rb)
         using TI = phys_free_list<rigid_body>::T_internal;
         static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x180);
         TI *ti = (TI *)((char *)rb - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
 
         g_physics_system->m_list_rigid_body.remove(ti);
     }
@@ -396,7 +397,7 @@ void __cdecl phys_sys::destroy(user_rigid_body *const rb)
         using TI = phys_free_list<user_rigid_body>::T_internal;
         static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x1D0);
         TI *ti = (TI *)((char *)rb - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
 
         g_physics_system->m_list_user_rigid_body.remove(ti);
     }
@@ -412,7 +413,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_contact *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 4u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_contact.remove(ti);
     }
 }
@@ -424,7 +425,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_point *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_point.remove(ti);
     }
 }
@@ -436,7 +437,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_hinge *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_hinge.remove(ti);
     }
 }
@@ -448,7 +449,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_distance *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_dist.remove(ti);
     }
 }
@@ -460,7 +461,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_ragdoll *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_ragdoll.remove(ti);
     }
 }
@@ -472,7 +473,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_wheel *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_wheel.remove(ti);
     }
 }
@@ -484,7 +485,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_angular_actuator *const rbc
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_angular_actuator.remove(ti);
     }
 }
@@ -496,7 +497,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_upright *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_upright.remove(ti);
     }
 }
@@ -508,7 +509,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_custom_orientation *const r
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 4u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_custom_orientation.remove(ti);
     }
 }
@@ -520,7 +521,7 @@ void __cdecl phys_sys::destroy(rigid_body_constraint_custom_path *const rbc)
     if (rbc)
     {
         TI *ti = (TI *)((char *)rbc - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 0x10u);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         g_physics_system->m_list_rbc_custom_path.remove(ti);
     }
 }
@@ -1194,497 +1195,42 @@ void __cdecl phys_sys::destroy_all_rbc_contact()
     g_physics_system->m_list_rbc_contact.remove_all();
 }
 
+// Unlink and free every constraint of the list attached to rb. (The decompiled
+// loops reached the nodes through 32-bit offsets and freed them with 32-bit
+// slot sizes; remove(T *) validates and frees with the template's own size.)
+template <typename T>
+static void destroy_all_constraint_in_list(phys_free_list<T> &list, rigid_body *const rb)
+{
+    typename phys_free_list<T>::T_internal_base *node; // eax
+    typename phys_free_list<T>::T_internal_base *next; // ebx
+    T *rbc; // esi
+
+    for ( node = list.m_dummy_head.m_next_T_internal; node != &list.m_dummy_head; node = next )
+    {
+        next = node->m_next_T_internal;
+        rbc = &((typename phys_free_list<T>::T_internal *)node)->m_data;
+        if ( rbc->b1 && rbc->b1 == rb || rbc->b2 && rbc->b2 == rb )
+        {
+            if constexpr (std::is_same_v<T, rigid_body_constraint_contact>)
+                rbc->~rigid_body_constraint_contact();
+            list.remove(rbc);
+        }
+    }
+}
+
 void __cdecl phys_sys::destroy_all_constraint(rigid_body *const rb)
 {
-    rigid_body *v1; // esi
-    physics_system *v2; // ebx
-    phys_free_list<rigid_body_constraint_point>::T_internal_base *m_next_T_internal; // eax
-    phys_free_list<rigid_body_constraint_point> *p_m_list_rbc_point; // edi
-    rigid_body *m_prev_T_internal; // edx
-    rigid_body *v6; // edx
-    phys_free_list<rigid_body_constraint_point>::T_internal_base *v7; // ebx
-    phys_free_list<rigid_body_constraint_point>::T_internal *v8; // esi
-    phys_free_list<rigid_body_constraint_point>::T_internal_base *v9; // eax
-    phys_free_list<rigid_body_constraint_point>::T_internal_base *v10; // ecx
-    phys_free_list<rigid_body_constraint_wheel>::T_internal *v11; // ecx
-    phys_free_list<rigid_body_constraint_wheel> *p_m_list_rbc_hinge; // edi
-    rigid_body *b1; // edx
-    rigid_body *b2; // edx
-    phys_free_list<rigid_body_constraint_wheel>::T_internal *v15; // ebx
-    phys_free_list<rigid_body_constraint_wheel>::T_internal *v16; // esi
-    phys_free_list<rigid_body_constraint_wheel>::T_internal_base *v17; // eax
-    phys_free_list<rigid_body_constraint_wheel>::T_internal_base *v18; // ecx
-    phys_free_list<rigid_body_constraint_distance>::T_internal_base *v19; // ecx
-    phys_free_list<broad_phase_group> *i; // edi
-    rigid_body *v21; // edx
-    rigid_body *v22; // edx
-    phys_free_list<rigid_body_constraint_distance>::T_internal_base *v23; // ebx
-    phys_free_list<broad_phase_group>::T_internal *v24; // esi
-    phys_free_list<broad_phase_group>::T_internal_base *v25; // eax
-    phys_free_list<broad_phase_group>::T_internal_base *v26; // ecx
-    phys_free_list<rigid_body_constraint_ragdoll>::T_internal *v27; // ecx
-    phys_free_list<rigid_body_constraint_ragdoll> *p_m_list_rbc_ragdoll; // edi
-    rigid_body *v29; // edx
-    rigid_body *v30; // edx
-    phys_free_list<rigid_body_constraint_ragdoll>::T_internal *v31; // ebx
-    phys_free_list<rigid_body_constraint_ragdoll>::T_internal *v32; // esi
-    phys_free_list<rigid_body_constraint_ragdoll>::T_internal_base *v33; // eax
-    phys_free_list<rigid_body_constraint_ragdoll>::T_internal_base *v34; // ecx
-    phys_free_list<rigid_body_constraint_wheel>::T_internal *v35; // ecx
-    phys_free_list<rigid_body_constraint_wheel> *j; // edi
-    rigid_body *v37; // edx
-    rigid_body *v38; // edx
-    phys_free_list<rigid_body_constraint_wheel>::T_internal *v39; // ebx
-    phys_free_list<rigid_body_constraint_wheel>::T_internal *v40; // esi
-    phys_free_list<rigid_body_constraint_wheel>::T_internal_base *v41; // eax
-    phys_free_list<rigid_body_constraint_wheel>::T_internal_base *v42; // ecx
-    phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *v43; // ecx
-    phys_free_list<rigid_body_constraint_angular_actuator> *p_m_list_rbc_angular_actuator; // edi
-    rigid_body *v45; // edx
-    rigid_body *v46; // edx
-    phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *v47; // ebx
-    phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *v48; // esi
-    phys_free_list<rigid_body_constraint_angular_actuator>::T_internal_base *v49; // eax
-    phys_free_list<rigid_body_constraint_angular_actuator>::T_internal_base *v50; // ecx
-    phys_free_list<rigid_body_constraint_upright>::T_internal *v51; // ecx
-    phys_free_list<rigid_body_constraint_upright> *k; // edi
-    rigid_body *v53; // edx
-    rigid_body *v54; // edx
-    phys_free_list<rigid_body_constraint_upright>::T_internal *v55; // ebx
-    phys_free_list<rigid_body_constraint_upright>::T_internal *v56; // esi
-    phys_free_list<rigid_body_constraint_upright>::T_internal_base *v57; // eax
-    phys_free_list<rigid_body_constraint_upright>::T_internal_base *v58; // ecx
-    phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *v59; // ecx
-    phys_free_list<rigid_body_constraint_custom_orientation> *p_m_list_rbc_custom_orientation; // edi
-    rigid_body *v61; // edx
-    rigid_body *v62; // edx
-    phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *v63; // ebx
-    phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *v64; // esi
-    phys_free_list<rigid_body_constraint_custom_orientation>::T_internal_base *v65; // eax
-    phys_free_list<rigid_body_constraint_custom_orientation>::T_internal_base *v66; // ecx
-    phys_free_list<rigid_body_constraint_custom_path>::T_internal *v67; // ecx
-    phys_free_list<rigid_body_constraint_custom_path> *m; // edi
-    rigid_body *v69; // edx
-    rigid_body *v70; // edx
-    phys_free_list<rigid_body_constraint_custom_path>::T_internal *v71; // ebx
-    phys_free_list<rigid_body_constraint_custom_path>::T_internal *v72; // esi
-    phys_free_list<rigid_body_constraint_custom_path>::T_internal_base *v73; // eax
-    phys_free_list<rigid_body_constraint_custom_path>::T_internal_base *v74; // ecx
-    phys_free_list<rigid_body_constraint_contact>::T_internal *v75; // ecx
-    phys_free_list<rigid_body_constraint_contact> *p_m_list_rbc_contact; // edi
-    rigid_body *v77; // edx
-    rigid_body *v78; // edx
-    phys_free_list<rigid_body_constraint_contact>::T_internal *v79; // ebx
-    phys_free_list<rigid_body_constraint_contact>::T_internal *v80; // esi
-    phys_free_list<rigid_body_constraint_contact>::T_internal_base *v81; // ecx
-    phys_free_list<rigid_body_constraint_contact>::T_internal_base *v82; // eax
-
-    v1 = rb;
     phys_sys::fixup_wheel_constraints(rb);
-    v2 = g_physics_system;
-    m_next_T_internal = g_physics_system->m_list_rbc_point.m_dummy_head.m_next_T_internal;
-    p_m_list_rbc_point = &g_physics_system->m_list_rbc_point;
-    if ( &g_physics_system->m_list_rbc_point != (phys_free_list<rigid_body_constraint_point> *)m_next_T_internal )
-    {
-        do
-        {
-            m_prev_T_internal = (rigid_body *)m_next_T_internal[2].m_prev_T_internal;
-            if ( m_prev_T_internal && m_prev_T_internal == v1
-                || (v6 = (rigid_body *)m_next_T_internal[2].m_next_T_internal) != 0 && v6 == v1 )
-            {
-                v7 = m_next_T_internal->m_next_T_internal;
-                if ( m_next_T_internal != (phys_free_list<rigid_body_constraint_point>::T_internal_base *)-16 )
-                {
-                    v8 = (phys_free_list<rigid_body_constraint_point>::T_internal *)m_next_T_internal;
-                    PMM_VALIDATE((char *)m_next_T_internal, 0x70u, 0x10u);
-                    if ( !v8
-                        && _tlAssert(
-                                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
-                                 477,
-                                 "data",
-                                 "") )
-                    {
-                        __debugbreak();
-                    }
-                    --p_m_list_rbc_point->m_list_count;
-                    //phys_free_list<rigid_body_constraint_point>::debug_remove(p_m_list_rbc_point, v8);
-                    p_m_list_rbc_point->debug_remove(v8);
-                    v9 = v8->m_next_T_internal;
-                    v10 = v8->m_prev_T_internal;
-                    v10->m_next_T_internal = v9;
-                    v9->m_prev_T_internal = v10;
-                    PMM_FREE((unsigned __int8 *)v8, 0x70u, 0x10u);
-                    v1 = rb;
-                }
-                m_next_T_internal = v7;
-                v2 = g_physics_system;
-            }
-            else
-            {
-                m_next_T_internal = m_next_T_internal->m_next_T_internal;
-            }
-            p_m_list_rbc_point = &v2->m_list_rbc_point;
-        }
-        while ( &v2->m_list_rbc_point != (phys_free_list<rigid_body_constraint_point> *)m_next_T_internal );
-    }
-    v11 = (phys_free_list<rigid_body_constraint_wheel>::T_internal *)v2->m_list_rbc_hinge.m_dummy_head.m_next_T_internal;
-    p_m_list_rbc_hinge = (phys_free_list<rigid_body_constraint_wheel> *)&v2->m_list_rbc_hinge;
-    if ( &v2->m_list_rbc_hinge != (phys_free_list<rigid_body_constraint_hinge> *)v11 )
-    {
-        do
-        {
-            b1 = v11->m_data.b1;
-            if ( b1 && b1 == rb || (b2 = v11->m_data.b2) != 0 && b2 == rb )
-            {
-                v15 = (phys_free_list<rigid_body_constraint_wheel>::T_internal *)v11->m_next_T_internal;
-                if ( v11 != (phys_free_list<rigid_body_constraint_wheel>::T_internal *)-16 )
-                {
-                    v16 = v11;
-                    PMM_VALIDATE((char *)v11, 0xF0u, 0x10u);
-                    if ( !v16
-                        && _tlAssert(
-                                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
-                                 477,
-                                 "data",
-                                 "") )
-                    {
-                        __debugbreak();
-                    }
-                    --p_m_list_rbc_hinge->m_list_count;
-                    //phys_free_list<rigid_body_constraint_wheel>::debug_remove(p_m_list_rbc_hinge, v16);
-                    p_m_list_rbc_hinge->debug_remove(v16);
-                    v17 = v16->m_next_T_internal;
-                    v18 = v16->m_prev_T_internal;
-                    v18->m_next_T_internal = v17;
-                    v17->m_prev_T_internal = v18;
-                    PMM_FREE((unsigned __int8 *)v16, 0xF0u, 0x10u);
-                }
-                v11 = v15;
-            }
-            else
-            {
-                v11 = (phys_free_list<rigid_body_constraint_wheel>::T_internal *)v11->m_next_T_internal;
-            }
-            p_m_list_rbc_hinge = (phys_free_list<rigid_body_constraint_wheel> *)&g_physics_system->m_list_rbc_hinge;
-        }
-        while ( &g_physics_system->m_list_rbc_hinge != (phys_free_list<rigid_body_constraint_hinge> *)v11 );
-        v2 = g_physics_system;
-    }
-    v19 = v2->m_list_rbc_dist.m_dummy_head.m_next_T_internal;
-    for ( i = (phys_free_list<broad_phase_group> *)&v2->m_list_rbc_dist;
-                &v2->m_list_rbc_dist != (phys_free_list<rigid_body_constraint_distance> *)v19;
-                i = (phys_free_list<broad_phase_group> *)&v2->m_list_rbc_dist )
-    {
-        v21 = (rigid_body *)v19[2].m_prev_T_internal;
-        if ( v21 && v21 == rb || (v22 = (rigid_body *)v19[2].m_next_T_internal) != 0 && v22 == rb )
-        {
-            v23 = v19->m_next_T_internal;
-            if ( v19 != (phys_free_list<rigid_body_constraint_distance>::T_internal_base *)-16 )
-            {
-                v24 = (phys_free_list<broad_phase_group>::T_internal *)v19;
-                PMM_VALIDATE((char *)v19, 0x80u, 0x10u);
-                if ( !v24
-                    && _tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h", 477, "data", "") )
-                {
-                    __debugbreak();
-                }
-                --i->m_list_count;
-                //phys_free_list<broad_phase_group>::debug_remove(i, v24);
-                i->debug_remove(v24);
-                v25 = v24->m_next_T_internal;
-                v26 = v24->m_prev_T_internal;
-                v26->m_next_T_internal = v25;
-                v25->m_prev_T_internal = v26;
-                PMM_FREE((unsigned __int8 *)v24, 0x80u, 0x10u);
-            }
-            v19 = v23;
-            v2 = g_physics_system;
-        }
-        else
-        {
-            v19 = v19->m_next_T_internal;
-        }
-    }
-    v27 = (phys_free_list<rigid_body_constraint_ragdoll>::T_internal *)v2->m_list_rbc_ragdoll.m_dummy_head.m_next_T_internal;
-    p_m_list_rbc_ragdoll = &v2->m_list_rbc_ragdoll;
-    if ( &v2->m_list_rbc_ragdoll != (phys_free_list<rigid_body_constraint_ragdoll> *)v27 )
-    {
-        do
-        {
-            v29 = v27->m_data.b1;
-            if ( v29 && v29 == rb || (v30 = v27->m_data.b2) != 0 && v30 == rb )
-            {
-                v31 = (phys_free_list<rigid_body_constraint_ragdoll>::T_internal *)v27->m_next_T_internal;
-                if ( v27 != (phys_free_list<rigid_body_constraint_ragdoll>::T_internal *)-16 )
-                {
-                    v32 = v27;
-                    PMM_VALIDATE((char *)v27, 0x140u, 0x10u);
-                    if ( !v32
-                        && _tlAssert(
-                                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
-                                 477,
-                                 "data",
-                                 "") )
-                    {
-                        __debugbreak();
-                    }
-                    --p_m_list_rbc_ragdoll->m_list_count;
-                    //phys_free_list<rigid_body_constraint_ragdoll>::debug_remove(p_m_list_rbc_ragdoll, v32);
-                    p_m_list_rbc_ragdoll->debug_remove(v32);
-                    v33 = v32->m_next_T_internal;
-                    v34 = v32->m_prev_T_internal;
-                    v34->m_next_T_internal = v33;
-                    v33->m_prev_T_internal = v34;
-                    PMM_FREE((unsigned __int8 *)v32, 0x140u, 0x10u);
-                }
-                v27 = v31;
-            }
-            else
-            {
-                v27 = (phys_free_list<rigid_body_constraint_ragdoll>::T_internal *)v27->m_next_T_internal;
-            }
-            p_m_list_rbc_ragdoll = &g_physics_system->m_list_rbc_ragdoll;
-        }
-        while ( &g_physics_system->m_list_rbc_ragdoll != (phys_free_list<rigid_body_constraint_ragdoll> *)v27 );
-        v2 = g_physics_system;
-    }
-    v35 = (phys_free_list<rigid_body_constraint_wheel>::T_internal *)v2->m_list_rbc_wheel.m_dummy_head.m_next_T_internal;
-    for ( j = &v2->m_list_rbc_wheel;
-                &v2->m_list_rbc_wheel != (phys_free_list<rigid_body_constraint_wheel> *)v35;
-                j = &v2->m_list_rbc_wheel )
-    {
-        v37 = v35->m_data.b1;
-        if ( v37 && v37 == rb || (v38 = v35->m_data.b2) != 0 && v38 == rb )
-        {
-            v39 = (phys_free_list<rigid_body_constraint_wheel>::T_internal *)v35->m_next_T_internal;
-            if ( v35 != (phys_free_list<rigid_body_constraint_wheel>::T_internal *)-16 )
-            {
-                v40 = v35;
-                PMM_VALIDATE((char *)v35, 0xF0u, 0x10u);
-                if ( !v40
-                    && _tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h", 477, "data", "") )
-                {
-                    __debugbreak();
-                }
-                --j->m_list_count;
-                //phys_free_list<rigid_body_constraint_wheel>::debug_remove(j, v40);
-                j->debug_remove(v40);
-                v41 = v40->m_next_T_internal;
-                v42 = v40->m_prev_T_internal;
-                v42->m_next_T_internal = v41;
-                v41->m_prev_T_internal = v42;
-                PMM_FREE((unsigned __int8 *)v40, 0xF0u, 0x10u);
-            }
-            v35 = v39;
-            v2 = g_physics_system;
-        }
-        else
-        {
-            v35 = (phys_free_list<rigid_body_constraint_wheel>::T_internal *)v35->m_next_T_internal;
-        }
-    }
-    v43 = (phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *)v2->m_list_rbc_angular_actuator.m_dummy_head.m_next_T_internal;
-    p_m_list_rbc_angular_actuator = &v2->m_list_rbc_angular_actuator;
-    if ( &v2->m_list_rbc_angular_actuator != (phys_free_list<rigid_body_constraint_angular_actuator> *)v43 )
-    {
-        do
-        {
-            v45 = v43->m_data.b1;
-            if ( v45 && v45 == rb || (v46 = v43->m_data.b2) != 0 && v46 == rb )
-            {
-                v47 = (phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *)v43->m_next_T_internal;
-                if ( v43 != (phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *)-16 )
-                {
-                    v48 = v43;
-                    PMM_VALIDATE((char *)v43, 0xE0u, 0x10u);
-                    if ( !v48
-                        && _tlAssert(
-                                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
-                                 477,
-                                 "data",
-                                 "") )
-                    {
-                        __debugbreak();
-                    }
-                    --p_m_list_rbc_angular_actuator->m_list_count;
-                    //phys_free_list<rigid_body_constraint_angular_actuator>::debug_remove(p_m_list_rbc_angular_actuator, v48);
-                    p_m_list_rbc_angular_actuator->debug_remove(v48);
-                    v49 = v48->m_next_T_internal;
-                    v50 = v48->m_prev_T_internal;
-                    v50->m_next_T_internal = v49;
-                    v49->m_prev_T_internal = v50;
-                    PMM_FREE((unsigned __int8 *)v48, 0xE0u, 0x10u);
-                }
-                v43 = v47;
-            }
-            else
-            {
-                v43 = (phys_free_list<rigid_body_constraint_angular_actuator>::T_internal *)v43->m_next_T_internal;
-            }
-            p_m_list_rbc_angular_actuator = &g_physics_system->m_list_rbc_angular_actuator;
-        }
-        while ( &g_physics_system->m_list_rbc_angular_actuator != (phys_free_list<rigid_body_constraint_angular_actuator> *)v43 );
-        v2 = g_physics_system;
-    }
-    v51 = (phys_free_list<rigid_body_constraint_upright>::T_internal *)v2->m_list_rbc_upright.m_dummy_head.m_next_T_internal;
-    for ( k = &v2->m_list_rbc_upright;
-                &v2->m_list_rbc_upright != (phys_free_list<rigid_body_constraint_upright> *)v51;
-                k = &v2->m_list_rbc_upright )
-    {
-        v53 = v51->m_data.b1;
-        if ( v53 && v53 == rb || (v54 = v51->m_data.b2) != 0 && v54 == rb )
-        {
-            v55 = (phys_free_list<rigid_body_constraint_upright>::T_internal *)v51->m_next_T_internal;
-            if ( v51 != (phys_free_list<rigid_body_constraint_upright>::T_internal *)-16 )
-            {
-                v56 = v51;
-                PMM_VALIDATE((char *)v51, 0xD0u, 0x10u);
-                if ( !v56
-                    && _tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h", 477, "data", "") )
-                {
-                    __debugbreak();
-                }
-                --k->m_list_count;
-                //phys_free_list<rigid_body_constraint_upright>::debug_remove(k, v56);
-                k->debug_remove(v56);
-                v57 = v56->m_next_T_internal;
-                v58 = v56->m_prev_T_internal;
-                v58->m_next_T_internal = v57;
-                v57->m_prev_T_internal = v58;
-                PMM_FREE((unsigned __int8 *)v56, 0xD0u, 0x10u);
-            }
-            v51 = v55;
-            v2 = g_physics_system;
-        }
-        else
-        {
-            v51 = (phys_free_list<rigid_body_constraint_upright>::T_internal *)v51->m_next_T_internal;
-        }
-    }
-    v59 = (phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *)v2->m_list_rbc_custom_orientation.m_dummy_head.m_next_T_internal;
-    p_m_list_rbc_custom_orientation = &v2->m_list_rbc_custom_orientation;
-    if ( &v2->m_list_rbc_custom_orientation != (phys_free_list<rigid_body_constraint_custom_orientation> *)v59 )
-    {
-        do
-        {
-            v61 = v59->m_data.b1;
-            if ( v61 && v61 == rb || (v62 = v59->m_data.b2) != 0 && v62 == rb )
-            {
-                v63 = (phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *)v59->m_next_T_internal;
-                if ( v59 != (phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *)-8 )
-                {
-                    v64 = v59;
-                    PMM_VALIDATE((char *)v59, 0x3Cu, 4u);
-                    if ( !v64
-                        && _tlAssert(
-                                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
-                                 477,
-                                 "data",
-                                 "") )
-                    {
-                        __debugbreak();
-                    }
-                    --p_m_list_rbc_custom_orientation->m_list_count;
-                    //phys_free_list<rigid_body_constraint_custom_orientation>::debug_remove(p_m_list_rbc_custom_orientation, v64);
-                    p_m_list_rbc_custom_orientation->debug_remove(v64);
-                    v65 = v64->m_next_T_internal;
-                    v66 = v64->m_prev_T_internal;
-                    v66->m_next_T_internal = v65;
-                    v65->m_prev_T_internal = v66;
-                    PMM_FREE((unsigned __int8 *)v64, 0x3Cu, 4u);
-                }
-                v59 = v63;
-            }
-            else
-            {
-                v59 = (phys_free_list<rigid_body_constraint_custom_orientation>::T_internal *)v59->m_next_T_internal;
-            }
-            p_m_list_rbc_custom_orientation = &g_physics_system->m_list_rbc_custom_orientation;
-        }
-        while ( &g_physics_system->m_list_rbc_custom_orientation != (phys_free_list<rigid_body_constraint_custom_orientation> *)v59 );
-        v2 = g_physics_system;
-    }
-    v67 = (phys_free_list<rigid_body_constraint_custom_path>::T_internal *)v2->m_list_rbc_custom_path.m_dummy_head.m_next_T_internal;
-    for ( m = &v2->m_list_rbc_custom_path;
-                &v2->m_list_rbc_custom_path != (phys_free_list<rigid_body_constraint_custom_path> *)v67;
-                m = &v2->m_list_rbc_custom_path )
-    {
-        v69 = v67->m_data.b1;
-        if ( v69 && v69 == rb || (v70 = v67->m_data.b2) != 0 && v70 == rb )
-        {
-            v71 = (phys_free_list<rigid_body_constraint_custom_path>::T_internal *)v67->m_next_T_internal;
-            if ( v67 != (phys_free_list<rigid_body_constraint_custom_path>::T_internal *)-16 )
-            {
-                v72 = v67;
-                PMM_VALIDATE((char *)v67, 0xA0u, 0x10u);
-                if ( !v72
-                    && _tlAssert("c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h", 477, "data", "") )
-                {
-                    __debugbreak();
-                }
-                --m->m_list_count;
-                //phys_free_list<rigid_body_constraint_custom_path>::debug_remove(m, v72);
-                m->debug_remove(v72);
-                v73 = v72->m_next_T_internal;
-                v74 = v72->m_prev_T_internal;
-                v74->m_next_T_internal = v73;
-                v73->m_prev_T_internal = v74;
-                PMM_FREE((unsigned __int8 *)v72, 0xA0u, 0x10u);
-            }
-            v67 = v71;
-            v2 = g_physics_system;
-        }
-        else
-        {
-            v67 = (phys_free_list<rigid_body_constraint_custom_path>::T_internal *)v67->m_next_T_internal;
-        }
-    }
-    v75 = (phys_free_list<rigid_body_constraint_contact>::T_internal *)v2->m_list_rbc_contact.m_dummy_head.m_next_T_internal;
-    p_m_list_rbc_contact = &v2->m_list_rbc_contact;
-    if ( &v2->m_list_rbc_contact != (phys_free_list<rigid_body_constraint_contact> *)v75 )
-    {
-        do
-        {
-            v77 = v75->m_data.b1;
-            if ( v77 && v77 == rb || (v78 = v75->m_data.b2) != 0 && v78 == rb )
-            {
-                v79 = (phys_free_list<rigid_body_constraint_contact>::T_internal *)v75->m_next_T_internal;
-                if ( v75 != (phys_free_list<rigid_body_constraint_contact>::T_internal *)-8 )
-                {
-                    v80 = v75;
-                    PMM_VALIDATE((char *)v75, 0x38u, 4u);
-                    if ( !v80 )
-                    {
-                        if ( _tlAssert(
-                                     "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_mem.h",
-                                     477,
-                                     "data",
-                                     "") )
-                        {
-                            __debugbreak();
-                        }
-                    }
-                    --p_m_list_rbc_contact->m_list_count;
-                    //phys_free_list<rigid_body_constraint_contact>::debug_remove(p_m_list_rbc_contact, v80);
-                    p_m_list_rbc_contact->debug_remove(v80);
-                    v81 = v80->m_prev_T_internal;
-                    v82 = v80->m_next_T_internal;
-                    v81->m_next_T_internal = v82;
-                    v82->m_prev_T_internal = v81;
-                    //rigid_body_constraint_contact::~rigid_body_constraint_contact(&v80->m_data);
-                    v80->m_data.~rigid_body_constraint_contact();
-                    PMM_FREE((unsigned __int8 *)v80, 0x38u, 4u);
-                }
-                v75 = v79;
-            }
-            else
-            {
-                v75 = (phys_free_list<rigid_body_constraint_contact>::T_internal *)v75->m_next_T_internal;
-            }
-            p_m_list_rbc_contact = &g_physics_system->m_list_rbc_contact;
-        }
-        while ( &g_physics_system->m_list_rbc_contact != (phys_free_list<rigid_body_constraint_contact> *)v75 );
-    }
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_point, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_hinge, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_dist, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_ragdoll, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_wheel, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_angular_actuator, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_upright, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_custom_orientation, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_custom_path, rb);
+    destroy_all_constraint_in_list(g_physics_system->m_list_rbc_contact, rb);
 }
 
 void __cdecl phys_sys::destroy_all_constraint_with_user_rigid_body(rigid_body *const rb)
@@ -2214,7 +1760,9 @@ rigid_body_constraint_contact *__cdecl create(
     if ( result )
         return result;
     p_m_list_rbc_contact = &v6->m_list_rbc_contact;
-    v9 = (phys_free_list<rigid_body_constraint_contact>::T_internal *)PMM_ALLOC(0x38u, 4u);
+    v9 = (phys_free_list<rigid_body_constraint_contact>::T_internal *)PMM_ALLOC(
+        sizeof(phys_free_list<rigid_body_constraint_contact>::T_internal),
+        phys_slot_alignment(sizeof(phys_free_list<rigid_body_constraint_contact>::T_internal)));
     if ( v9 )
     {
         v9->m_data.m_list_contact_point_info_buffer_1.m_first = 0;

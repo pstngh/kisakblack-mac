@@ -279,7 +279,7 @@ struct __declspec(align(8)) jqAtomicQueue//<jqBatch,32> // sizeof=0x50
     void AllocateNodeBlock(int Count)
     {
         int blockSize = Count * sizeof(NodeType);
-        NodeType *block = (NodeType *)tlMemAlloc(blockSize + sizeof(NodeBlockEntry), 4u, 0);
+        NodeType *block = (NodeType *)tlMemAlloc(blockSize + sizeof(NodeBlockEntry), alignof(NodeType), 0);
 
         // Chain the nodes
         for (int i = 0; i < Count - 1; ++i)

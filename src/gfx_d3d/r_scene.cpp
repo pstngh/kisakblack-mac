@@ -1343,7 +1343,7 @@ void R_AddXModelSurfacesCamera(
     int totalVertCount; // [esp+14h] [ebp-34h]
     GfxDrawSurf drawSurf; // [esp+18h] [ebp-30h] BYREF
     int totalTriCount; // [esp+24h] [ebp-24h]
-    Material *const *material; // [esp+28h] [ebp-20h]
+    const Ptr32<Material> *material; // [esp+28h] [ebp-20h]
     unsigned int subMatIndex; // [esp+2Ch] [ebp-1Ch]
     int skinnedCachedOffset; // [esp+30h] [ebp-18h]
     int lod; // [esp+34h] [ebp-14h]
@@ -1521,7 +1521,7 @@ GfxDrawSurf *__cdecl R_AddXModelSurfaces(
                 GfxDrawSurf *lastDrawSurf)
 {
     unsigned int surfId; // [esp+10h] [ebp-2Ch]
-    Material **material; // [esp+14h] [ebp-28h]
+    Ptr32<Material> *material; // [esp+14h] [ebp-28h]
     unsigned int subMatIndex; // [esp+18h] [ebp-24h]
     unsigned __int64 newDrawSurf; // [esp+1Ch] [ebp-20h]
     int skinnedCachedOffset; // [esp+28h] [ebp-14h]
@@ -1653,7 +1653,8 @@ void __cdecl R_AddDObjSurfacesCamera(
     const DObj *obj; // [esp+48h] [ebp-6Ch]
     GfxDrawSurf drawSurf; // [esp+4Ch] [ebp-68h] BYREF
     int totalTriCount; // [esp+58h] [ebp-5Ch]
-    Material *const *material; // [esp+5Ch] [ebp-58h]
+    const Ptr32<Material> *material; // [esp+5Ch] [ebp-58h]
+    Ptr32<Material> infraredWhite; // slot like XModelGetSkins' entries
     XModel *model; // [esp+60h] [ebp-54h]
     unsigned int subMatIndex; // [esp+64h] [ebp-50h]
     unsigned int surfSize; // [esp+68h] [ebp-4Ch]
@@ -1759,7 +1760,10 @@ void __cdecl R_AddDObjSurfacesCamera(
                 while ( subMatIndex < numsurfs )
                 {
                     if ( infraredDraw )
-                        material = &rgp.infraredWhite;
+                    {
+                        infraredWhite = rgp.infraredWhite;
+                        material = &infraredWhite;
+                    }
                     skinnedSurf = (GfxModelSkinnedSurface *)modelSurf;
                     skinnedCachedOffset = *(unsigned int *)modelSurf;
                     if ( skinnedCachedOffset == -2 )
@@ -1902,7 +1906,7 @@ GfxDrawSurf *__cdecl R_AddDObjSurfaces(
     unsigned int surfId; // [esp+1Ch] [ebp-58h]
     unsigned int surfIda; // [esp+1Ch] [ebp-58h]
     DObj *obj; // [esp+20h] [ebp-54h]
-    Material **material; // [esp+24h] [ebp-50h]
+    Ptr32<Material> *material; // [esp+24h] [ebp-50h]
     XModel *model; // [esp+28h] [ebp-4Ch]
     unsigned int subMatIndex; // [esp+2Ch] [ebp-48h]
     unsigned int surfSize; // [esp+30h] [ebp-44h]

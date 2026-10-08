@@ -30,7 +30,7 @@ struct clientControllers_t // sizeof=0x60
 struct CEntPlayerInfo // sizeof=0x18
 {                                                                             // XREF: $251974A72D8ACF7EC8C19B3B5F3F224B/r
                                                                                 // ?G_PlayerController@@YAXPBUgentity_s@@QAH@Z/r
-        clientControllers_t *control;             // XREF: G_PlayerController(gentity_s const *,int * const)+166/w
+        Ptr32<clientControllers_t> control;             // XREF: G_PlayerController(gentity_s const *,int * const)+166/w
         unsigned __int8 tag[6];                         // XREF: G_PlayerController(gentity_s const *,int * const)+133/w
                                                                                 // G_PlayerController(gentity_s const *,int * const)+13D/o
         // padding byte
@@ -52,7 +52,7 @@ struct __declspec(align(4)) CEntTurretInfo // sizeof=0x20
         union //$4EE5A6C5EBB6111004F076A4831D37E2 // sizeof=0x8
         {                                                                             // XREF: CEntTurretInfo/r
             CEntTurretAngles angles;
-            const float *viewAngles;
+            Ptr32<const float> viewAngles;
         };
         float barrelPitch;
         float pivotOffset;
@@ -287,25 +287,25 @@ struct centity_s // sizeof=0x328
         int lastMuzzleFlash;
         unsigned __int16 attachModelNames[2];
         unsigned __int16 attachTagNames[2];
-        XAnimTree_s *tree;
-        Destructible *destructible;
-        NitrousVehicle *nitrousVeh;
-        cLinkInfo_s *linkInfo;
-        cgVehicle_s *vehicle;
-        ClientTagCache *clientTagCache;
-        AimTargetCache *aimTargetInfo;
-        cgScriptMover_s *cScriptMover;
+        Ptr32<XAnimTree_s> tree;
+        Ptr32<Destructible> destructible;
+        Ptr32<NitrousVehicle> nitrousVeh;
+        Ptr32<cLinkInfo_s> linkInfo;
+        Ptr32<cgVehicle_s> vehicle;
+        Ptr32<ClientTagCache> clientTagCache;
+        Ptr32<AimTargetCache> aimTargetInfo;
+        Ptr32<cgScriptMover_s> cScriptMover;
         int numBulletImpacts;
         int nextSlideFX;
         int fireTime;
         unsigned __int16 flagIndex;
         unsigned __int16 flagState;
-        Material *compassMaterial;
+        Ptr32<Material> compassMaterial;
         int lastTrailTime;
         unsigned int fxTrailHandle;
         unsigned int fxProjExplosion;
         unsigned int fxHeartbeat;
-        centity_s *updateDelayedNext;
+        Ptr32<centity_s> updateDelayedNext;
         unsigned __int32 applyLeftHandIK : 1;
         unsigned __int32 nextValid : 1;
         unsigned __int32 bMuzzleFlash : 1;
@@ -339,7 +339,7 @@ struct centity_s // sizeof=0x328
         // padding bit
         // padding bit
 };
-static_assert(sizeof(void *) != 4 || sizeof(centity_s) == 0x328);
+static_assert(sizeof(centity_s) == 0x328);   // code addresses it by 32-bit offsets
 
 struct fake_centity_s // sizeof=0x32C
 {                                                                             // XREF: fake_centity_t/r

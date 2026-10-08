@@ -355,12 +355,12 @@ const cent_field_s cent_fields[25] =
 {
   { "origin", 48, { 12 }, F_VECTOR, &CScr_SetOrigin, NULL },
   { "angles", 60, { 12 }, F_VECTOR, &CScr_SetAngles, NULL },
-  { "weapon", 690, { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetWeaponName },
-  { "targetname", 694, { 2 }, F_STRING, NULL, NULL },
-  { "species", 576, { 4 }, F_STRING, &CScr_ReadOnly, &CScr_GetSpecies },
-  { "isdog", 576, { 4 }, F_INT, &CScr_ReadOnly, &CScr_GetIsDog },
-  { "type", 678, { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetType },
-  { "model", 678, { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetModel },
+  { "weapon", offsetof(centity_s, nextState.weapon), { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetWeaponName },
+  { "targetname", offsetof(centity_s, nextState.targetname), { 2 }, F_STRING, NULL, NULL },
+  { "species", offsetof(centity_s, nextState.lerp.u.loopFx.period), { 4 }, F_STRING, &CScr_ReadOnly, &CScr_GetSpecies },
+  { "isdog", offsetof(centity_s, nextState.lerp.u.loopFx.period), { 4 }, F_INT, &CScr_ReadOnly, &CScr_GetIsDog },
+  { "type", offsetof(centity_s, nextState.eType), { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetType },
+  { "model", offsetof(centity_s, nextState.eType), { 2 }, F_STRING, &CScr_ReadOnly, &CScr_GetModel },
   {
     "vehicletype",
     0,
@@ -371,7 +371,7 @@ const cent_field_s cent_fields[25] =
   },
   {
     "vehicleclass",
-    624,
+    offsetof(centity_s, nextState.vehicleState.vehicleInfoIndex),
     { 1 },
     F_LSTRING,
     &CScr_ReadOnly,
@@ -379,7 +379,7 @@ const cent_field_s cent_fields[25] =
   },
   {
     "treadfxname",
-    624,
+    offsetof(centity_s, nextState.vehicleState.vehicleInfoIndex),
     { 1 },
     F_LSTRING,
     &CScr_ReadOnly,
@@ -387,7 +387,7 @@ const cent_field_s cent_fields[25] =
   },
   {
     "treadfxnamearray",
-    624,
+    offsetof(centity_s, nextState.vehicleState.vehicleInfoIndex),
     { 1 },
     F_LSTRING,
     &CScr_ReadOnly,
@@ -473,8 +473,8 @@ const cent_field_s cent_fields[25] =
     &CScr_ReadOnly,
     &VehicleCScr_GetVehicleInfoField
   },
-  { "enemy", 584, { 4 }, F_ENTITY, &CScr_ReadOnly, &CScr_GetEntityByIndex },
-  { "team", 703, { 1 }, F_STRING, &CScr_ReadOnly, &CScr_GetTeamName },
+  { "enemy", offsetof(centity_s, nextState.lerp.u.turret.ownerNum), { 4 }, F_ENTITY, &CScr_ReadOnly, &CScr_GetEntityByIndex },
+  { "team", offsetof(centity_s, nextState.faction), { 1 }, F_STRING, &CScr_ReadOnly, &CScr_GetTeamName },
   { NULL, 0, { 0 }, F_INT, NULL, NULL }
 };
 
@@ -773,7 +773,7 @@ void __cdecl CScr_GetModel(centity_s *cent, const cent_field_s *pField)
         case 6:
             if (cent->nextState.solid == 0xFFFFFF)
                 goto LABEL_20;
-            model = cent->destructible ? Destructible_GetDDef(cent)->model : cgs->gameModels[cent->nextState.index.brushmodel];
+            model = cent->destructible ? (XModel *)Destructible_GetDDef(cent)->model : cgs->gameModels[cent->nextState.index.brushmodel];
             if ( !model || !model->name )
                 goto LABEL_20;
             Scr_AddString((char *)model->name, SCRIPTINSTANCE_CLIENT);

@@ -1,0 +1,3 @@
+set output dump
+set bind-root false
+match binaryOperator(hasAnyOperatorName("+", "-"), hasLHS(ignoringParenImpCasts(explicitCastExpr(hasDestinationType(pointerType(pointee(anyOf(isInteger(), realFloatingPointType(), voidType())))), hasSourceExpression(ignoringParenImpCasts(expr(hasType(pointerType(pointee(hasUnqualifiedDesugaredType(recordType()))))).bind("base")))))), hasRHS(ignoringParenImpCasts(integerLiteral())))

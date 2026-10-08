@@ -1,5 +1,6 @@
 // gl_format.cpp — D3DFORMAT → OpenGL format mapping.
 #include "gl_format.h"
+#include "gl_platform.h"
 
 #include <GL/glew.h>
 
@@ -43,10 +44,16 @@ bool D3DToGLFormat(D3DFORMAT fmt, unsigned *internal, unsigned *format, unsigned
         case D3DFMT_R5G6B5:   *internal = GL_RGB5;  *format = GL_RGB;  *type = GL_UNSIGNED_SHORT_5_6_5;     *bpp = 2; return true;
         case D3DFMT_A8:       *internal = GL_R8;    *format = GL_RED;  *type = GL_UNSIGNED_BYTE;            *bpp = 1; return true;
         case D3DFMT_L8:       *internal = GL_R8;    *format = GL_RED;  *type = GL_UNSIGNED_BYTE;            *bpp = 1; return true;
+#if defined(KB_GL_CORE)
+        // A8L8: core GL has no luminance formats. L lands in R, A in G (D3D stores
+        // L in the low byte); D3DApplyFormatSwizzle makes it sample as (L,L,L,A).
+        case D3DFMT_A8L8:     *internal = GL_RG8;   *format = GL_RG;   *type = GL_UNSIGNED_BYTE;            *bpp = 2; return true;
+#else
         // A8L8: luminance+alpha. The compatibility context (#version 120 GLSL with
         // gl_FragColor/texture2D) keeps GL_LUMINANCE_ALPHA, which samples as (L,L,L,A)
         // exactly like D3D — so shaders reading .rgb (luminance) and .a (alpha) match.
         case D3DFMT_A8L8:     *internal = GL_LUMINANCE8_ALPHA8; *format = GL_LUMINANCE_ALPHA; *type = GL_UNSIGNED_BYTE; *bpp = 2; return true;
+#endif
         // Float / deep render-target formats (HDR scene, bloom, depth resolves). These
         // are rendered to and sampled entirely on the GPU, so only the GL internal
         // format matters; an unmapped HDR target gets no storage and samples as garbage
@@ -84,4 +91,20 @@ unsigned D3DCompressedGLFormat(D3DFORMAT fmt, int *blockBytes) {
         case 0x35545844: if (blockBytes) *blockBytes = 16; return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;  // 'DXT5'
         default: return 0;
     }
+}
+
+void D3DApplyFormatSwizzle(unsigned target, D3DFORMAT fmt)
+{
+#if defined(KB_GL_CORE)
+    GLint swz[4];
+    switch (fmt) {
+        case D3DFMT_L8:   swz[0] = swz[1] = swz[2] = GL_RED; swz[3] = GL_ONE;   break;   // (L,L,L,1)
+        case D3DFMT_A8:   swz[0] = swz[1] = swz[2] = GL_ZERO; swz[3] = GL_RED;  break;   // (0,0,0,A)
+        case D3DFMT_A8L8: swz[0] = swz[1] = swz[2] = GL_RED; swz[3] = GL_GREEN; break;   // (L,L,L,A)
+        default: return;
+    }
+    glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swz);
+#else
+    (void)target; (void)fmt;
+#endif
 }

@@ -811,7 +811,7 @@ void __thiscall Scr_ScriptWindow::EnterCallInternal(scriptInstance_t inst)
             if ( Sys_IsRemoteDebugServer() )
                 Sys_EndWriteDebugSocket();
         }
-        v3 = *(const char **)++codePos;
+        v3 = (const char *)Ptr32_Decode(*(unsigned int *)++codePos);
         codePos += 4;
         destCodePos = v3;
         Scr_GetSourcePosOfType(inst, v3 - 1, 4, &pos);
@@ -951,9 +951,9 @@ void __thiscall Scr_ScriptList::Init(scriptInstance_t inst)
     qsort(
         &scriptWindowsNames[1],
         this->numLines - 1,
-        4u,
+        sizeof(const char *),
         (int (__cdecl *)(const void *, const void *))ConDrawInput_CompareStrings);
-    this->scriptWindows = (Scr_ScriptWindow **)Scr_AllocDebugMem(inst, 4 * this->numLines, "Scr_ScriptList::Init2");
+    this->scriptWindows = (Scr_ScriptWindow **)Scr_AllocDebugMem(inst, sizeof(Scr_ScriptWindow *) * this->numLines, "Scr_ScriptList::Init2");
     memset(&info, 0, sizeof(info));
     Hunk_CheckTempMemoryHighClear();
     Scr_AddSourceBuffer(inst, 0, (char*)"scriptdebugger/help.txt", 0, 0);
@@ -1650,12 +1650,12 @@ void __thiscall Scr_ScriptWatch::EvaluateWatchChildren(
             oldChildCount = parentElement->childCount;
             newElements = (Scr_WatchElement_s *)Scr_AllocDebugMem(
                 inst,
-                100 * count,
+                sizeof(Scr_WatchElement_s) * count,
                 "Scr_ScriptWatch::EvaluateWatchChildren3");
-            memset(&newElements->expr.parseData, 0, 100 * count);
+            memset(&newElements->expr.parseData, 0, sizeof(Scr_WatchElement_s) * count);
             newElementOldRef = (Scr_WatchElement_s **)Scr_AllocDebugMem(
                 inst,
-                4 * count,
+                sizeof(Scr_WatchElement_s *) * count,
                 "Scr_ScriptWatch::EvaluateWatchChildren");
             v11 = oldElements && parentElement->objectType == oldObjectType;
             sameType = v11;
@@ -2343,7 +2343,7 @@ void __cdecl Scr_SortElementChildren(scriptInstance_t inst, Scr_WatchElement_s *
             v2 = 0;
         else
             v2 = elementList[newIndexa + 1];
-        *(unsigned int *)Ptr32_Decode(elementList[newIndexa] + 96) = v2;
+        ((Scr_WatchElement_s *)Ptr32_Decode(elementList[newIndexa]))->next = (Scr_WatchElement_s *)Ptr32_Decode(v2);
     }
     parentElement->childHead = (Scr_WatchElement_s *)Ptr32_Decode(*elementList);
     Scr_FreeDebugMem(inst, (char *)elementList);
@@ -2351,17 +2351,18 @@ void __cdecl Scr_SortElementChildren(scriptInstance_t inst, Scr_WatchElement_s *
 
 int __cdecl CompareThreadElements(int *arg1, int *arg2)
 {
-    int elements; // [esp+8h] [ebp-8h]
-    int elements_4; // [esp+Ch] [ebp-4h]
+    // the list holds encoded element pointers; use the members, not the 32-bit offsets (+72 bufferIndex, +76 sourcePos, +48 fieldName)
+    Scr_WatchElement_s *elements; // [esp+8h] [ebp-8h]
+    Scr_WatchElement_s *elements_4; // [esp+Ch] [ebp-4h]
 
-    elements = *arg1;
-    elements_4 = *arg2;
-    if ( gScrParserPub[sortInst].sourceBufferLookup[*(unsigned int *)Ptr32_Decode(*arg1 + 72)].sortedIndex != gScrParserPub[sortInst].sourceBufferLookup[*(unsigned int *)Ptr32_Decode(*arg2 + 72)].sortedIndex )
-        return gScrParserPub[sortInst].sourceBufferLookup[*(unsigned int *)Ptr32_Decode(*arg1 + 72)].sortedIndex
-                 - gScrParserPub[sortInst].sourceBufferLookup[*(unsigned int *)Ptr32_Decode(*arg2 + 72)].sortedIndex;
-    if ( *(unsigned int *)Ptr32_Decode(elements + 76) == *(unsigned int *)Ptr32_Decode(elements_4 + 76) )
-        return *(unsigned int *)Ptr32_Decode(elements + 48) - *(unsigned int *)Ptr32_Decode(elements_4 + 48);
-    return *(unsigned int *)Ptr32_Decode(elements + 76) - *(unsigned int *)Ptr32_Decode(elements_4 + 76);
+    elements = (Scr_WatchElement_s *)Ptr32_Decode(*arg1);
+    elements_4 = (Scr_WatchElement_s *)Ptr32_Decode(*arg2);
+    if ( gScrParserPub[sortInst].sourceBufferLookup[elements->bufferIndex].sortedIndex != gScrParserPub[sortInst].sourceBufferLookup[elements_4->bufferIndex].sortedIndex )
+        return gScrParserPub[sortInst].sourceBufferLookup[elements->bufferIndex].sortedIndex
+                 - gScrParserPub[sortInst].sourceBufferLookup[elements_4->bufferIndex].sortedIndex;
+    if ( elements->sourcePos == elements_4->sourcePos )
+        return elements->fieldName - elements_4->fieldName;
+    return elements->sourcePos - elements_4->sourcePos;
 }
 
 char __thiscall Scr_ScriptWatch::PostEvaluateWatchElement(
@@ -2608,7 +2609,7 @@ Scr_WatchElement_s *__cdecl Scr_CreateWatchElement(
 {
     Scr_WatchElement_s *element; // [esp+0h] [ebp-4h]
 
-    element = (Scr_WatchElement_s *)Scr_AllocDebugMem(inst, 100, name);
+    element = (Scr_WatchElement_s *)Scr_AllocDebugMem(inst, sizeof(Scr_WatchElement_s), name);
     memset(&element->expr.parseData, 0, sizeof(Scr_WatchElement_s));
     element->valueText = CopyString((char *)"", "Scr_CreateWatchElement", 0, inst);
     element->refText = CopyString(text, "Scr_CreateWatchElement", 0, inst);
@@ -2649,7 +2650,7 @@ void __thiscall Scr_ScriptWatch::AddElement(
                 __debugbreak();
             }
             gScrVarPub[inst].evaluate = 0;
-            Scr_ExecCode(inst, *(char **)(scriptExpr.parseData.stringValue + 4), this->localId);
+            Scr_ExecCode(inst, (char *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(scriptExpr.parseData.stringValue + 4)), this->localId);
             gScrVarPub[inst].evaluate = 1;
             SL_ShutdownSystem(inst, 2u);
             Scr_FreeDebugExpr(inst, &scriptExpr);
@@ -2999,7 +3000,7 @@ bool __cdecl Scr_RefToVariable(scriptInstance_t inst, unsigned int id, int isObj
     Scr_WatchElementNode_s **pElementNode; // [esp+Ch] [ebp-1Ch]
     Scr_WatchElementNode_s *elementNodeNext; // [esp+10h] [ebp-18h]
     Scr_WatchElementDoubleNode_t *breakpoints; // [esp+14h] [ebp-14h]
-    unsigned int *elementNodec; // [esp+18h] [ebp-10h]
+    Scr_WatchElementNode_s *elementNodec; // [esp+18h] [ebp-10h]
     Scr_WatchElementNode_s *elementNode; // [esp+18h] [ebp-10h]
     Scr_WatchElementNode_s *elementNodea; // [esp+18h] [ebp-10h]
     Scr_WatchElementNode_s *elementNodeb; // [esp+18h] [ebp-10h]
@@ -3040,7 +3041,7 @@ bool __cdecl Scr_RefToVariable(scriptInstance_t inst, unsigned int id, int isObj
     {
         if (!gScrDebuggerGlob[inst].add)
             return 0;
-        breakpoints = (Scr_WatchElementDoubleNode_t *)Scr_AllocDebugMem(inst, 8, "Scr_RefToVariable1");
+        breakpoints = (Scr_WatchElementDoubleNode_t *)Scr_AllocDebugMem(inst, sizeof(Scr_WatchElementDoubleNode_t), "Scr_RefToVariable1");
         breakpoints->list = 0;
         breakpoints->removedList = 0;
         gScrDebuggerGlob[inst].variableBreakpoints[ida] = breakpoints;
@@ -3057,10 +3058,10 @@ bool __cdecl Scr_RefToVariable(scriptInstance_t inst, unsigned int id, int isObj
     {
         if (*pElementNode)
             return 0;
-        elementNodec = Scr_AllocDebugMem(inst, 8, "Scr_RefToVariable2");
-        *elementNodec = (unsigned int)Ptr32_Encode(gScrDebuggerGlob[inst].currentElement);
-        elementNodec[1] = (unsigned int)Ptr32_Encode(breakpoints->list);
-        breakpoints->list = (Scr_WatchElementNode_s *)elementNodec;
+        elementNodec = (Scr_WatchElementNode_s *)Scr_AllocDebugMem(inst, sizeof(Scr_WatchElementNode_s), "Scr_RefToVariable2");
+        elementNodec->element = gScrDebuggerGlob[inst].currentElement;
+        elementNodec->next = breakpoints->list;
+        breakpoints->list = elementNodec;
     }
     else
     {
@@ -3415,10 +3416,10 @@ void __cdecl Scr_InitDebuggerMain(scriptInstance_t inst)
         }
         gScrDebuggerGlob[inst].variableBreakpoints = (Scr_WatchElementDoubleNode_t **)Hunk_UserAlloc(
                                                                                                                                                                         g_DebugHunkUser,
-                                                                                                                                                                        1179640,
+                                                                                                                                                                        0x47FFE * sizeof(Scr_WatchElementDoubleNode_t *),
                                                                                                                                                                         4,
                                                                                                                                                                         "gScrDebuggerGlob[inst].variableBreakpoints");
-        memset(gScrDebuggerGlob[inst].variableBreakpoints, 0, 0x11FFF8u);
+        memset(gScrDebuggerGlob[inst].variableBreakpoints, 0, 0x47FFE * sizeof(Scr_WatchElementDoubleNode_t *));
         gScrDebuggerGlob[inst].assignHead = 0;
         gScrDebuggerGlob[inst].assignHeadCodePos = 0;
         if ( inst )
@@ -3651,7 +3652,7 @@ void __cdecl Scr_AddAssignmentPos(scriptInstance_t inst, char *codePos)
     if (gScrCompilePub[inst].developer_statement != 2 && gScrDebuggerGlob[inst].assignHeadCodePos != codePos)
     {
         gScrDebuggerGlob[inst].assignHeadCodePos = codePos;
-        opcodeElement = (Scr_OpcodeList_s *)Hunk_UserAlloc(g_DebugHunkUser, 8, 4, "Scr_AddAssignmentPos");
+        opcodeElement = (Scr_OpcodeList_s *)Hunk_UserAlloc(g_DebugHunkUser, sizeof(Scr_OpcodeList_s), 4, "Scr_AddAssignmentPos");
         opcodeElement->codePos = codePos;
         opcodeElement->next = gScrDebuggerGlob[inst].assignHead;
         gScrDebuggerGlob[inst].assignHead = opcodeElement;
@@ -3750,8 +3751,8 @@ void __cdecl Scr_DisplayDebuggerRemote(scriptInstance_t inst)
     if (gScrDebuggerGlob[inst].atBreakpoint)
     {
         Sys_WriteDebugSocketMessageType(0x24u);
-        Sys_WriteDebugSocketInt(*(&gScrDebuggerGlob[0].scriptCallStack.numLines + 113 * inst));
-        for (line = 0; line < *(&gScrDebuggerGlob[0].scriptCallStack.numLines + 113 * inst); ++line)
+        Sys_WriteDebugSocketInt(gScrDebuggerGlob[inst].scriptCallStack.numLines);
+        for (line = 0; line < gScrDebuggerGlob[inst].scriptCallStack.numLines; ++line)
         {
             Sys_WriteDebugSocketInt(gScrDebuggerGlob[inst].scriptCallStack.stack[line].bufferIndex);
             Sys_WriteDebugSocketInt(gScrDebuggerGlob[inst].scriptCallStack.stack[line].sourcePos);
@@ -4507,7 +4508,7 @@ void __cdecl Scr_ToggleBreakpointRemote(scriptInstance_t inst)
     bool user; // [esp+Fh] [ebp-5h]
     Scr_WatchElement_s *element; // [esp+10h] [ebp-4h]
 
-    scriptWindow = (&gScrDebuggerGlob[0].scriptList.scriptWindows)[113 * inst][Sys_ReadDebugSocketInt()];
+    scriptWindow = gScrDebuggerGlob[inst].scriptList.scriptWindows[Sys_ReadDebugSocketInt()];
     scriptWindow->selectedLine = Sys_ReadDebugSocketInt();
     element = Scr_ReadElement(inst);
     force = Sys_ReadDebugSocketInt() != 0;
@@ -4540,7 +4541,7 @@ void __cdecl Scr_RunToCursorRemote(scriptInstance_t inst)
 {
     Scr_ScriptWindow *scriptWindow; // [esp+4h] [ebp-4h]
 
-    scriptWindow = (&gScrDebuggerGlob[0].scriptList.scriptWindows)[113 * inst][Sys_ReadDebugSocketInt()];
+    scriptWindow = gScrDebuggerGlob[inst].scriptList.scriptWindows[Sys_ReadDebugSocketInt()];
     scriptWindow->selectedLine = Sys_ReadDebugSocketInt();
     //Scr_ScriptWindow::RunToCursor(scriptWindow, inst);
     scriptWindow->RunToCursor(inst);
@@ -4550,7 +4551,7 @@ void __cdecl Scr_EnterCallRemote(scriptInstance_t inst)
 {
     Scr_ScriptWindow *scriptWindow; // [esp+4h] [ebp-4h]
 
-    scriptWindow = (&gScrDebuggerGlob[0].scriptList.scriptWindows)[113 * inst][Sys_ReadDebugSocketInt()];
+    scriptWindow = gScrDebuggerGlob[inst].scriptList.scriptWindows[Sys_ReadDebugSocketInt()];
     scriptWindow->selectedLine = Sys_ReadDebugSocketInt();
     //Scr_ScriptWindow::EnterCallInternal(scriptWindow, inst);
     scriptWindow->EnterCallInternal(inst);

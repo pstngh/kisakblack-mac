@@ -26,4 +26,8 @@ bool D3DFormatNeedsBGRASwizzle(D3DFORMAT fmt);
 // returns 0 for non-compressed formats.
 unsigned D3DCompressedGLFormat(D3DFORMAT fmt, int *blockBytes);
 
+// Sets the bound texture's swizzle so formats stored in R/RG sample like D3D
+// (core GL has no luminance/alpha formats). No-op where nothing is remapped.
+void D3DApplyFormatSwizzle(unsigned target, D3DFORMAT fmt);
+
 #endif // KISAK_GL_FORMAT_H

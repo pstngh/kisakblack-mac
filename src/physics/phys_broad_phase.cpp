@@ -54,8 +54,8 @@ void __thiscall broad_phase_base_list::add(broad_phase_base *bpb)
     {
         //cur = (broad_phase_base_list::node *)phys_transient_allocator::mt_allocate(
         cur = (broad_phase_base_list::node *)G_BPM->g_collision_memory_buffer.mt_allocate(
-            8,
-            4,
+            sizeof(broad_phase_base_list::node),
+            alignof(broad_phase_base_list::node),
             0,
             "broad phase collision out of memory.");
         *this->m_list_cur = cur;
@@ -416,19 +416,22 @@ void __thiscall axis_aligned_sweep_and_prune::sap_node::init(
 {
     this->m_bpb = bpb;
     this->m_updated = 0;
-    *(_QWORD *)&this->m_ae1[0][0].m_node = (unsigned int)Ptr32_Encode(this);
+    this->m_ae1[0][0].m_node = this;
+    this->m_ae1[0][0].m_min_max = 0;
     this->m_ae1[0][1].m_node = this;
     this->m_ae1[0][1].m_min_max = 1;
     this->m_ae1[0][0].m_next = &this->m_ae1[0][1];
     this->m_ae1[0][1].m_next = *xlist;
     *xlist = this->m_ae1[0];
-    *(_QWORD *)&this->m_ae1[1][0].m_node = (unsigned int)Ptr32_Encode(this);
+    this->m_ae1[1][0].m_node = this;
+    this->m_ae1[1][0].m_min_max = 0;
     this->m_ae1[1][1].m_node = this;
     this->m_ae1[1][1].m_min_max = 1;
     this->m_ae1[1][0].m_next = &this->m_ae1[1][1];
     this->m_ae1[1][1].m_next = *ylist;
     *ylist = this->m_ae1[1];
-    *(_QWORD *)&this->m_ae1[2][0].m_node = (unsigned int)Ptr32_Encode(this);
+    this->m_ae1[2][0].m_node = this;
+    this->m_ae1[2][0].m_min_max = 0;
     this->m_ae1[2][1].m_node = this;
     this->m_ae1[2][1].m_min_max = 1;
     this->m_ae1[2][0].m_next = &this->m_ae1[2][1];
@@ -999,7 +1002,7 @@ void broad_phase_process_object_environment_collision(bpi_environment_collision_
 
     phys_transient_allocator transient_buffer;
     m_bpb_i_start = eci->m_bpb_i_start;
-    bpb_ptr_list = (broad_phase_base **)transient_buffer.allocate(sizeof(broad_phase_base *) * eci->m_bpb_count, 4, 0, "phys_transient_allocator out of memory.");
+    bpb_ptr_list = (broad_phase_base **)transient_buffer.allocate(sizeof(broad_phase_base *) * eci->m_bpb_count, sizeof(broad_phase_base *), 0, "phys_transient_allocator out of memory.");
     bpb_ptr_cur = bpb_ptr_list;
 
     for (broad_phase_base *bpb = eci->m_bpb_i_start; bpb != eci->m_bpb_i_end; bpb = bpb->m_list_bpb_next)
@@ -1864,7 +1867,7 @@ void __cdecl destroy_broad_phase_info(broad_phase_info *bpi)
         using TI = phys_free_list<broad_phase_info>::T_internal;
         static_assert(sizeof(void *) != 4 || sizeof(TI) == 0x90, "size mismatch");
         TI *ti = (TI *)((char *)bpi - offsetof(TI, m_data));
-        PMM_VALIDATE((char *)ti, sizeof(TI), 16);
+        PMM_VALIDATE((char *)ti, sizeof(TI), phys_slot_alignment(sizeof(TI)));
         G_BPM->g_list_broad_phase_info.remove(ti);
     }
 
@@ -1921,7 +1924,9 @@ broad_phase_collision_pair *__cdecl create_broad_phase_collision_pair()
     phys_free_list<broad_phase_collision_pair>::T_internal *v2; // esi
 
     p_g_list_broad_phase_collision_pair = &G_BPM->g_list_broad_phase_collision_pair;
-    v1 = (phys_free_list<broad_phase_collision_pair>::T_internal *)PMM_ALLOC(0x18u, 4u);
+    v1 = (phys_free_list<broad_phase_collision_pair>::T_internal *)PMM_ALLOC(
+        sizeof(phys_free_list<broad_phase_collision_pair>::T_internal),
+        phys_slot_alignment(sizeof(phys_free_list<broad_phase_collision_pair>::T_internal)));
     v2 = v1;
     if ( v1 )
     {
@@ -1990,7 +1995,9 @@ broad_phase_group *__cdecl create_broad_phase_group()
     phys_free_list<broad_phase_group>::T_internal *v2; // esi
 
     p_g_list_broad_phase_group = &G_BPM->g_list_broad_phase_group;
-    v1 = (phys_free_list<broad_phase_group>::T_internal *)PMM_ALLOC(0x80u, 0x10u);
+    v1 = (phys_free_list<broad_phase_group>::T_internal *)PMM_ALLOC(
+        sizeof(phys_free_list<broad_phase_group>::T_internal),
+        phys_slot_alignment(sizeof(phys_free_list<broad_phase_group>::T_internal)));
     v2 = v1;
     if ( v1 )
     {
@@ -2425,10 +2432,10 @@ int    bp_env_jq_batch_function2(jqBatch *pBatch)
     bpeqr.m_list_bpi_env.m_list_cur = (broad_phase_base_list::node **)&bpeqr;
     for (bpeqr.m_thread_id = v1; g_bpb_list_cur; bpb = g_bpb_list_cur)
     {
-        if ((broad_phase_base *)Ptr32_Decode(_InterlockedCompareExchange(
-            (volatile unsigned __int32 *)&g_bpb_list_cur,
-            (signed __int32)bpb->m_list_bpb_next,
-            (signed __int32)bpb)) == bpb)
+        if ((broad_phase_base *)InterlockedCompareExchangePointer(
+            (PVOID volatile *)&g_bpb_list_cur,
+            bpb->m_list_bpb_next,
+            bpb) == bpb)
         {
             check_terrain_query_params(bpb);
             bpeqr.m_list_bpi_env.m_list_cur = (broad_phase_base_list::node **)&bpeqr;
@@ -2510,7 +2517,7 @@ void __cdecl broad_phase_system_init(
 
     G_BPM = broad_phase_memory::allocate_buffer(bpmi);
 
-    g_axis_aligned_sweep_and_prune = (axis_aligned_sweep_and_prune *)PMM_PERM_ALLOCATE(sizeof(axis_aligned_sweep_and_prune), 4);
+    g_axis_aligned_sweep_and_prune = (axis_aligned_sweep_and_prune *)PMM_PERM_ALLOCATE(sizeof(axis_aligned_sweep_and_prune), alignof(axis_aligned_sweep_and_prune));
     g_axis_aligned_sweep_and_prune->m_sap_node_allocator.m_count = 0;
     g_axis_aligned_sweep_and_prune->m_active_pair_allocator.m_count = 0;
 
@@ -2570,10 +2577,8 @@ void    broad_phase_group::collision_prolog()
     double v32; // st7
     rb_vehicle_model *m_rbvm; // eax
     phys_wheel_collide_info *v34; // eax
-    int m_buffer; // esi
     int v36; // eax
     phys_vec3 *v37; // esi
-    float v38; // edi
     float *p_x; // edi
     double v40; // st7
     double v41; // st7
@@ -2603,7 +2608,6 @@ void    broad_phase_group::collision_prolog()
     phys_vec3 v65; // [esp-Ch] [ebp-BCh] BYREF
     phys_vec3 v66; // [esp+4h] [ebp-ACh] BYREF
     const phys_mat44 *half_dims_12; // [esp+18h] [ebp-98h]
-    const phys_mat44 *rb_mat; // [esp+1Ch] [ebp-94h]
     int wheel_count; // [esp+20h] [ebp-90h]
     phys_vec3 aabb2_min; // [esp+24h] [ebp-8Ch] BYREF
     phys_vec3 aabb2_max; // [esp+34h] [ebp-7Ch] BYREF
@@ -2625,7 +2629,6 @@ void    broad_phase_group::collision_prolog()
     //v83[1] = (_UNKNOWN *)vars0;
     v2 = this;
     v3 = this->m_list_bpi_head == 0;
-    wheel_count = (int)Ptr32_Encode(this);
     if (v3
         && _tlAssert(
             "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\collision\\phys_broad_phase_inline.h",
@@ -2743,12 +2746,11 @@ void    broad_phase_group::collision_prolog()
     m_rbvm = v2->m_rbvm;
     if (m_rbvm)
     {
-        rb_mat = (const phys_mat44 *)Ptr32_Decode(m_rbvm->m_wheels.m_alloc_count);
+        wheel_count = m_rbvm->m_wheels.m_alloc_count;
         //v34 = (phys_wheel_collide_info *)phys_transient_allocator::mt_allocate(&G_BPM->g_collision_memory_buffer, m_rbvm->m_wheels.m_alloc_count << 6, 16, 0, "broad phase collision out of memory.");
-        v34 = (phys_wheel_collide_info *)G_BPM->g_collision_memory_buffer.mt_allocate(m_rbvm->m_wheels.m_alloc_count << 6, 16, 0, "broad phase collision out of memory.");
-        m_buffer = (int)Ptr32_Encode(v2->m_rbvm->m_wheels.m_buffer);
+        v34 = (phys_wheel_collide_info *)G_BPM->g_collision_memory_buffer.mt_allocate(m_rbvm->m_wheels.m_alloc_count * sizeof(phys_wheel_collide_info), 16, 0, "broad phase collision out of memory.");
         v2->m_list_wci = v34;
-        if (*(int *)Ptr32_Decode(m_buffer + 20) <= 0
+        if (m_rbvm->m_wheels.m_alloc_count <= 0
             && _tlAssert(
                 "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
                 118,
@@ -2757,18 +2759,15 @@ void    broad_phase_group::collision_prolog()
         {
             __debugbreak();
         }
-        half_dims_12 = (const phys_mat44 *)Ptr32_Decode(***(_DWORD ***)(m_buffer + 16) + 48);
+        half_dims_12 = &m_rbvm->m_wheels.m_slot_array[0]->b1->m_mat;
         v36 = 0;
-        *(float *)&i = 0.0;
-        if ((int)Ptr32_Encode(rb_mat) > 0)
+        i = 0;
+        if (wheel_count > 0)
         {
-            v80 = 0.0;
             while (1)
             {
-                v37 = (phys_vec3 *)((char *)&v2->m_list_wci->m_ray_pos + LODWORD(v80));
-                LODWORD(v38) = (unsigned int)Ptr32_Encode(v2->m_rbvm->m_wheels.m_buffer);
-                v79 = v38;
-                if ((v36 < 0 || v36 >= *(_DWORD *)Ptr32_Decode(LODWORD(v38) + 20))
+                v37 = &v2->m_list_wci[i].m_ray_pos;
+                if ((v36 < 0 || v36 >= v2->m_rbvm->m_wheels.m_alloc_count)
                     && _tlAssert(
                         "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
                         118,
@@ -2779,12 +2778,12 @@ void    broad_phase_group::collision_prolog()
                 }
                 p_x = &v37[1].x;
                 //rigid_body_constraint_wheel::get_wheel_collide_segment*(rigid_body_constraint_wheel **)(*(_DWORD *)(LODWORD(v79) + 16) + 4 * i), (int)v83, half_dims_12, v37, v37 + 1);
-                (*(rigid_body_constraint_wheel **)(*(_DWORD *)Ptr32_Decode(LODWORD(v79) + 16) + 4 * i))->get_wheel_collide_segment(half_dims_12, v37, v37 + 1);
+                v2->m_rbvm->m_wheels.m_slot_array[i]->get_wheel_collide_segment(half_dims_12, v37, v37 + 1);
                 v37[1].x = v37[1].x - v37->x;
                 v37[1].y = v37[1].y - v37->y;
                 v37[1].z = v37[1].z - v37->z;
-                v37[3].y = 0.0;
-                v37[3].x = 1.0;
+                v2->m_list_wci[i].m_hit_bpi = 0;
+                v2->m_list_wci[i].m_hit_t = 1.0;
                 v40 = aabb1_min.z;
                 if (v37->z < (double)aabb1_min.z)
                     v40 = v37->z;
@@ -2848,10 +2847,9 @@ void    broad_phase_group::collision_prolog()
                 if (p1.x > (double)aabb2_max.x)
                     v51 = p1.x;
                 v79 = v51;
-                LODWORD(v80) += 64;
-                v2 = (broad_phase_group *)Ptr32_Decode(wheel_count);
+                v2 = this;
                 aabb2_max.x = v79;
-                v52 = i + 1 < (int)Ptr32_Encode(rb_mat);
+                v52 = i + 1 < wheel_count;
                 aabb2_max.y = v78;
                 ++i;
                 aabb2_max.z = v82;
@@ -2899,7 +2897,6 @@ void __thiscall broad_phase_group::collision_epilog()
     broad_phase_group *v1; // edi
     int v2; // esi
     phys_wheel_collide_info *v3; // ebx
-    int m_buffer; // edi
     int wheel_count; // [esp+8h] [ebp-Ch]
     int v7; // [esp+10h] [ebp-4h]
     int savedregs; // [esp+14h] [ebp+0h] BYREF
@@ -2917,8 +2914,7 @@ void __thiscall broad_phase_group::collision_epilog()
             while ( 1 )
             {
                 v3 = &v1->m_list_wci[v7];
-                m_buffer = (int)Ptr32_Encode(v1->m_rbvm->m_wheels.m_buffer);
-                if ( v2 < 0 || v2 >= *(unsigned int *)Ptr32_Decode(m_buffer + 20) )
+                if ( v2 < 0 || v2 >= v1->m_rbvm->m_wheels.m_alloc_count )
                 {
                     if ( _tlAssert(
                                  "c:\\projects_pc\\cod\\codsrc\\tl\\physics\\include\\phys_array_base.inc",
@@ -2930,7 +2926,7 @@ void __thiscall broad_phase_group::collision_epilog()
                     }
                 }
                 //phys_wheel_collide_info::collision_epilog(v3,(int)&savedregs, *(rigid_body_constraint_wheel **)(*(unsigned int *)(m_buffer + 16) + 4 * v2));
-                v3->collision_epilog(*(rigid_body_constraint_wheel **)(*(unsigned int *)Ptr32_Decode(m_buffer + 16) + 4 * v2));
+                v3->collision_epilog(v1->m_rbvm->m_wheels.m_slot_array[v2]);
                 ++v7;
                 if ( ++v2 >= wheel_count )
                     break;
@@ -3043,7 +3039,7 @@ void __cdecl add_collision_pair(
 
     iassert(hit_time >= 0.0f && hit_time <= 1.0f);
 
-    pair = (phys_collision_pair *)G_BPM->g_collision_memory_buffer.allocate(sizeof(phys_collision_pair), 4, 0, "phys_transient_allocator out of memory.");
+    pair = (phys_collision_pair *)G_BPM->g_collision_memory_buffer.allocate(sizeof(phys_collision_pair), alignof(phys_collision_pair), 0, "phys_transient_allocator out of memory.");
 
     pair->m_hit_time = hit_time;
     pair->m_bpi1 = bpi1;
@@ -3063,7 +3059,7 @@ void __cdecl add_collision_pair_mutex(
 
     iassert(hit_time >= 0.0f && hit_time <= 1.0f);
 
-    pair = (phys_collision_pair *)G_BPM->g_collision_memory_buffer.mt_allocate(sizeof(phys_collision_pair), 4, 0, "broad phase collision out of memory.");
+    pair = (phys_collision_pair *)G_BPM->g_collision_memory_buffer.mt_allocate(sizeof(phys_collision_pair), alignof(phys_collision_pair), 0, "broad phase collision out of memory.");
 
     iassert(pair); // LWSS ADD
 
@@ -3114,7 +3110,7 @@ void __thiscall axis_aligned_sweep_and_prune::add_active_pair(
     }
     if ( this->m_active_pair_allocator.m_count < this->m_max_num_active_pairs )
     {
-        v4 = (axis_aligned_sweep_and_prune::active_pair *)PMM_ALLOC(0x10u, 4u);
+        v4 = (axis_aligned_sweep_and_prune::active_pair *)PMM_ALLOC(sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
         if ( v4 )
         {
             ++this->m_active_pair_allocator.m_count;
@@ -3177,7 +3173,7 @@ void __thiscall axis_aligned_sweep_and_prune::create_sap_node(
 
     if ( bpb->m_sap_node && _tlAssert("source/phys_broad_phase.cpp", 496, "bpb->m_sap_node == NULL", "") )
         __debugbreak();
-    v3 = PMM_ALLOC(0x80u, 4u);
+    v3 = PMM_ALLOC(sizeof(axis_aligned_sweep_and_prune::sap_node), 4u);
     if ( v3 )
     {
         ++this->m_sap_node_allocator.m_count;
@@ -3196,31 +3192,31 @@ void __thiscall axis_aligned_sweep_and_prune::remove(
                 axis_aligned_sweep_and_prune::active_pair **list_ap,
                 axis_aligned_sweep_and_prune::sap_node *node)
 {
-    int i; // esi
+    axis_aligned_sweep_and_prune::active_pair *i; // esi
     char *v4; // edi
     phys_heap_gjk_cache_system_avl_tree *p_g_phys_gjk_cache_system; // ebx
 
-    for ( i = (int)Ptr32_Encode(*list_ap); *list_ap; i = (int)Ptr32_Encode(*list_ap) )
+    for ( i = *list_ap; *list_ap; i = *list_ap )
     {
-        if ( *(axis_aligned_sweep_and_prune::sap_node **)i == node
-            || *(axis_aligned_sweep_and_prune::sap_node **)(i + 4) == node )
+        if ( i->m_p1 == node
+            || i->m_p2 == node )
         {
-            *list_ap = *(axis_aligned_sweep_and_prune::active_pair **)(i + 8);
-            v4 = *(char **)(i + 12);
+            *list_ap = i->m_next;
+            v4 = (char *)i->m_gjk_ci;
             p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
             if ( v4 )
             {
-                PMM_VALIDATE(v4, 0x90u, 0x10u);
+                PMM_VALIDATE(v4, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                 --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
-                PMM_FREE((unsigned __int8 *)v4, 0x90u, 0x10u);
+                PMM_FREE((unsigned __int8 *)v4, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
             }
-            PMM_VALIDATE((char *)Ptr32_Decode(i), 0x10u, 4u);
+            PMM_VALIDATE((char *)i, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
             --this->m_active_pair_allocator.m_count;
-            PMM_FREE((unsigned __int8 *)Ptr32_Decode(i), 0x10u, 4u);
+            PMM_FREE((unsigned __int8 *)i, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
         }
         else
         {
-            list_ap = (axis_aligned_sweep_and_prune::active_pair **)(i + 8);
+            list_ap = &i->m_next;
         }
     }
 }
@@ -3238,9 +3234,9 @@ void __thiscall axis_aligned_sweep_and_prune::destroy_sap_node(broad_phase_base 
         axis_aligned_sweep_and_prune::remove(&this->m_x_list, m_sap_node);
         axis_aligned_sweep_and_prune::remove(&this->m_y_list, m_sap_node);
         axis_aligned_sweep_and_prune::remove(&this->m_z_list, m_sap_node);
-        PMM_VALIDATE((char *)m_sap_node, 0x80u, 4u);
+        PMM_VALIDATE((char *)m_sap_node, sizeof(axis_aligned_sweep_and_prune::sap_node), 4u);
         --this->m_sap_node_allocator.m_count;
-        PMM_FREE((unsigned __int8 *)m_sap_node, 0x80u, 4u);
+        PMM_FREE((unsigned __int8 *)m_sap_node, sizeof(axis_aligned_sweep_and_prune::sap_node), 4u);
         bpb->m_sap_node = 0;
     }
 }
@@ -3388,7 +3384,9 @@ phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *__thiscall ph
     //    __debugbreak();
     //}
     iassert(m_search_tree.find(key) == NULL);
-    v13 = (phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *)PMM_ALLOC(0x90u, 0x10u);
+    v13 = (phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal *)PMM_ALLOC(
+        sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal),
+        phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
     v11 = v13;
     if ( v13 )
     {
@@ -3507,13 +3505,13 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                 p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
                 if (m_gjk_ci)
                 {
-                    PMM_VALIDATE(m_gjk_ci, 0x90u, 0x10u);
+                    PMM_VALIDATE(m_gjk_ci, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                     --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
-                    PMM_FREE((unsigned __int8 *)m_gjk_ci, 0x90u, 0x10u);
+                    PMM_FREE((unsigned __int8 *)m_gjk_ci, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                 }
-                PMM_VALIDATE((char *)m_list_bpi_bpi, 0x10u, 4u);
+                PMM_VALIDATE((char *)m_list_bpi_bpi, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
                 --v37->m_active_pair_allocator.m_count;
-                PMM_FREE((unsigned __int8 *)m_list_bpi_bpi, 0x10u, 4u);
+                PMM_FREE((unsigned __int8 *)m_list_bpi_bpi, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
             }
             else
             {
@@ -3557,7 +3555,7 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                     if (!m_list_bpi_bpi->m_gjk_ci)
                     {
                         v10 = &G_BPM->g_phys_gjk_cache_system;
-                        v11 = (phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal*)PMM_ALLOC(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), 16);
+                        v11 = (phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal*)PMM_ALLOC(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                         if (v11)
                         {
                             ++v10->m_list_phys_gjk_cache_info_internal.m_count;
@@ -3603,13 +3601,13 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                 p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
                 if (v21)
                 {
-                    PMM_VALIDATE(v21, 0x90u, 0x10u);
+                    PMM_VALIDATE(v21, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                     --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
-                    PMM_FREE((unsigned __int8 *)v21, 0x90u, 0x10u);
+                    PMM_FREE((unsigned __int8 *)v21, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                 }
-                PMM_VALIDATE((char *)m_list_bpi_bpg, 0x10u, 4u);
+                PMM_VALIDATE((char *)m_list_bpi_bpg, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
                 --v37->m_active_pair_allocator.m_count;
-                PMM_FREE((unsigned __int8 *)m_list_bpi_bpg, 0x10u, 4u);
+                PMM_FREE((unsigned __int8 *)m_list_bpi_bpg, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
             }
             else
             {
@@ -3647,7 +3645,7 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                     &v19->m_trace_aabb_max_whace,
                     &hit_time))
                 {
-                    for (i = (broad_phase_info *)Ptr32_Decode(LODWORD(v19[1].m_trace_aabb_min_whace.x));
+                    for (i = ((broad_phase_group *)v19)->m_list_bpi_head;
                         i;
                         i = (broad_phase_info *)i->m_list_bpb_next)
                     {
@@ -3695,13 +3693,13 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                 p_g_phys_gjk_cache_system = &G_BPM->g_phys_gjk_cache_system;
                 if (v31)
                 {
-                    PMM_VALIDATE(v31, 0x90u, 0x10u);
+                    PMM_VALIDATE(v31, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                     --p_g_phys_gjk_cache_system->m_list_phys_gjk_cache_info_internal.m_count;
-                    PMM_FREE((unsigned __int8 *)v31, 0x90u, 0x10u);
+                    PMM_FREE((unsigned __int8 *)v31, sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal), phys_slot_alignment(sizeof(phys_heap_gjk_cache_system_avl_tree::phys_gjk_cache_info_internal)));
                 }
-                PMM_VALIDATE((char *)m_list_bpg_bpg, 0x10u, 4u);
+                PMM_VALIDATE((char *)m_list_bpg_bpg, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
                 --v37->m_active_pair_allocator.m_count;
-                PMM_FREE((unsigned __int8 *)m_list_bpg_bpg, 0x10u, 4u);
+                PMM_FREE((unsigned __int8 *)m_list_bpg_bpg, sizeof(axis_aligned_sweep_and_prune::active_pair), 4u);
             }
             else
             {
@@ -3730,7 +3728,7 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                 {
                     __debugbreak();
                 }
-                for (j = (broad_phase_info *)Ptr32_Decode(LODWORD(v26[1].m_trace_aabb_min_whace.x));
+                for (j = ((broad_phase_group *)v26)->m_list_bpi_head;
                     j;
                     j = (broad_phase_info *)j->m_list_bpb_next)
                 {
@@ -3745,7 +3743,7 @@ void    axis_aligned_sweep_and_prune::process_active_pair_list()
                         &v28->m_trace_aabb_max_whace,
                         &hit_time))
                     {
-                        for (k = (broad_phase_info *)v28->m_rb; k; k = (broad_phase_info *)k->m_list_bpb_next)
+                        for (k = ((broad_phase_group *)v28)->m_list_bpi_head; k; k = (broad_phase_info *)k->m_list_bpb_next)
                         {
                             v33.x = j->m_trace_translation.x - k->m_trace_translation.x;
                             v33.y = j->m_trace_translation.y - k->m_trace_translation.y;
@@ -3821,17 +3819,17 @@ void __thiscall axis_aligned_sweep_and_prune::process()
     {
         phys_transient_allocator transient_buffer;
 
-        v2 = 4 * axis_element_count;
+        v2 = sizeof(axis_aligned_sweep_and_prune::axis_element *) * axis_element_count;
         v37 = 0;
-        v3 = (axis_aligned_sweep_and_prune::axis_element **)   transient_buffer.allocate(4 * axis_element_count, 4, 0, "phys_transient_allocator out of memory.");
-        ylist = (axis_aligned_sweep_and_prune::axis_element **)transient_buffer.allocate(v2, 4, 0, "phys_transient_allocator out of memory.");
-        v4 = (axis_aligned_sweep_and_prune::axis_element **)   transient_buffer.allocate(v2, 4, 0, "phys_transient_allocator out of memory.");
+        v3 = (axis_aligned_sweep_and_prune::axis_element **)   transient_buffer.allocate(v2, sizeof(void *), 0, "phys_transient_allocator out of memory.");
+        ylist = (axis_aligned_sweep_and_prune::axis_element **)transient_buffer.allocate(v2, sizeof(void *), 0, "phys_transient_allocator out of memory.");
+        v4 = (axis_aligned_sweep_and_prune::axis_element **)   transient_buffer.allocate(v2, sizeof(void *), 0, "phys_transient_allocator out of memory.");
         m_y_list = v36->m_y_list;
         m_x_list = v36->m_x_list;
         m_z_list = v36->m_z_list;
         zlist = v4;
         zl_i = v4;
-        v8 = &v3[v2 / 4u];
+        v8 = &v3[axis_element_count];
         ycur = m_y_list;
         v9 = 0;
         zcur = m_z_list;

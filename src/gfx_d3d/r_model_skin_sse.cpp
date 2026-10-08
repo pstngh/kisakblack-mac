@@ -109,8 +109,16 @@ static __forceinline __m128 PackXyzW(__m128 xyz, __m128 wSource)
 // decode a byte-packed unit vector to a direction, scaled by its packed length
 static __forceinline __m128 DecodeUnitVec(uint32_t packed)
 {
+#if defined(__aarch64__)
+    // no MMX on arm64: zero-extend the 4 bytes to int32 lanes (exact, like _mm_cvtpu16_ps)
+    __m128i zero = _mm_setzero_si128();
+    __m128i words = _mm_unpacklo_epi8(_mm_cvtsi32_si128((int)packed), zero);
+    __m128 bytes = _mm_cvtepi32_ps(_mm_unpacklo_epi16(words, zero));
+    __m128 d = _mm_div_ps(_mm_sub_ps(bytes, sse_encodeShift), sse_encodeScale);
+#else
     __m64 bytes = _m_punpcklbw(_mm_cvtsi32_si64(packed), _mm_setzero_si64());
     __m128 d = _mm_div_ps(_mm_sub_ps(_mm_cvtpu16_ps(bytes), sse_encodeShift), sse_encodeScale);
+#endif
     return _mm_mul_ps(d, SplatW(d));
 }
 
@@ -124,17 +132,28 @@ static __forceinline __m128 SkinUnitVec(const DObjSkelMat *m, uint32_t packed)
 // weight (uint16) -> [0, 1), broadcast to all 4 lanes
 static __forceinline __m128 DecodeWeight(uint16_t weight)
 {
+#if defined(__aarch64__)
+    return _mm_mul_ps(_mm_set1_ps((float)weight), sse_weightScale);
+#else
     __m64 w = _mm_cvtsi32_si64(weight);
     w = _m_punpcklwd(w, w);
     return _mm_mul_ps(_mm_cvtpu16_ps(_m_punpcklwd(w, w)), sse_weightScale);
+#endif
 }
 
 // pack an encoded normal & tangent (each a float4) into 8 output bytes
 static __forceinline __m64 PackNormalTangent(__m128 encNormal, __m128 encTangent)
 {
+#if defined(__aarch64__)
+    // same two-stage pack as the MMX code: each int32 is saturated as two int16
+    // halves, then the resulting words are saturated again (bytes 0-3 normal, 4-7 tangent)
+    __m128i b = _mm_packus_epi16(_mm_cvtps_epi32(encNormal), _mm_cvtps_epi32(encTangent));
+    return _mm_movepi64_pi64(_mm_packus_epi16(b, b));
+#else
     return _m_packuswb(
         _m_packuswb(_mm_cvt_ps2pi(encNormal), _mm_cvt_ps2pi(_mm_movehl_ps(encNormal, encNormal))),
         _m_packuswb(_mm_cvt_ps2pi(encTangent), _mm_cvt_ps2pi(_mm_movehl_ps(encTangent, encTangent))));
+#endif
 }
 
 // ---------------------------------------------------------------------------

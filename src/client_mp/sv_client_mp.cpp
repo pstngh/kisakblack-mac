@@ -815,7 +815,7 @@ void __cdecl SV_DirectConnect(netadr_t from)
         svs.challenges[i].connected = 1;
         if (g_password)
         {
-            if (*(_BYTE *)Ptr32_Decode(g_password->current.integer))
+            if (*(_BYTE *)g_password->current.string)
             {
                 string = g_password->current.string;
                 if (I_strcmp(Info_ValueForKey(userinfo, "password"), string))

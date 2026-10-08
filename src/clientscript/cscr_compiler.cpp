@@ -39,7 +39,7 @@ int __cdecl GetExpressionCount(sval_u exprlist)
     int expr_count; // [esp+4h] [ebp-4h]
 
     expr_count = 0;
-    for ( node = *(sval_u **)exprlist.stringValue; node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue); node; node = node[1].node )
         ++expr_count;
     return expr_count;
 }
@@ -380,7 +380,7 @@ void __cdecl EmitThreadList(scriptInstance_t inst, sval_u val)
     sval_u *nodea; // [esp+0h] [ebp-4h]
 
     gScrCompileGlob[inst].in_developer_thread = 0;
-    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
         SpecifyThread(inst, *node);
     if ( gScrCompileGlob[inst].in_developer_thread )
         CompileError(inst, gScrCompileGlob[inst].developer_thread_sourcePos, "/# has no matching #/");
@@ -396,7 +396,7 @@ void __cdecl EmitThreadList(scriptInstance_t inst, sval_u val)
     {
         __debugbreak();
     }
-    for ( nodea = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); nodea; nodea = nodea[1].node )
+    for ( nodea = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); nodea; nodea = nodea[1].node )
         EmitThread(inst, *nodea);
     if ( gScrCompileGlob[inst].in_developer_thread
         && !Assert_MyHandler(
@@ -566,7 +566,7 @@ void __cdecl Scr_CalcLocalVarsStatementList(scriptInstance_t inst, sval_u val, s
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
         Scr_CalcLocalVarsStatement(inst, *node, block);
 }
 
@@ -707,12 +707,15 @@ void __cdecl Scr_CalcLocalVarsAssignmentStatement(sval_u lhs, sval_u rhs, scr_bl
 
 void __cdecl Scr_CalcLocalVarsIfStatement(scriptInstance_t inst, sval_u stmt, scr_block_s *block, sval_u *ifStatBlock)
 {
-    Scr_CopyBlock(block, (scr_block_s **)ifStatBlock);
+    scr_block_s *childBlock; // parse-tree block slots are 4 bytes
+
+    Scr_CopyBlock(block, &ifStatBlock->block);
     Scr_CalcLocalVarsStatement(inst, stmt, ifStatBlock->block);
-    Scr_MergeChildBlocks((scr_block_s **)ifStatBlock, 1, block);
+    childBlock = ifStatBlock->block;
+    Scr_MergeChildBlocks(&childBlock, 1, block);
 }
 
-void __cdecl Scr_CopyBlock(scr_block_s *from, scr_block_s **to)
+void __cdecl Scr_CopyBlock(scr_block_s *from, Ptr32<scr_block_s> *to)
 {
     if ( !*to )
         *to = (scr_block_s *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(536, "Scr_CopyBlock"));
@@ -795,7 +798,7 @@ void __cdecl Scr_CalcLocalVarsIfElseStatement(
 
     childCount = 0;
     abortLevel = 3;
-    Scr_CopyBlock(block, (scr_block_s **)ifStatBlock);
+    Scr_CopyBlock(block, &ifStatBlock->block);
     Scr_CalcLocalVarsStatement(inst, stmt1, ifStatBlock->block);
     if ( *(int *)Ptr32_Decode(ifStatBlock->stringValue) <= 3 )
     {
@@ -803,7 +806,7 @@ void __cdecl Scr_CalcLocalVarsIfElseStatement(
         if ( !abortLevel )
             childBlocks[childCount++] = (scr_block_s *)Ptr32_Decode(ifStatBlock->stringValue);
     }
-    Scr_CopyBlock(block, (scr_block_s **)elseStatBlock);
+    Scr_CopyBlock(block, &elseStatBlock->block);
     Scr_CalcLocalVarsStatement(inst, stmt2, elseStatBlock->block);
     if ( *(unsigned int *)Ptr32_Decode(elseStatBlock->stringValue) <= abortLevel )
     {
@@ -895,6 +898,7 @@ void __cdecl Scr_CalcLocalVarsWhileStatement(
     scr_block_s **oldBreakChildBlocks; // [esp+34h] [ebp-Ch]
     int abortLevel; // [esp+38h] [ebp-8h]
     scr_block_s **oldContinueChildBlocks; // [esp+3Ch] [ebp-4h]
+    scr_block_s *childBlock; // parse-tree block slots are 4 bytes
 
     constConditional = 0;
     if (EvalExpression(inst, expr, &constValue))
@@ -913,13 +917,13 @@ void __cdecl Scr_CalcLocalVarsWhileStatement(
     oldContinueChildCount = gScrCompileGlob[inst].continueChildCount;
     breakChildCount = 0;
     continueChildCount = 0;
-    continueChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsWhileStatement");
+    continueChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "Scr_CalcLocalVarsWhileStatement"));
     gScrCompileGlob[inst].continueChildBlocks = continueChildBlocks;
     gScrCompileGlob[inst].continueChildCount = &continueChildCount;
     abortLevel = block->abortLevel;
     if (constConditional)
     {
-        breakChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsWhileStatement");
+        breakChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "Scr_CalcLocalVarsWhileStatement"));
         gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     }
     else
@@ -927,14 +931,15 @@ void __cdecl Scr_CalcLocalVarsWhileStatement(
         breakChildBlocks = 0;
     }
     gScrCompileGlob[inst].breakChildBlocks = breakChildBlocks;
-    Scr_CopyBlock(block, (scr_block_s **)whileStatBlock);
+    Scr_CopyBlock(block, &whileStatBlock->block);
     Scr_CalcLocalVarsStatement(inst, stmt, whileStatBlock->block);
     Scr_AddContinueBlock(inst, whileStatBlock->block);
     for (i = 0; i < continueChildCount; ++i)
         Scr_AppendChildBlocks(&continueChildBlocks[i], 1, block);
     if (constConditional)
         Scr_AppendChildBlocks(breakChildBlocks, breakChildCount, block);
-    Scr_MergeChildBlocks((scr_block_s **)whileStatBlock, 1, block);
+    childBlock = whileStatBlock->block;
+    Scr_MergeChildBlocks(&childBlock, 1, block);
     gScrCompileGlob[inst].breakChildBlocks = oldBreakChildBlocks;
     gScrCompileGlob[inst].breakChildCount = oldBreakChildCount;
     gScrCompileGlob[inst].continueChildBlocks = oldContinueChildBlocks;
@@ -1121,11 +1126,11 @@ char __cdecl EvalPrimitiveExpressionList(
     }
     expr_count = GetExpressionCount(exprlist);
     if ( expr_count == 1 )
-        return EvalExpression(inst, ***(sval_u ***)exprlist.stringValue, constValue);
+        return EvalExpression(inst, *(*(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue))->node, constValue);
     if ( expr_count != 3 )
         return 0;
     i = 0;
-    for ( node = *(sval_u **)exprlist.stringValue; node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue); node; node = node[1].node )
     {
         if ( !EvalExpression(inst, *node->node, &constValue2[i]) )
             return 0;
@@ -1217,6 +1222,7 @@ void __cdecl Scr_CalcLocalVarsForStatement(
     scr_block_s **oldBreakChildBlocks; // [esp+34h] [ebp-Ch]
     int abortLevel; // [esp+38h] [ebp-8h]
     scr_block_s **oldContinueChildBlocks; // [esp+3Ch] [ebp-4h]
+    scr_block_s *childBlock; // parse-tree block slots are 4 bytes
 
     Scr_CalcLocalVarsStatement(inst, stmt1, block);
     if (*(_BYTE *)Ptr32_Decode(expr.stringValue) == 67)
@@ -1243,13 +1249,13 @@ void __cdecl Scr_CalcLocalVarsForStatement(
     oldContinueChildCount = gScrCompileGlob[inst].continueChildCount;
     breakChildCount = 0;
     continueChildCount = 0;
-    continueChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsForStatement");
+    continueChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "Scr_CalcLocalVarsForStatement"));
     gScrCompileGlob[inst].continueChildBlocks = continueChildBlocks;
     gScrCompileGlob[inst].continueChildCount = &continueChildCount;
     abortLevel = block->abortLevel;
     if (constConditional)
     {
-        breakChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsForStatement");
+        breakChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "Scr_CalcLocalVarsForStatement"));
         gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     }
     else
@@ -1257,18 +1263,20 @@ void __cdecl Scr_CalcLocalVarsForStatement(
         breakChildBlocks = 0;
     }
     gScrCompileGlob[inst].breakChildBlocks = breakChildBlocks;
-    Scr_CopyBlock(block, (scr_block_s **)forStatBlock);
-    Scr_CopyBlock(block, (scr_block_s **)forStatPostBlock);
+    Scr_CopyBlock(block, &forStatBlock->block);
+    Scr_CopyBlock(block, &forStatPostBlock->block);
     Scr_CalcLocalVarsStatement(inst, stmt, forStatBlock->block);
     Scr_AddContinueBlock(inst, forStatBlock->block);
     for (i = 0; i < continueChildCount; ++i)
         Scr_AppendChildBlocks(&continueChildBlocks[i], 1, block);
     Scr_CalcLocalVarsStatement(inst, stmt2, forStatPostBlock->block);
-    Scr_AppendChildBlocks((scr_block_s **)forStatPostBlock, 1, block);
-    Scr_MergeChildBlocks((scr_block_s **)forStatPostBlock, 1, block);
+    childBlock = forStatPostBlock->block;
+    Scr_AppendChildBlocks(&childBlock, 1, block);
+    Scr_MergeChildBlocks(&childBlock, 1, block);
     if (constConditional)
         Scr_AppendChildBlocks(breakChildBlocks, breakChildCount, block);
-    Scr_MergeChildBlocks((scr_block_s **)forStatBlock, 1, block);
+    childBlock = forStatBlock->block;
+    Scr_MergeChildBlocks(&childBlock, 1, block);
     gScrCompileGlob[inst].breakChildBlocks = oldBreakChildBlocks;
     gScrCompileGlob[inst].breakChildCount = oldBreakChildCount;
     gScrCompileGlob[inst].continueChildBlocks = oldContinueChildBlocks;
@@ -1278,7 +1286,7 @@ void __cdecl Scr_CalcLocalVarsWaittillStatement(sval_u exprlist, scr_block_s *bl
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
+    node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !node
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3721, 0, "%s", "node") )
     {
@@ -1315,24 +1323,26 @@ void __cdecl Scr_CalcLocalVarsSwitchStatement(scriptInstance_t inst, sval_u stmt
     scr_block_s **oldBreakChildBlocks; // [esp+1Ch] [ebp-Ch]
     int childCount; // [esp+20h] [ebp-8h]
     int abortLevel; // [esp+24h] [ebp-4h]
+    Ptr32<scr_block_s> copyBlock; // Scr_CopyBlock takes a 4-byte parse-tree slot
 
     abortLevel = 3;
     oldBreakChildBlocks = gScrCompileGlob[inst].breakChildBlocks;
     oldBreakChildCount = gScrCompileGlob[inst].breakChildCount;
     breakChildCount = 0;
-    breakChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsSwitchStatement");
+    breakChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "Scr_CalcLocalVarsSwitchStatement"));
     gScrCompileGlob[inst].breakChildBlocks = breakChildBlocks;
     gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     childCount = 0;
     currentBlock = 0;
     hasDefault = 0;
-    childBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "Scr_CalcLocalVarsSwitchStatement");
-    for (node = *(sval_u **)(*(_DWORD *)Ptr32_Decode(stmtlist.stringValue) + 4); node; node = node[1].node)
+    childBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "Scr_CalcLocalVarsSwitchStatement"));
+    for (node = *(Ptr32<sval_u> *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(stmtlist.stringValue) + 4); node; node = node[1].node)
     {
         if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63 || *(_BYTE *)Ptr32_Decode(node->stringValue) == 64)
         {
-            currentBlock = 0;
-            Scr_CopyBlock(block, &currentBlock);
+            copyBlock = 0;
+            Scr_CopyBlock(block, &copyBlock);
+            currentBlock = copyBlock;
             if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63)
             {
                 *(_DWORD *)Ptr32_Decode(node->stringValue + 12) = (DWORD)Ptr32_Encode(currentBlock);
@@ -1386,14 +1396,17 @@ void __cdecl Scr_CalcLocalVarsDeveloperStatementList(
                 scr_block_s *block,
                 sval_u *devStatBlock)
 {
-    Scr_CopyBlock(block, (scr_block_s **)devStatBlock);
+    scr_block_s *childBlock; // parse-tree block slots are 4 bytes
+
+    Scr_CopyBlock(block, &devStatBlock->block);
     Scr_CalcLocalVarsStatementList(inst, val, devStatBlock->block);
-    Scr_MergeChildBlocks((scr_block_s **)devStatBlock, 1, block);
+    childBlock = devStatBlock->block;
+    Scr_MergeChildBlocks(&childBlock, 1, block);
 }
 
 void __cdecl Scr_CalcLocalVarsFormalParameterList(sval_u exprlist, scr_block_s *block)
 {
-    Scr_CalcLocalVarsFormalParameterListInternal(*(sval_u **)exprlist.stringValue, block);
+    Scr_CalcLocalVarsFormalParameterListInternal(*(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue), block);
 }
 
 void __cdecl EmitNormalThread(scriptInstance_t inst, sval_u val, sval_u *stmttblock)
@@ -1777,13 +1790,20 @@ void __cdecl EmitGetInteger(scriptInstance_t inst, int value, sval_u sourcePos)
     }
     EmitOpcode(inst, 8u, 1, 0);
     AddOpcodePos(inst, sourcePos.stringValue, 1);
-    EmitCodepos(inst, (const char *)Ptr32_Decode(value));
+    EmitInt(inst, value);
 }
 
 void __cdecl EmitCodepos(scriptInstance_t inst, const char *pos)
 {
     gScrCompileGlob[inst].codePos = (unsigned __int8 *)TempMallocAlignStrict(4);
     *(unsigned int *)gScrCompileGlob[inst].codePos = (unsigned int)Ptr32_Encode(pos);
+}
+
+// 4-byte operand that is not a code position (EmitCodepos would Ptr32-encode it)
+void __cdecl EmitInt(scriptInstance_t inst, int value)
+{
+    gScrCompileGlob[inst].codePos = (unsigned __int8 *)TempMallocAlignStrict(4);
+    *(int *)gScrCompileGlob[inst].codePos = value;
 }
 
 void __cdecl EmitGetFloat(scriptInstance_t inst, float value, sval_u sourcePos)
@@ -1842,7 +1862,7 @@ void __cdecl EmitStatementList(
     sval_u *node; // [esp+4h] [ebp-8h]
     sval_u *nextNode; // [esp+8h] [ebp-4h]
 
-    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = nextNode )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = nextNode )
     {
         nextNode = node[1].node;
         if ( lastStatement && Scr_IsLastStatement(inst, nextNode) )
@@ -2331,9 +2351,9 @@ void __cdecl EmitFieldVariable(scriptInstance_t inst, sval_u expr, sval_u field,
 void __cdecl EmitObject(scriptInstance_t inst, sval_u expr, sval_u sourcePos)
 {
     signed int ObjectType; // [esp+0h] [ebp-18h]
-    const char *classnum; // [esp+4h] [ebp-14h]
+    int classnum; // [esp+4h] [ebp-14h]
     char *s; // [esp+Ch] [ebp-Ch]
-    const char *entnum; // [esp+10h] [ebp-8h]
+    int entnum; // [esp+10h] [ebp-8h]
     unsigned int idValue; // [esp+14h] [ebp-4h]
 
     if ( gScrCompilePub[inst].script_loading )
@@ -2367,15 +2387,15 @@ LABEL_17:
         CompileError(inst, sourcePos.stringValue, "argument expressions not supported in statements");
         return;
     }
-    classnum = (const char *)Ptr32_Decode(Scr_GetClassnumForCharId(inst, *s));
-    if ( (int)Ptr32_Encode(classnum) < 0 )
+    classnum = Scr_GetClassnumForCharId(inst, *s);
+    if ( classnum < 0 )
         goto LABEL_17;
-    entnum = (const char *)Ptr32_Decode(atoi(s + 1));
+    entnum = atoi(s + 1);
     if ( !entnum && s[1] != 48 )
         goto LABEL_17;
     EmitOpcode(inst, 0x81u, 1, 0);
-    EmitCodepos(inst, classnum);
-    EmitCodepos(inst, entnum);
+    EmitInt(inst, classnum);
+    EmitInt(inst, entnum);
 }
 
 void __cdecl EmitArrayVariable(
@@ -2532,7 +2552,7 @@ void __cdecl EmitAnimation(scriptInstance_t inst, sval_u anim, sval_u sourcePos)
 {
     EmitOpcode(inst, 0x13u, 1, 0);
     AddOpcodePos(inst, sourcePos.stringValue, 1);
-    EmitCodepos(inst, (const char *)0xFFFFFFFF);
+    EmitInt(inst, -1);
     if ( gScrCompilePub[inst].developer_statement != 2 )
         Scr_EmitAnimation(inst, (char *)gScrCompileGlob[inst].codePos, anim.stringValue, sourcePos.stringValue);
     Scr_CompileRemoveRefToString(inst, anim.stringValue);
@@ -2587,7 +2607,7 @@ void __cdecl EmitFunction(scriptInstance_t inst, sval_u func, sval_u sourcePos)
         threadName = *(_DWORD *)Ptr32_Decode(func.stringValue + 4);
         CompileTransferRefToString(inst, threadName, 2u);
     EMIT:
-        EmitCodepos(inst, (const char *)Ptr32_Decode(scope));
+        EmitInt(inst, scope);
         Variable = GetVariable(inst, fileCountId, threadName);
         threadCountId = GetObject(inst, Variable);
         if (!threadCountId
@@ -2827,7 +2847,7 @@ void __cdecl EmitCall(scriptInstance_t inst, sval_u func_name, sval_u params, bo
         {
             value = Scr_EvalVariable(inst, funcId);
             type = Scr_GetUncacheType(value.type);
-            func = (void (__cdecl *)())value.u.intValue;
+            func = (void (__cdecl *)())Ptr32_Decode(value.u.intValue);
         }
         else
         {
@@ -2899,7 +2919,7 @@ int __cdecl EmitExpressionList(scriptInstance_t inst, sval_u exprlist, scr_block
     int expr_count; // [esp+4h] [ebp-4h]
 
     expr_count = 0;
-    for ( node = *(sval_u **)exprlist.stringValue; node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue); node; node = node[1].node )
     {
         EmitExpression(inst, *node->node, block);
         ++expr_count;
@@ -2913,7 +2933,7 @@ void __cdecl AddExpressionListOpcodePos(scriptInstance_t inst, sval_u exprlist)
 
     if (gScrVarPub[inst].developer)
     {
-        for (node = *(sval_u **)exprlist.stringValue; node; node = node[1].node)
+        for (node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue); node; node = node[1].node)
             AddOpcodePos(inst, *(_DWORD *)Ptr32_Decode(node->stringValue + 4), 0);
     }
 }
@@ -3071,7 +3091,7 @@ void __cdecl EmitPostScriptThread(scriptInstance_t inst, sval_u func, int param_
         EmitOpcode(inst, 0x54u, 1 - param_count, 2);
     AddOpcodePos(inst, sourcePos.stringValue, 3);
     EmitFunction(inst, func, sourcePos);
-    EmitCodepos(inst, (const char *)Ptr32_Decode(param_count));
+    EmitInt(inst, param_count);
 }
 
 void __cdecl EmitPostScriptThreadPointer(
@@ -3088,7 +3108,7 @@ void __cdecl EmitPostScriptThreadPointer(
     else
         EmitOpcode(inst, 0x55u, -param_count, 2);
     AddOpcodePos(inst, sourcePos.stringValue, 1);
-    EmitCodepos(inst, (const char *)Ptr32_Decode(param_count));
+    EmitInt(inst, param_count);
 }
 
 void __cdecl Scr_BeginDevScript(scriptInstance_t inst, int *type, char **savedPos)
@@ -3222,7 +3242,7 @@ void __cdecl EmitMethod(
         {
             value = Scr_EvalVariable(inst, methId);
             type = Scr_GetUncacheType(value.type);
-            meth = (void (__cdecl *)(scr_entref_t))value.u.intValue;
+            meth = (void (__cdecl *)(scr_entref_t))Ptr32_Decode(value.u.intValue);
         }
         else
         {
@@ -3337,11 +3357,11 @@ bool __cdecl EmitOrEvalPrimitiveExpressionList(
     }
     expr_count = GetExpressionCount(exprlist);
     if ( expr_count == 1 )
-        return EmitOrEvalExpression(inst, ***(sval_u ***)exprlist.stringValue, constValue, block);
+        return EmitOrEvalExpression(inst, *(*(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue))->node, constValue, block);
     if ( expr_count == 3 )
     {
         success = 1;
-        for ( node = *(sval_u **)exprlist.stringValue; node; node = node[1].node )
+        for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue); node; node = node[1].node )
         {
             if ( success )
             {
@@ -3502,7 +3522,7 @@ void __cdecl EmitBoolOrExpression(
                 scr_block_s *block)
 {
     unsigned __int8 *pos; // [esp+0h] [ebp-Ch]
-    char *offset; // [esp+4h] [ebp-8h]
+    unsigned int offset; // [esp+4h] [ebp-8h]
     const char *nextPos; // [esp+8h] [ebp-4h]
 
     EmitExpression(inst, expr1, block);
@@ -3513,8 +3533,8 @@ void __cdecl EmitBoolOrExpression(
     nextPos = TempMallocAlignStrict(0);
     EmitExpression(inst, expr2, block);
     EmitCastBool(inst, expr2sourcePos);
-    offset = (char *)(TempMallocAlignStrict(0) - nextPos);
-    if ( (unsigned int)Ptr32_Encode(offset) >= 0x10000
+    offset = TempMallocAlignStrict(0) - nextPos;
+    if ( offset >= 0x10000
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     2564,
@@ -3524,7 +3544,7 @@ void __cdecl EmitBoolOrExpression(
     {
         __debugbreak();
     }
-    *(_WORD *)pos = (_WORD)Ptr32_Encode(offset);
+    *(_WORD *)pos = offset;
 }
 
 void __cdecl EmitCastBool(scriptInstance_t inst, sval_u sourcePos)
@@ -3542,7 +3562,7 @@ void __cdecl EmitBoolAndExpression(
                 scr_block_s *block)
 {
     unsigned __int8 *pos; // [esp+0h] [ebp-Ch]
-    char *offset; // [esp+4h] [ebp-8h]
+    unsigned int offset; // [esp+4h] [ebp-8h]
     const char *nextPos; // [esp+8h] [ebp-4h]
 
     EmitExpression(inst, expr1, block);
@@ -3553,8 +3573,8 @@ void __cdecl EmitBoolAndExpression(
     nextPos = TempMallocAlignStrict(0);
     EmitExpression(inst, expr2, block);
     EmitCastBool(inst, expr2sourcePos);
-    offset = (char *)(TempMallocAlignStrict(0) - nextPos);
-    if ( (unsigned int)Ptr32_Encode(offset) >= 0x10000
+    offset = TempMallocAlignStrict(0) - nextPos;
+    if ( offset >= 0x10000
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     2584,
@@ -3564,7 +3584,7 @@ void __cdecl EmitBoolAndExpression(
     {
         __debugbreak();
     }
-    *(_WORD *)pos = (_WORD)Ptr32_Encode(offset);
+    *(_WORD *)pos = offset;
 }
 
 char __cdecl EmitOrEvalBinaryOperatorExpression(
@@ -3871,7 +3891,7 @@ sval_u *__cdecl GetSingleParameter(sval_u exprlist)
         return 0;
     if ( *(unsigned int *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4) )
         return 0;
-    return *(sval_u **)exprlist.stringValue;
+    return *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue);
 }
 
 void __cdecl EmitExpressionFieldObject(scriptInstance_t inst, sval_u expr, sval_u sourcePos, scr_block_s *block)
@@ -4047,7 +4067,7 @@ void __cdecl EmitIfStatement(
                 sval_u *ifStatBlock)
 {
     unsigned __int8 *pos; // [esp+0h] [ebp-Ch]
-    char *offset; // [esp+4h] [ebp-8h]
+    unsigned int offset; // [esp+4h] [ebp-8h]
     const char *nextPos; // [esp+8h] [ebp-4h]
 
     EmitExpression(inst, expr, block);
@@ -4069,8 +4089,8 @@ void __cdecl EmitIfStatement(
         __debugbreak();
     }
     EmitNOP2(inst, lastStatement, endSourcePos, ifStatBlock->block);
-    offset = (char *)(TempMallocAlignStrict(0) - nextPos);
-    if ( (unsigned int)Ptr32_Encode(offset) >= 0x10000
+    offset = TempMallocAlignStrict(0) - nextPos;
+    if ( offset >= 0x10000
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
                     3020,
@@ -4080,7 +4100,7 @@ void __cdecl EmitIfStatement(
     {
         __debugbreak();
     }
-    *(_WORD *)pos = (_WORD)Ptr32_Encode(offset);
+    *(_WORD *)pos = offset;
 }
 
 void __cdecl EmitNOP2(scriptInstance_t inst, bool lastStatement, unsigned int endSourcePos, scr_block_s *block)
@@ -4225,7 +4245,7 @@ void __cdecl EmitIfElseStatement(
     sval_u *elseStatBlock)
 {
     unsigned int checksum; // [esp+0h] [ebp-24h]
-    char *offset; // [esp+4h] [ebp-20h]
+    unsigned int offset; // [esp+4h] [ebp-20h]
     const char *nextPos1; // [esp+8h] [ebp-1Ch]
     unsigned __int8 *pos1; // [esp+Ch] [ebp-18h]
     scr_block_s *childBlocks[2]; // [esp+10h] [ebp-14h] BYREF
@@ -4263,8 +4283,8 @@ void __cdecl EmitIfElseStatement(
         nextPos2 = TempMallocAlignStrict(0);
     }
     gScrVarPub[inst].checksum = checksum + 1;
-    offset = (char *)(TempMallocAlignStrict(0) - nextPos1);
-    if ((unsigned int)Ptr32_Encode(offset) >= 0x10000
+    offset = TempMallocAlignStrict(0) - nextPos1;
+    if (offset >= 0x10000
         && !Assert_MyHandler(
             "C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp",
             3084,
@@ -4274,7 +4294,7 @@ void __cdecl EmitIfElseStatement(
     {
         __debugbreak();
     }
-    *(_WORD *)pos1 = (_WORD)Ptr32_Encode(offset);
+    *(_WORD *)pos1 = offset;
     Scr_TransferBlock(block, elseStatBlock->block);
     EmitStatement(inst, stmt2, lastStatement, endSourcePos, elseStatBlock->block);
     EmitNOP2(inst, lastStatement, endSourcePos, elseStatBlock->block);
@@ -4458,7 +4478,7 @@ void __cdecl EmitWhileStatement(
     {
         pos2 = 0;
         nextPos2 = 0;
-        breakChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "EmitWhileStatement");
+        breakChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "EmitWhileStatement"));
         gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     }
     else
@@ -4670,7 +4690,7 @@ void __cdecl EmitForStatement(
     oldContinueChildCount = gScrCompileGlob[inst].continueChildCount;
     breakChildCount = 0;
     continueChildCount = 0;
-    continueChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "EmitForStatement");
+    continueChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "EmitForStatement"));
     gScrCompileGlob[inst].continueChildBlocks = continueChildBlocks;
     gScrCompileGlob[inst].continueChildCount = &continueChildCount;
     gScrCompileGlob[inst].breakBlock = forStatBlock->block;
@@ -4678,7 +4698,7 @@ void __cdecl EmitForStatement(
     {
         pos2 = 0;
         nextPos2 = 0;
-        breakChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "EmitForStatement");
+        breakChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "EmitForStatement"));
         gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     }
     else
@@ -4818,7 +4838,7 @@ void __cdecl EmitWaittillStatement(
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
+    node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !node
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3700, 0, "%s", "node") )
     {
@@ -4870,7 +4890,7 @@ void __cdecl EmitWaittillmatchStatement(
     sval_u *nodea; // [esp+0h] [ebp-8h]
     int exprCount; // [esp+4h] [ebp-4h]
 
-    node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
+    node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !node
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3732, 0, "%s", "node") )
     {
@@ -4883,7 +4903,7 @@ void __cdecl EmitWaittillmatchStatement(
             break;
         EmitExpression(inst, *node->node, block);
     }
-    nodea = *(sval_u **)(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
+    nodea = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(exprlist.stringValue) + 4);
     if ( !nodea
         && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\clientscript\\cscr_compiler.cpp", 3746, 0, "%s", "node") )
     {
@@ -4933,7 +4953,7 @@ void __cdecl EmitNotifyStatement(
     AddOpcodePos(inst, sourcePos.stringValue, 1);
     expr_count = 0;
     start_node = 0;
-    for ( node = *(sval_u **)exprlist.stringValue; node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue); node; node = node[1].node )
     {
         start_node = node;
         EmitExpression(inst, *node->node, block);
@@ -5013,7 +5033,7 @@ void __cdecl EmitSwitchStatement(
     caseStatement = gScrCompileGlob[inst].currentCaseStatement;
     while (caseStatement)
     {
-        EmitCodepos(inst, (const char *)Ptr32_Decode(caseStatement->name));
+        EmitInt(inst, caseStatement->name);
         EmitCodepos(inst, caseStatement->codePos);
         caseStatement = caseStatement->next;
         ++num;
@@ -5064,12 +5084,12 @@ void __cdecl EmitSwitchStatementList(
     oldBreakChildCount = gScrCompileGlob[inst].breakChildCount;
     oldBreakBlock = gScrCompileGlob[inst].breakBlock;
     breakChildCount = 0;
-    breakChildBlocks = (scr_block_s **)Hunk_AllocateTempMemoryHigh(2048, "EmitSwitchStatementList");
+    breakChildBlocks = (scr_block_s **)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(512 * sizeof(scr_block_s *), "EmitSwitchStatementList"));
     gScrCompileGlob[inst].breakChildBlocks = breakChildBlocks;
     gScrCompileGlob[inst].breakChildCount = &breakChildCount;
     gScrCompileGlob[inst].breakBlock = 0;
     hasDefault = 0;
-    for (node = *(sval_u **)(*(_DWORD *)Ptr32_Decode(val.stringValue) + 4); node; node = nextNode)
+    for (node = *(Ptr32<sval_u> *)Ptr32_Decode(*(_DWORD *)Ptr32_Decode(val.stringValue) + 4); node; node = nextNode)
     {
         nextNode = node[1].node;
         if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63 || *(_BYTE *)Ptr32_Decode(node->stringValue) == 64)
@@ -5091,12 +5111,12 @@ void __cdecl EmitSwitchStatementList(
             }
             if (*(_BYTE *)Ptr32_Decode(node->stringValue) == 63)
             {
-                gScrCompileGlob[inst].breakBlock = *(scr_block_s **)(node->stringValue + 12);
+                gScrCompileGlob[inst].breakBlock = *(Ptr32<scr_block_s> *)Ptr32_Decode(node->stringValue + 12);
                 EmitCaseStatement(inst, *(sval_u *)Ptr32_Decode(node->stringValue + 4), *(sval_u *)Ptr32_Decode(node->stringValue + 8));
             }
             else
             {
-                gScrCompileGlob[inst].breakBlock = *(scr_block_s **)(node->stringValue + 8);
+                gScrCompileGlob[inst].breakBlock = *(Ptr32<scr_block_s> *)Ptr32_Decode(node->stringValue + 8);
                 hasDefault = 1;
                 EmitDefaultStatement(inst, *(sval_u *)Ptr32_Decode(node->stringValue + 4));
             }
@@ -5222,7 +5242,7 @@ void __cdecl EmitCaseStatementInfo(scriptInstance_t inst, unsigned int name, sva
     }
     else
     {
-        newCaseStatement = (CaseStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(16, "EmitCaseStatementInfo"));
+        newCaseStatement = (CaseStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(sizeof(CaseStatementInfo), "EmitCaseStatementInfo"));
         newCaseStatement->name = name;
         newCaseStatement->codePos = TempMallocAlignStrict(0);
         newCaseStatement->sourcePos = sourcePos.stringValue;
@@ -5255,7 +5275,7 @@ void __cdecl EmitBreakStatement(scriptInstance_t inst, sval_u sourcePos, scr_blo
         EmitCodepos(inst, 0);
         if (gScrCompilePub[inst].developer_statement != 2)
         {
-            newBreakStatement = (BreakStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(12, "EmitBreakStatement"));
+            newBreakStatement = (BreakStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(sizeof(BreakStatementInfo), "EmitBreakStatement"));
             newBreakStatement->codePos = (const char *)gScrCompileGlob[inst].codePos;
             newBreakStatement->nextCodePos = TempMallocAlignStrict(0);
             newBreakStatement->next = gScrCompileGlob[inst].currentBreakStatement;
@@ -5282,7 +5302,7 @@ void __cdecl EmitContinueStatement(scriptInstance_t inst, sval_u sourcePos, scr_
         EmitCodepos(inst, 0);
         if (gScrCompilePub[inst].developer_statement != 2)
         {
-            newContinueStatement = (ContinueStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(12, "EmitContinueStatement"));
+            newContinueStatement = (ContinueStatementInfo *)Ptr32_Decode(Hunk_AllocateTempMemoryHigh(sizeof(ContinueStatementInfo), "EmitContinueStatement"));
             newContinueStatement->codePos = (const char *)gScrCompileGlob[inst].codePos;
             newContinueStatement->nextCodePos = TempMallocAlignStrict(0);
             newContinueStatement->next = gScrCompileGlob[inst].currentContinueStatement;
@@ -5366,7 +5386,7 @@ void __cdecl EmitDeveloperStatementList(
 
 void __cdecl EmitFormalParameterList(scriptInstance_t inst, sval_u exprlist, sval_u sourcePos, scr_block_s *block)
 {
-    EmitFormalParameterListInternal(inst, *(sval_u **)exprlist.stringValue, block);
+    EmitFormalParameterListInternal(inst, *(Ptr32<sval_u> *)Ptr32_Decode(exprlist.stringValue), block);
     EmitOpcode(inst, 0x35u, 0, 0);
     AddOpcodePos(inst, sourcePos.stringValue, 0);
 }
@@ -5464,7 +5484,7 @@ void __cdecl EmitIncludeList(scriptInstance_t inst, sval_u val)
 {
     sval_u *node; // [esp+0h] [ebp-4h]
 
-    for ( node = *(sval_u **)(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
+    for ( node = *(Ptr32<sval_u> *)Ptr32_Decode(*(unsigned int *)Ptr32_Decode(val.stringValue) + 4); node; node = node[1].node )
         EmitInclude(inst, *node);
 }
 

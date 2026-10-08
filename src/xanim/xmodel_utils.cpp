@@ -247,7 +247,7 @@ unsigned int __cdecl XModelGetSurfCount(const XModel *model, int lod)
     return model->lodInfo[lod].numsurfs;
 }
 
-Material **__cdecl XModelGetSkins(const XModel *model, int lod)
+Ptr32<Material> *__cdecl XModelGetSkins(const XModel *model, int lod)
 {
     if ( !model && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\xanim\\xmodel_utils.cpp", 293, 0, "%s", "model") )
         __debugbreak();

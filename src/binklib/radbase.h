@@ -136,7 +136,7 @@
       #error "PS3 32bit ABI support only"
       #endif
 
-    #elif (defined(__MWERKS__) && !defined(__INTEL__)) || defined(__MRC__) || defined(THINK_C) || defined(powerc) || defined(macintosh) || defined(__powerc) || defined(__APPLE__) || defined(__MACH__)
+    #elif (defined(__MWERKS__) && !defined(__INTEL__)) || defined(__MRC__) || defined(THINK_C) || defined(powerc) || defined(macintosh) || defined(__powerc)
 
       #define __RADMAC__
 
@@ -192,11 +192,15 @@
         #endif
       #endif
 
-  #elif defined(linux) || defined(__linux__)
+  #elif defined(linux) || defined(__linux__) || defined(__APPLE__)
 
+      // macOS uses the Linux branch too (Bink is stubbed on both; the classic
+      // Mac branch above is for the old Mac OS toolchains).
       #define __RADLINUX__
+      #if defined(__i386__) || defined(__x86_64__)
       #define __RADX86__
       #define __RADMMX__
+      #endif
       #define __RAD32__
       #define __RADLITTLEENDIAN__
       #define RADINLINE inline
