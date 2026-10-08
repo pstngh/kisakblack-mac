@@ -6,7 +6,6 @@ void __cdecl CG_ParseServerInfo(int localClientNum);
 void __cdecl CG_ParseCodInfo(int localClientNum);
 void __cdecl CG_ParseCullDist();
 void __cdecl CG_ParseTimeScale(int localClientNum);
-void __cdecl CG_ParsePlayerInfos();
 void __cdecl CG_ParseGameEndTime(int localClientNum);
 void __cdecl CG_ParseFog(int localClientNum);
 void __cdecl CG_SetConfigValues(int localClientNum);

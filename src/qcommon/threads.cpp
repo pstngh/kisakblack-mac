@@ -41,7 +41,6 @@ unsigned int s_affinityMaskForCpu[8];
 
 void(__cdecl *threadFunc[15])(unsigned int);
 
-void *demoStreamingReady;
 unsigned int g_networkOverrideThread;
 ThreadOwner g_discReadsOwner;
 
@@ -293,16 +292,6 @@ DWORD WINAPI Sys_ThreadMain(LPVOID parameter)
     return 0;
 }
 
-void __cdecl Sys_InitDemoStreamingEvent()
-{
-    Sys_CreateEvent(0, 0, &demoStreamingReady);
-}
-
-void __cdecl Sys_WaitForDemoStreamingEvent()
-{
-    Sys_WaitForSingleObject(&demoStreamingReady);
-}
-
 void __cdecl Sys_WaitForSingleObject(void **event)
 {
     unsigned int result; // [esp+0h] [ebp-4h]
@@ -319,11 +308,6 @@ void __cdecl Sys_WaitForSingleObject(void **event)
                         result) )
             __debugbreak();
     }
-}
-
-void __cdecl Sys_SetDemoStreamingEvent()
-{
-    Sys_SetEvent(&demoStreamingReady);
 }
 
 void __cdecl Sys_SetEvent(void **event)

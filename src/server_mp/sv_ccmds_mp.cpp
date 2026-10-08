@@ -115,13 +115,6 @@ void __cdecl SV_MapRestart(int fast_restart)
     }
 }
 
-void __cdecl SV_RankUpClient(client_t *client)
-{
-    SV_CACValidate_SetIntStat(client->globalStats, "RANKXP", 0x1343A4u);
-    SV_CACValidate_SetIntStat(client->globalStats, "CODPOINTS", 0x186A0u);
-    SV_CACValidate_SetIntStat(client->globalStats, "PLEVEL", 0xFu);
-}
-
 void __cdecl SV_Heartbeat_f()
 {
     svs.nextHeartbeatTime = 0x80000000;
@@ -179,8 +172,6 @@ cmd_function_s SV_SysLog_LogMessage_f_VAR;
 cmd_function_s SV_SysLog_LogMessage_f_VAR_SERVER;
 cmd_function_s SV_RegisterRconKey_f_VAR;
 cmd_function_s SV_RegisterRconKey_f_VAR_SERVER;
-cmd_function_s SV_RankUp_f_VAR;
-cmd_function_s SV_RankUp_f_VAR_SERVER;
 
 static bool initialized_0 = 0;
 void __cdecl SV_AddOperatorCommands()
@@ -247,8 +238,6 @@ void __cdecl SV_AddOperatorCommands()
         Cmd_AddServerCommandInternal("logmessage", SV_SysLog_LogMessage_f, &SV_SysLog_LogMessage_f_VAR_SERVER);
         Cmd_AddCommandInternal("setrconkey", Cbuf_AddServerText_f, &SV_RegisterRconKey_f_VAR);
         Cmd_AddServerCommandInternal("setrconkey", SV_RegisterRconKey_f, &SV_RegisterRconKey_f_VAR_SERVER);
-        Cmd_AddCommandInternal("rankup", Cbuf_AddServerText_f, &SV_RankUp_f_VAR);
-        Cmd_AddServerCommandInternal("rankup", SV_RankUp_f, &SV_RankUp_f_VAR_SERVER);
     }
 }
 
@@ -425,12 +414,6 @@ void __cdecl SV_MapRotate_f()
     LicenseType = SV_GetLicenseType();
     if ( SV_IsServerRanked(LicenseType) )
         Dvar_SetBoolByName("playlist_enabled", 1);
-    if ( LiveStorage_FetchingOnlineWAD() )
-    {
-        Com_PrintWarning(0, "Early out of maprotate, waiting for WAD!\n");
-        SV_SetShouldMapRotate(1);
-        return;
-    }
     if ( Dvar_GetBool("playlist_enabled") )
     {
         if ( !LiveStorage_DoWeHavePlaylists() )
@@ -682,38 +665,6 @@ void __cdecl SV_Ban_f()
         else
         {
             Com_Printf(0, "Usage: banUser <player name>\n");
-        }
-    }
-    else
-    {
-        Com_Printf(0, "Server is not running.\n");
-    }
-}
-
-void __cdecl SV_RankUp_f()
-{
-    const char *v0; // eax
-    client_t *client; // [esp+0h] [ebp-4h]
-
-    if ( com_sv_running->current.enabled )
-    {
-        if ( SV_Cmd_Argc() == 2 )
-        {
-            client = SV_GetPlayerByName();
-            if ( client )
-            {
-                SV_RankUpClient(client);
-                SV_DWWriteClientStats(client);
-            }
-            else
-            {
-                v0 = SV_Cmd_Argv(1);
-                Com_Printf(0, "Couldn't find user %s\n", v0);
-            }
-        }
-        else
-        {
-            Com_Printf(0, "Usage: rankup <player name>\n");
         }
     }
     else

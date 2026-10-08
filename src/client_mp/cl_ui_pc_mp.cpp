@@ -43,7 +43,7 @@ void __cdecl LAN_GetServerAddressString(int source, int n, char *buf, int buflen
     *buf = 0;
 }
 
-void __cdecl LAN_GetServerSecurityId(int source, int n, bdSecurityID *buf, int buflen)
+void __cdecl LAN_GetServerSecurityId(int source, int n, XNKID *buf, int buflen)
 {
     serverInfo_t *servers; // [esp+4h] [ebp-8h] BYREF
     int *count; // [esp+8h] [ebp-4h] BYREF
@@ -202,36 +202,6 @@ void __cdecl LAN_GetServerInfo(int source, int n, char *buf, int buflen)
         v26 = va("%i", server->licensetype);
         Info_SetValueForKey(info, "licensetype", v26);
         Info_SetValueForKey(info, "countrycode", server->countrycode);
-        memset(xuidstring, 0, sizeof(xuidstring));
-        XUIDToString(&server->bdUserID, xuidstring);
-        Info_SetValueForKey(info, "dwuserid", xuidstring);
-        if ( source == 4 )
-        {
-            Live_GetFriendsOnServer(server->bdUserID, userIDs, &numFriends);
-            stringpos = 0;
-            strptr = userString;
-            for ( i = 0; i < numFriends && i < 3; ++i )
-            {
-                HIDWORD(v29) = HIDWORD(userIDs[i]);
-                LODWORD(v29) = userIDs[i];
-                Friends_GetByID(0, v29, &finfo);
-                v27 = sprintf_s(strptr, 128 - stringpos, "%s\n", finfo.name);
-                stringpos += v27;
-                strptr = &userString[stringpos];
-            }
-            if ( numFriends <= 3 )
-            {
-                if ( *--strptr == 10 )
-                    *strptr = 0;
-            }
-            else
-            {
-                v28 = sprintf_s(strptr, 128 - stringpos, "...");
-                stringpos += v28;
-                strptr = &userString[stringpos];
-            }
-            Info_SetValueForKey(info, "friendsOnServer", userString);
-        }
         I_strncpyz(buf, info, buflen);
     }
     else if ( buf )

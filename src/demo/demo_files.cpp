@@ -136,17 +136,14 @@ unsigned int __cdecl Demo_Write(char *buffer, unsigned int len, int handle)
 {
     if ( demo_usefilesystem->current.enabled )
         return FS_WriteToDemo(buffer, len, handle);
+    // Recordings only persist with demo_usefilesystem; the retail game streamed them to
+    // the online theater, which no longer exists.
     if ( Demo_IsRecording() )
-    {
-        Demo_SaveToStreamBuffer((unsigned __int8 *)buffer, len);
-    }
-    else
-    {
-        if ( !s_fileHandler.ptr )
-            return 0;
-        memcpy(&s_fileHandler.ptr[s_fileHandler.offset], (unsigned __int8 *)buffer, len);
-        s_fileHandler.offset += len;
-    }
+        return len;
+    if ( !s_fileHandler.ptr )
+        return 0;
+    memcpy(&s_fileHandler.ptr[s_fileHandler.offset], (unsigned __int8 *)buffer, len);
+    s_fileHandler.offset += len;
     return len;
 }
 

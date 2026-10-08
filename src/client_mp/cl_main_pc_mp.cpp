@@ -1,13 +1,12 @@
+#include <live/live_sessions_win.h>
 #include "cl_main_pc_mp.h"
 
 #include <live/live_storage_win.h>
 #include <live/live_win.h>
-#include <live/live_sessions_win.h>
 #include <live/live_stats.h>
 #include <live/live_steam.h>
 
 #include <qcommon/net_chan_mp.h>
-#include <DW/dwMatchMaking.h>
 #include <client/cl_main.h>
 #include <cgame_mp/cg_newDraw_mp.h>
 #include <cgame_mp/cg_main_mp.h>
@@ -17,64 +16,28 @@
 #include <universal/com_constantconfigstrings.h>
 #include <qcommon/com_clients.h>
 #include <client/cl_console.h>
-#include <DW/dwNet.h>
 #include <client/splitscreen.h>
 #include "cl_cgame_mp.h"
 #include <ui/ui_main_pc.h>
 #include <qcommon/com_gamemodes.h>
 #include <universal/com_files.h>
 #include <win32/win_net.h>
-#include <DW/dwLogOn_pc.h>
 #include "cl_scrn_mp.h"
 #include <win32/win_shared.h>
-#include <DW/dwUtils_pc.h>
-#include <DW/MatchMakingInfo_win32.h>
 
-#include <DW/dwQoS.h>
-#include <DW/dwUtils.h>
 #include <qcommon/dl_main.h>
 #include <qcommon/legacyhacks.h>
 #include <qcommon/md4.h>
-#include <DW/MatchMakingQueries_win32.h>
 #include <win32/win_steam.h>
 
-
-const dvar_t *cl_quickmatch_resultspercent;
-const dvar_t *cl_quickmatch_pingweight;
-const dvar_t *cl_quickmatch_fullnessweight;
-const dvar_t *cl_wager_firstplaylist;
-const dvar_t *cl_wager_lastplaylist;
-const dvar_t *cl_wager_maxping;
 
 unsigned int s_numServers;
 int serverStatusCount;
 serverStatusInfoResponse_s cl_serverStatusList[16];
 serverStatusInfoResponse_s cl_serverStatusScoreBoardList[16];
 bool s_playerMute[32];
-serverInfo_t s_quickmatchCandidates[50];
-quickmatchstate_t s_quickmatchstate;
 
-struct cacvalidateserver_t // sizeof=0x8
-{                                       // XREF: .data:cacvalidateserver_t g_cacValidateServer/r
-    unsigned __int64 uid;               // XREF: CL_CACValidateServerMatches+B/r
-};
-cacvalidateserver_t g_cacValidateServer;
-
-int g_cacValidateTimeout;
-
-enum cacvalidatestate_t : __int32
-{
-    CAC_DORMANT      = 0x0,
-    CAC_DONE         = 0x1,
-    CAC_NOTVALIDATED = 0x2,
-    CAC_FINDING      = 0x3,
-    CAC_FAILED       = 0x4,
-    CAC_FOUND        = 0x5,
-    CAC_REQUESTSENT  = 0x6,
-    CAC_VALIDATED    = 0x7,
-    CAC_REJECTED     = 0x8,
-};
-cacvalidatestate_t g_cacValidateState; // NOT TO BE CONFUSED WITH LOWERCASE `g_cacvalidateState` !!! ! ! !
+ // NOT TO BE CONFUSED WITH LOWERCASE `g_cacvalidateState` !!! ! ! !
 
 struct  //$A3082F8D06891D11850E9B8F334529D3 // sizeof=0x28
 {                                       // XREF: .data:rconGlob/r
@@ -180,7 +143,7 @@ void __cdecl CL_SetServerInfo(serverInfo_t *server, char *info, __int16 ping)
     }
 }
 
-void __cdecl CL_ServerInfoPacket(bdSecurityID *secID, msg_t *msg, int time)
+void __cdecl CL_ServerInfoPacket(XNKID *secID, msg_t *msg, int time)
 {
 #if 0 // KISAKTODO
     char *v3; // eax
@@ -231,102 +194,6 @@ void __cdecl CL_ServerInfoPacket(bdSecurityID *secID, msg_t *msg, int time)
         }
     }
 #endif
-}
-
-void __cdecl CL_Connect(serverInfo_t *server)
-{
-    int ControllerIndex; // eax
-    __int16 v2; // ax
-    char *v3; // eax
-    clientUIActive_t *clUI; // [esp+Ch] [ebp-18h]
-    clientConnection_t *clc; // [esp+10h] [ebp-14h]
-
-
-    clUI = CL_GetLocalClientUIGlobals(0);
-    CL_GetLocalClientGlobals(0);
-    clc = CL_GetLocalClientConnection(0);
-    clc->serverMessage[0] = 0;
-    if ( CL_GetLocalClientConnectionState(0) < 6 )
-    {
-        Dvar_SetBoolByName("cl_wasconnected", 0);
-    }
-    else
-    {
-        Dvar_SetBoolByName("cl_wasconnected", 1);
-        SND_StopSounds(SND_STOP_ALL);
-        clUI->keyCatchers = 0;
-    }
-    CL_SetupClientsForIngame();
-    CL_AllocatePerLocalClientMemory();
-    SV_KillLocalServer();
-    CCS_ClearConstantConfigStrings();
-    cl_serverLoadingMap = 0;
-    ControllerIndex = Com_LocalClient_GetControllerIndex(0);
-    SV_Frame(ControllerIndex, 0);
-    Cmd_ExecuteSingleCommand(0, 0, (char*)"fileShareAbortOperation");
-    CL_Disconnect(0, 1);
-    Con_Close(0);
-    I_strncpyz(cls.servername, server->hostName, 256);
-    clc->serverAddress = server->adr;
-    if ( !clc->serverAddress.port )
-        clc->serverAddress.port = BigShort(3074);
-    v2 = BigShort(clc->serverAddress.port);
-    Com_Printf(
-        0,
-        "%s resolved to %i.%i.%i.%i:%i\n",
-        cls.servername,
-        clc->serverAddress.ip[0],
-        clc->serverAddress.ip[1],
-        clc->serverAddress.ip[2],
-        clc->serverAddress.ip[3],
-        v2);
-    if ( NET_IsLocalAddress(clc->serverAddress) || CL_LocalClient_GetActiveCount() )
-    {
-        if ( NET_IsLocalAddress(clc->serverAddress) )
-            CL_SetLocalClientConnectionState(0, CA_CHALLENGING);
-        else
-            CL_SetLocalClientConnectionState(0, CA_CONNECTING);
-        CL_LocalClient_ClearCUIFlag(0, 64);
-        clc->connectTime = -99999;
-        clc->connectPacketCount = 0;
-        clc->clientChallenge = 0;
-        clc->nonce = 0;
-        if ( server->basictraining )
-        {
-            Dvar_SetBool((dvar_s *)xblive_basictraining, 1);
-        }
-        else
-        {
-            LiveStorage_SetFirstTimeRunning(0);
-            if ( !xblive_basictraining->current.enabled )
-                CL_CACValidateRequest_f();
-        }
-        if ( server->customclassmode )
-            Dvar_SetBoolByName("custom_class_mode", 1);
-        UI_UseAltColorPalette(cls.servername);
-        clc->qport = g_qport;
-        cls.serveruid = server->bdUserID;
-        UI_ClearErrors();
-        v3 = UI_SafeTranslateString("MENU_CONNECTING_CAPS");
-        Dvar_SetStringByName("statusinfo_popmenuTitle", v3);
-        Dvar_SetStringByName("statusinfo_popmenuMessage", cls.servername);
-        Dvar_SetStringByName("statusinfo_onEscArg", (char*)"disconnect;");
-        UI_OpenMenu(0, "code_statusinfo_popmenu");
-        //bdTaskResult::~bdTaskResult(&sessionID);
-    }
-    else
-    {
-        Com_Error(ERR_DROP, "EXE_ERR_INVALID_CD_KEY");
-        //bdTaskResult::~bdTaskResult(&sessionID);
-    }
-}
-
-void __cdecl CL_ConnectHackDW()
-{
-    const char *v0; // eax
-
-    v0 = va("connect %s\n", cls.servername);
-    Cbuf_AddText(0, v0);
 }
 
 bool __cdecl CL_CDKeyValidate(netadr_t addr)
@@ -403,7 +270,6 @@ void __cdecl CL_Connect_f()
                 }
                 else
                 {
-                    _Dvar_RegisterBool("dw_connectafterlogin", 1, 0x40u, "");
                     CL_SetLocalClientConnectionState(0, CA_DISCONNECTED);
                 }
             }
@@ -423,11 +289,6 @@ void __cdecl CL_Connect_f()
     {
         Com_Printf(0, "usage: connect [server]\n");
     }
-}
-
-void __cdecl CL_PC_SignInLive()
-{
-    //BLOPS_NULLSUB();
 }
 
 void __cdecl CL_InitServerInfo(serverInfo_t *server, netadr_t adr)
@@ -458,12 +319,12 @@ int __cdecl CL_RawPingSetupBuffer(
                 unsigned __int8 *buffer,
                 int buffersize,
                 unsigned __int8 opcode,
-                const bdSecurityID *secID)
+                const XNKID *secID)
 {
     if ( buffersize >= 9 )
     {
         *buffer = opcode;
-        *(bdSecurityID *)(buffer + 1) = *secID;
+        *(XNKID *)(buffer + 1) = *secID;
         return 9;
     }
     else
@@ -471,216 +332,6 @@ int __cdecl CL_RawPingSetupBuffer(
         Com_PrintWarning(0, "Rawpingbuffersetup: buffer is too small.\n");
         return 0;
     }
-}
-
-void __cdecl CL_RawPingServer(serverInfo_t *server, unsigned __int8 opcode)
-{
-#if 0 // KISAKTODO
-    netadr_t privserveraddr; // [esp+0h] [ebp-30h] BYREF
-    unsigned __int8 sendBuf[12]; // [esp+10h] [ebp-20h] BYREF
-    netadr_t pubserveraddr; // [esp+1Ch] [ebp-14h] BYREF
-
-    memset(sendBuf, 0, 9);
-    CL_RawPingSetupBuffer(sendBuf, 9, opcode, &server->xnkid);
-    server->pingedTime = Sys_Milliseconds();
-    dwXnaddrtonetadr(server->xnaddr.addrBuff, &privserveraddr, &pubserveraddr);
-    dwRawSendTo(&pubserveraddr, sendBuf, 9u);
-    if ( !NET_CompareAdr(privserveraddr, pubserveraddr) )
-        dwRawSendTo(&privserveraddr, sendBuf, 9u);
-#endif
-}
-
-void __cdecl CL_ServersResponsePacket(MatchMakingInfo *mminfo, int numResults, bool geo)
-{
-#if 0 // KISAKTODO: hate
-    bdCommonAddr *v3; // ecx
-    const char *CountryCode; // eax
-    int v5; // eax
-    bdCommonAddr *v6; // eax
-    bdReference<bdCommonAddr> *v7; // ecx
-    unsigned int *v8; // edx
-    bdReference<bdCommonAddr> *v9; // eax
-    bdReference<bdCommonAddr> v10; // [esp-4h] [ebp-216Ch] BYREF
-    int v11; // [esp+4h] [ebp-2164h]
-    bdReference<bdCommonAddr> *j; // [esp+8h] [ebp-2160h]
-    int v13; // [esp+34h] [ebp-2134h]
-    bdQoSRemoteAddr *i; // [esp+38h] [ebp-2130h]
-    bdReference<bdCommonAddr> *p_m_addr; // [esp+40h] [ebp-2128h]
-    netadr_t pubadr; // [esp+44h] [ebp-2124h] BYREF
-    netadr_t privadr; // [esp+54h] [ebp-2114h] BYREF
-    unsigned int *v18; // [esp+64h] [ebp-2104h]
-    bdReference<bdCommonAddr> other; // [esp+68h] [ebp-2100h] BYREF
-    int v20; // [esp+6Ch] [ebp-20FCh]
-    bdQoSRemoteAddr serverAddrs[300]; // [esp+70h] [ebp-20F8h] BYREF
-    int v22; // [esp+2140h] [ebp-28h] BYREF
-    int v23; // [esp+2144h] [ebp-24h]
-    serverInfo_t *servers; // [esp+2148h] [ebp-20h] BYREF
-    unsigned int numProbes; // [esp+214Ch] [ebp-1Ch]
-    int *count[5]; // [esp+2150h] [ebp-18h] BYREF
-
-    v13 = 300;
-    for ( i = serverAddrs; --v13 >= 0; ++i )
-    {
-        i->m_addr.m_ptr = 0;
-        bdSecurityID::bdSecurityID(&i->m_id);
-        bdSecurityKey::bdSecurityKey(&i->m_key);
-    }
-
-    static dwQoSMultiProbeListener s_qoslistener;
-    //if ( (_S1_3 & 1) == 0 )
-    //{
-    //    _S1_3 |= 1u;
-    //    dwQoSMultiProbeListener::dwQoSMultiProbeListener(&s_qoslistener);
-    //    atexit(CL_ServersResponsePacket_::_2_::_dynamic_atexit_destructor_for__s_qoslistener__);
-    //}
-
-    Com_DPrintf(14, "CL_ServersResponsePacket\n");
-    v23 = 0;
-    v20 = 0;
-    numProbes = 0;
-    if ( CL_GetServerList(cls.pingUpdateSource, &servers, count) && servers )
-    {
-        servers += *count[0];
-        v23 = 0;
-        v20 = *count[0];
-        while ( v23 < numResults && v20 < 20000 )
-        {
-            v18 = &mminfo[v23].__vftable;
-            if ( LiveStats_GetStatsDDL()->version == v18[132] )
-            {
-                v3 = (bdCommonAddr *)geo;
-                if ( geo
-                    || (CountryCode = LiveSteam_GetCountryCode(), v5 = dwRegionCodeFromCountryCode(CountryCode), v18[114] != v5) )
-                {
-                    v10.m_ptr = v3;
-                    dwGetLocalCommonAddr(&v10);
-                    bdMatchMakingInfo::getHostAddrAsCommonAddr(v18, (bdReference<bdRemoteTask> *)&other, v10);
-                    bdCommonAddr::serialize(other.m_ptr, servers->xnaddr.addrBuff);
-                    memset(&count[2], 0, 12);
-                    count[1] = (int *)4;
-                    CL_InitServerInfo(servers, (netadr_t)4u);
-                    servers->maxClients = *((_BYTE *)v18 + 276);
-                    I_strncpyz(servers->hostName, (const char *)v18 + 305, 32);
-                    I_strncpyz(servers->mapName, (const char *)v18 + 384, 32);
-                    servers->xnkey = (bdSecurityKey)*((_OWORD *)v18 + 18);
-                    servers->xnkid = *(bdSecurityID *)(v18 + 1);
-                    Com_IntToGametype(servers->gameType, v18[105]);
-                    servers->region = v18[114];
-                    servers->licensetype = v18[133];
-                    if ( servers->licensetype == 5 )
-                    {
-                        servers->clients = *((_BYTE *)v18 + 280);
-                        dwXnaddrtonetadr(servers->xnaddr.addrBuff, &privadr, &pubadr);
-                        if ( !NET_CompareAdr(privadr, pubadr) )
-                        {
-                            p_m_addr = &serverAddrs[numProbes++].m_addr;
-                            bdReference<bdCommonAddr>::operator=(p_m_addr, &other);
-                            v6 = (bdCommonAddr *)v18[2];
-                            v7 = p_m_addr;
-                            p_m_addr[1].m_ptr = (bdCommonAddr *)v18[1];
-                            v7[2].m_ptr = v6;
-                            v8 = v18 + 72;
-                            v9 = p_m_addr + 3;
-                            p_m_addr[3].m_ptr = (bdCommonAddr *)v18[72];
-                            v9[1].m_ptr = (bdCommonAddr *)v8[1];
-                            v9[2].m_ptr = (bdCommonAddr *)v8[2];
-                            v9[3].m_ptr = (bdCommonAddr *)v8[3];
-                        }
-                    }
-                    else
-                    {
-                        servers->clients = v18[70] - 1;
-                    }
-                    servers->bdUserID = mminfo[v23].m_memberdemonwareID;
-                    ++servers;
-                    ++v20;
-                    bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&other);
-                }
-            }
-            ++v23;
-        }
-        *count[0] = v20;
-        Com_Printf(14, "%d servers parsed (total %d)\n", v23, *count[0]);
-        if ( numProbes )
-        {
-            dwClearQoSProbes();
-            dwStartQoSProbes(&s_qoslistener, numProbes, serverAddrs);
-        }
-        cls.waitdwfindsessionsresponse = 0;
-    }
-    v11 = 300;
-    for ( j = (bdReference<bdCommonAddr> *)&v22; --v11 >= 0; bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(j) )
-        j -= 7;
-#endif
-}
-
-void __cdecl CL_FindServers_f()
-{
-#if 0 // KISAKTODO
-    const char *v0; // eax
-    unsigned int servertype; // [esp+14h] [ebp-14h]
-    int i; // [esp+18h] [ebp-10h]
-    serverInfo_t *server; // [esp+1Ch] [ebp-Ch]
-    int *count; // [esp+20h] [ebp-8h] BYREF
-    serverInfo_t *servers; // [esp+24h] [ebp-4h] BYREF
-
-    servers = 0;
-    if ( !dwIsPagedFindInProgress() && !Live_FindFavouritesInProgress() )
-    {
-        if ( Cmd_Argc() >= 2 )
-        {
-            v0 = Cmd_Argv(1);
-            servertype = atoi(v0);
-            if ( servertype < 6 )
-            {
-                if ( CL_GetServerList(servertype, &servers, &count) )
-                {
-                    for ( i = 0; i < *count; ++i )
-                    {
-                        server = &servers[i];
-                        if ( !++server->requestCount )
-                            --server->requestCount;
-                    }
-                    Com_Printf(0, "Contacting Demonware..\n");
-                    switch ( servertype )
-                    {
-                        case 0u:
-                        case 1u:
-                        case 2u:
-                            Live_FindSessionsStart(1, servertype);
-                            break;
-                        case 3u:
-                            Live_FindFavouriteServers();
-                            break;
-                        case 4u:
-                            Live_FindFriendServers();
-                            break;
-                        case 5u:
-                            Live_FindRecentServers();
-                            break;
-                        default:
-                            break;
-                    }
-                    cls.waitdwfindsessionsresponse = 1;
-                    cls.pingUpdateSource = servertype;
-                    *count = 0;
-                    if ( cls.pingUpdateSource == 1 )
-                        cls.lastFindSessionsTime = Sys_Milliseconds();
-                }
-            }
-            else
-            {
-                Com_Printf(
-                    0,
-                    "argument should be 0 for unranked, 1 for ranked, 2 for wager, 3 for favourite, 4 for friends, 5 for recent\n");
-            }
-        }
-        else
-        {
-            Com_Printf(0, "usage: findservers [unranked|ranked|wager|favourites|friends|recent]\n");
-        }
-    }
-#endif
 }
 
 void __cdecl CL_RconInit()
@@ -843,7 +494,7 @@ void CL_RconHost()
     }
 }
 
-serverStatusInfoResponse_s *__cdecl CL_GetServerStatus(bdSecurityID *secID)
+serverStatusInfoResponse_s *__cdecl CL_GetServerStatus(XNKID *secID)
 {
     int oldest; // [esp+0h] [ebp-Ch]
     int i; // [esp+4h] [ebp-8h]
@@ -853,7 +504,7 @@ serverStatusInfoResponse_s *__cdecl CL_GetServerStatus(bdSecurityID *secID)
 
     for ( i = 0; i < 16; ++i )
     {
-        //if ( bdSecurityID::operator==(secID, cl_serverStatusList[i].secId.ab) )
+        //if ( XNKID::operator==(secID, cl_serverStatusList[i].secId.ab) )
         if (*secID == cl_serverStatusList[i].secId)
             return &cl_serverStatusList[i];
     }
@@ -878,7 +529,7 @@ serverStatusInfoResponse_s *__cdecl CL_GetServerStatus(bdSecurityID *secID)
         return &cl_serverStatusList[oldest];
 }
 
-serverStatusInfoResponse_s *__cdecl CL_GetServerStatusScoreBoard(bdSecurityID *secID)
+serverStatusInfoResponse_s *__cdecl CL_GetServerStatusScoreBoard(XNKID *secID)
 {
     int oldest; // [esp+0h] [ebp-Ch]
     int i; // [esp+4h] [ebp-8h]
@@ -888,7 +539,7 @@ serverStatusInfoResponse_s *__cdecl CL_GetServerStatusScoreBoard(bdSecurityID *s
 
     for ( i = 0; i < 16; ++i )
     {
-        //if ( bdSecurityID::operator==(secID, cl_serverStatusScoreBoardList[i].secId.ab) )
+        //if ( XNKID::operator==(secID, cl_serverStatusScoreBoardList[i].secId.ab) )
         if ( *secID == cl_serverStatusScoreBoardList[i].secId )
             return &cl_serverStatusScoreBoardList[i];
     }
@@ -916,15 +567,15 @@ serverStatusInfoResponse_s *__cdecl CL_GetServerStatusScoreBoard(bdSecurityID *s
 int __cdecl CL_ServerStatus(char *serversecurityID, char *serverStatusString, int maxLen)
 {
 #if 0 // KISAKTODO
-    bdSecurityID *p_secId; // edx
-    bdSecurityID secId; // [esp+0h] [ebp-18h] BYREF
+    XNKID *p_secId; // edx
+    XNKID secId; // [esp+0h] [ebp-18h] BYREF
     serverStatusInfoResponse_s *serverStatus; // [esp+Ch] [ebp-Ch]
     int i; // [esp+10h] [ebp-8h]
     serverInfo_t *server; // [esp+14h] [ebp-4h]
 
     if ( serversecurityID )
     {
-        bdSecurityID::bdSecurityID(&secId);
+        XNKID::XNKID(&secId);
         *(unsigned int *)secId.ab = *(unsigned int *)serversecurityID;
         *(unsigned int *)&secId.ab[4] = *((unsigned int *)serversecurityID + 1);
         server = FindServerBySecID(&secId);
@@ -936,7 +587,7 @@ int __cdecl CL_ServerStatus(char *serversecurityID, char *serverStatusString, in
             serverStatus->retrieved = 1;
             return 0;
         }
-        //if ( bdSecurityID::operator==(&secId, serverStatus->secId.ab) )
+        //if ( XNKID::operator==(&secId, serverStatus->secId.ab) )
         if ( secId == serverStatus->secId )
         {
             if ( !serverStatus->pending )
@@ -990,15 +641,15 @@ int __cdecl CL_ServerStatus(char *serversecurityID, char *serverStatusString, in
 int __cdecl CL_ServerStatusScoreBoard(char *serversecurityID, char *serverStatusString, int maxLen)
 {
 #if 0 // KISAKTODO
-    bdSecurityID *p_secId; // edx
-    bdSecurityID secId; // [esp+0h] [ebp-18h] BYREF
+    XNKID *p_secId; // edx
+    XNKID secId; // [esp+0h] [ebp-18h] BYREF
     serverStatusInfoResponse_s *serverStatus; // [esp+Ch] [ebp-Ch]
     int i; // [esp+10h] [ebp-8h]
     serverInfo_t *server; // [esp+14h] [ebp-4h]
 
     if ( serversecurityID )
     {
-        bdSecurityID::bdSecurityID(&secId);
+        XNKID::XNKID(&secId);
         *(unsigned int *)secId.ab = *(unsigned int *)serversecurityID;
         *(unsigned int *)&secId.ab[4] = *((unsigned int *)serversecurityID + 1);
         server = FindServerBySecID(&secId);
@@ -1010,7 +661,7 @@ int __cdecl CL_ServerStatusScoreBoard(char *serversecurityID, char *serverStatus
             serverStatus->retrieved = 1;
             return 0;
         }
-        //if ( bdSecurityID::operator==(&secId, serverStatus->secId.ab) )
+        //if ( XNKID::operator==(&secId, serverStatus->secId.ab) )
         if ( secId == serverStatus->secId )
         {
             if ( !serverStatus->pending )
@@ -1061,7 +712,7 @@ int __cdecl CL_ServerStatusScoreBoard(char *serversecurityID, char *serverStatus
 #endif
 }
 
-void __cdecl CL_ServerStatusScoreBoardResponse(msg_t *msg, bdSecurityID *secID)
+void __cdecl CL_ServerStatusScoreBoardResponse(msg_t *msg, XNKID *secID)
 {
     unsigned int v2; // [esp+0h] [ebp-4044h]
     unsigned int v3; // [esp+10h] [ebp-4034h]
@@ -1074,7 +725,7 @@ void __cdecl CL_ServerStatusScoreBoardResponse(msg_t *msg, bdSecurityID *secID)
     v7 = 0;
     for ( i = 0; i < 16; ++i )
     {
-        //if ( bdSecurityID::operator==(secID, cl_serverStatusScoreBoardList[i].secId.ab) )
+        //if ( XNKID::operator==(secID, cl_serverStatusScoreBoardList[i].secId.ab) )
         if ( *secID == cl_serverStatusScoreBoardList[i].secId )
         {
             v7 = &cl_serverStatusScoreBoardList[i];
@@ -1105,7 +756,7 @@ void __cdecl CL_ServerStatusScoreBoardResponse(msg_t *msg, bdSecurityID *secID)
     }
 }
 
-void __cdecl CL_ServerStatusResponse(msg_t *msg, bdSecurityID *secID)
+void __cdecl CL_ServerStatusResponse(msg_t *msg, XNKID *secID)
 {
     char info[1024]; // [esp+20h] [ebp-818h] BYREF
     int l; // [esp+420h] [ebp-418h]
@@ -1118,7 +769,7 @@ void __cdecl CL_ServerStatusResponse(msg_t *msg, bdSecurityID *secID)
     serverStatus = 0;
     for ( i = 0; i < 16; ++i )
     {
-        //if ( bdSecurityID::operator==(secID, cl_serverStatusList[i].secId.ab) )
+        //if ( XNKID::operator==(secID, cl_serverStatusList[i].secId.ab) )
         if ( *secID == cl_serverStatusList[i].secId )
         {
             serverStatus = &cl_serverStatusList[i];
@@ -1296,24 +947,14 @@ void __cdecl CL_WWWDownload()
     }
 }
 
-cmd_function_s CL_PC_SignInLive_VAR;
 cmd_function_s CL_PC_SignIn_VAR;
 cmd_function_s CL_PC_RequireLiveSignin_VAR;
-cmd_function_s CL_LanSessions_f_VAR;
-cmd_function_s CL_LanConnect_f_VAR;
-cmd_function_s CL_CACValidateRequest_f_VAR;
 cmd_function_s CL_Prestige_f_VAR;
-cmd_function_s CL_QuickMatchConnect_f_VAR;
 void __cdecl CL_Platform_RegisterCommands()
 {
-    Cmd_AddCommandInternal("xsigninlive", CL_PC_SignInLive, &CL_PC_SignInLive_VAR);
     Cmd_AddCommandInternal("xsignin", CL_PC_SignIn, &CL_PC_SignIn_VAR);
     Cmd_AddCommandInternal("xrequirelivesignin", CL_PC_RequireLiveSignin, &CL_PC_RequireLiveSignin_VAR);
-    Cmd_AddCommandInternal("lansessions", CL_LanSessions_f, &CL_LanSessions_f_VAR);
-    Cmd_AddCommandInternal("lanconnect", CL_LanConnect_f, &CL_LanConnect_f_VAR);
-    Cmd_AddCommandInternal("cacvalidate", CL_CACValidateRequest_f, &CL_CACValidateRequest_f_VAR);
     Cmd_AddCommandInternal("prestigerequest", CL_Prestige_f, &CL_Prestige_f_VAR);
-    Cmd_AddCommandInternal("quickmatchconnect", CL_QuickMatchConnect_f, &CL_QuickMatchConnect_f_VAR);
 }
 
 void __cdecl CL_PC_RequireLiveSignin()
@@ -1321,132 +962,9 @@ void __cdecl CL_PC_RequireLiveSignin()
     Live_RequireUserToPlayOnline();
 }
 
-void __cdecl CL_LanSessions_f()
-{
-}
-
-void __cdecl CL_LanConnect_f()
-{
-}
-
 void __cdecl CL_Prestige_f()
 {
     CL_PrestigeRequest();
-}
-
-void __cdecl CL_RequestCACValidateSuccess()
-{
-    Com_Printf(14, "CACValidate: Successfully sent message to server\n");
-}
-
-void __cdecl CL_RequestCACValidateFailure()
-{
-    Com_DPrintf(14, "CACValidate: Failed to send message to server!\n");
-}
-
-void __cdecl CL_CACValidateHandleNACK(unsigned __int64 uid)
-{
-    if ( g_cacValidateState == CAC_REQUESTSENT )
-    {
-        if ( CL_CACValidateServerMatches(uid) )
-        {
-            Com_DPrintf(14, "CACValidate: Got NACK from the server\n CAC_REQUESTSENT --> CAC_NOTVALIDATED\n");
-            g_cacValidateState = CAC_FAILED;
-        }
-    }
-}
-
-char __cdecl CL_CACValidateServerMatches(unsigned __int64 uid)
-{
-    bool retval; // [esp+3h] [ebp-1h]
-
-    retval = 0;
-    if ( uid == g_cacValidateServer.uid )
-    {
-        Com_DPrintf(15, "CACValidate: ACK received from %llu\n", uid);
-        return 1;
-    }
-    else
-    {
-        Com_DPrintf(15, "CACValidate: ACK received, expected uid %llu, got uid %llu\n", g_cacValidateServer.uid, uid);
-    }
-    return retval;
-}
-
-void __cdecl CL_CACValidateHandleOK(unsigned __int64 uid)
-{
-    if ( g_cacValidateState == CAC_REQUESTSENT )
-    {
-        if ( CL_CACValidateServerMatches(uid) )
-        {
-            Com_DPrintf(15, "CACValidate: Got OK from server\n CAC_REQUESTSENT --> CAC_VALIDATED\n");
-            UI_CloseMenu(0, "popup_gettingdata");
-            g_cacValidateState = CAC_VALIDATED;
-            LiveStorage_SetFirstTimeRunning(0);
-        }
-    }
-}
-
-void __cdecl CL_CACValidateHandleBad(unsigned __int64 uid)
-{
-    if ( g_cacValidateState == CAC_REQUESTSENT )
-    {
-        if ( CL_CACValidateServerMatches(uid) )
-        {
-            Com_DPrintf(14, "CACValidate: Got BAD from server\n CAC_REQUESTSENT --> CAC_REJECTED\n");
-            g_cacValidateState = CAC_REJECTED;
-        }
-    }
-}
-
-char __cdecl CL_RequestCACValidate(unsigned __int64 serverId)
-{
-    return 0;
-}
-
-void __cdecl CL_CACValidateRequest_f()
-{
-    persistentStats *StatsBuffer; // eax
-
-    if ( Dvar_GetBool("allItemsUnlocked") || Dvar_GetBool("allItemsPurchased") )
-    {
-        Com_PrintError(0, "Not doing cacvalidate, allitemspurchased or allitemsunlocked is active!\n");
-    }
-    else if ( !LiveStorage_FirstTimeRunning() )
-    {
-        if ( LiveStorage_DoWeHaveAllStats(0) )
-        {
-            StatsBuffer = LiveStorage_GetStatsBuffer(0, STATS_LOCATION_NORMAL, 1);
-            if ( LiveStats_GetBasicTrainingState(StatsBuffer->statsBuffer) )
-            {
-                if ( !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_main_pc_mp.cpp",
-                                2317,
-                                0,
-                                "Attempted to cacvalidate in basic training. Show me to Ewan!\n") )
-                    __debugbreak();
-                Com_PrintError(0, "Attempted to cacvalidate in basic training, show me to Ewan!\n");
-            }
-            else if ( !LiveStorage_GetStatsWriteNeeded(0, STATS_LOCATION_NORMAL) || CL_CACValidateInProgress() )
-            {
-                Com_DPrintf(14, "CACValidate: Not requesting validate, validation already in progress or no stats change\n");
-            }
-            else
-            {
-                LiveStorage_SetStatsWriteNeeded(0, 0, STATS_LOCATION_NORMAL);
-                g_cacValidateState = CAC_NOTVALIDATED;
-            }
-        }
-        else
-        {
-            Com_PrintError(0, "Not cacvalidating, don't have all required files..\n");
-        }
-    }
-}
-
-bool __cdecl CL_CACValidateInProgress()
-{
-    return g_cacValidateState != CAC_DORMANT;
 }
 
 char __cdecl CL_PrestigeRequest()
@@ -1457,7 +975,6 @@ char __cdecl CL_PrestigeRequest()
     if ( LiveStats_WritePrestigeToStats(0) )
     {
         Com_DPrintf(14, "Prestige incremented!\n");
-        CL_CACValidateRequest_f();
         return 1;
     }
     else
@@ -1465,199 +982,6 @@ char __cdecl CL_PrestigeRequest()
         Com_PrintError(14, "Couldn't increment prestige. Max prestige or insufficient xp!\n");
     }
     return retval;
-}
-
-bool __cdecl CL_CACValidate_IsTimedOut()
-{
-    return (int)(Sys_Milliseconds() - g_cacValidateTimeout) > 25000;
-}
-
-void __cdecl CL_CACValidate_Frame()
-{
-}
-
-void __cdecl CL_QuickMatchConnect_f()
-{
-    CL_Connect(s_quickmatchCandidates);
-}
-
-bool __cdecl CL_QuickMatch_InProgress()
-{
-    return s_quickmatchstate != QM_DORMANT;
-}
-
-void __cdecl CL_QuickMatch_FindSessionsSuccess(TaskRecord *task)
-{
-}
-
-void __cdecl CL_QuickMatch_FindSessionsFailure()
-{
-    s_quickmatchstate = QM_DORMANT;
-}
-
-void __cdecl CL_QuickMatch_Start(
-                unsigned int servertype,
-                const char *mapname,
-                unsigned int playlist,
-                int minPlayers,
-                int maxPlayers,
-                int maxPing)
-{
-}
-
-void __cdecl CL_QuickWager_Start()
-{
-}
-
-void __cdecl CL_QuickMatch_f()
-{
-    const char *v0; // eax
-    const char *v1; // eax
-    const char *v2; // eax
-    const char *v3; // eax
-    int minplayers; // [esp+30h] [ebp-18h]
-    int maxplayers; // [esp+34h] [ebp-14h]
-    unsigned int playlist; // [esp+3Ch] [ebp-Ch]
-    const char *mapname; // [esp+40h] [ebp-8h]
-    int maxping; // [esp+44h] [ebp-4h]
-
-    if ( Cmd_Argc() == 6 )
-    {
-        v0 = Cmd_Argv(1);
-        playlist = atoi(v0);
-        mapname = Cmd_Argv(2);
-        v1 = Cmd_Argv(3);
-        minplayers = atoi(v1);
-        v2 = Cmd_Argv(4);
-        maxplayers = atoi(v2);
-        v3 = Cmd_Argv(5);
-        maxping = atoi(v3);
-        CL_QuickMatch_Start(1u, mapname, playlist, minplayers, maxplayers, maxping);
-    }
-    else
-    {
-        CL_QuickMatch_Start(1u, "any", 0xFFFFFFFF, 0, 24, 150);
-    }
-}
-
-void __cdecl CL_QuickWager_f()
-{
-    CL_QuickWager_Start();
-}
-
-void __cdecl CL_QuickMatch_InitDvars()
-{
-    cl_quickmatch_resultspercent = _Dvar_RegisterInt(
-                                                                     "quickmatch_resultspercent",
-                                                                     75,
-                                                                     1,
-                                                                     100,
-                                                                     0,
-                                                                     "Percentage of ping results to wait for before choosing a session");
-    cl_quickmatch_pingweight = _Dvar_RegisterInt(
-                                                             "quickmatch_pingweight",
-                                                             100,
-                                                             1,
-                                                             0x7FFFFFFF,
-                                                             0,
-                                                             "Ping weight. Higher number makes it more likely to quickmatch based on ping");
-    cl_quickmatch_fullnessweight = _Dvar_RegisterInt(
-                                                                     "quickmatch_fullnessweight",
-                                                                     1,
-                                                                     1,
-                                                                     0x7FFFFFFF,
-                                                                     0,
-                                                                     "Fullness weight. Higher number makes it more likely to quickmatch based on %fullness");
-    cl_wager_firstplaylist = _Dvar_RegisterInt("wager_firstplaylist", 21, 0, 64, 0x40u, "First wager playlist");
-    cl_wager_lastplaylist = _Dvar_RegisterInt(
-                                                        "wager_lastplaylist",
-                                                        29,
-                                                        cl_wager_firstplaylist->current.integer,
-                                                        64,
-                                                        0x40u,
-                                                        "Last wager playlist");
-    cl_wager_maxping = _Dvar_RegisterInt("wager_maxping", 150, 1, 999, 0x40u, "Max ping for wager quickmatch");
-}
-
-void __cdecl CL_QuickMatch_Init()
-{
-}
-
-bool __cdecl CL_QuickMatch_ServerMatches(MatchMakingInfo *server)
-{
-    return false;
-}
-
-void __cdecl CL_QuickMatch_PingServers()
-{
-}
-
-bool __cdecl CL_QuickMatch_GoodSessionFound()
-{
-    return false;
-}
-
-void __cdecl CL_QuickMatch_PingResponse(bdSecurityID *secID, msg_t *msg)
-{
-}
-
-char __cdecl CL_QuickMatch_ChooseSession()
-{
-    return 0;
-}
-
-int __cdecl CL_QuickMatch_CompareServers(unsigned int *sv1, unsigned int *sv2)
-{
-    return sv2[72] - sv1[72];
-}
-
-void __cdecl CL_QuickMatch_Frame()
-{
-    char *v0; // eax
-    char *v1; // [esp-8h] [ebp-10h]
-
-    switch ( s_quickmatchstate )
-    {
-        case QM_DORMANT:
-        case QM_FINDING:
-            return;
-        case QM_PINGING:
-            if ( CL_QuickMatch_ShouldChooseSession() )
-                s_quickmatchstate = QM_CHOOSE;
-            else
-                CL_QuickMatch_PingServers();
-            break;
-        case QM_CHOOSE:
-            if ( CL_QuickMatch_ChooseSession() )
-                s_quickmatchstate = QM_DORMANT;
-            else
-                s_quickmatchstate = QM_FAILED;
-            break;
-        case QM_FAILED:
-            v1 = UI_SafeTranslateString("PLATFORM_QUICKMATCH_FAILED");
-            v0 = UI_SafeTranslateString("");
-            UI_OpenToastPopup(0, "menu_mp_killstreak_select", v0, v1, 2700);
-            s_quickmatchstate = QM_DORMANT;
-            break;
-        default:
-            if ( !"Unknown quickmatchstate! %i\n"
-                && !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\client_mp\\cl_main_pc_mp.cpp",
-                            3007,
-                            0,
-                            "%s\n\t%s",
-                            "\"Unknown quickmatchstate! %i\\n\"",
-                            (const char *)s_quickmatchstate) )
-            {
-                __debugbreak();
-            }
-            break;
-    }
-}
-
-bool __cdecl CL_QuickMatch_ShouldChooseSession()
-{
-    return false;
 }
 
 struct cityname_t // sizeof=0x44

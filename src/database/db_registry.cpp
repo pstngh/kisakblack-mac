@@ -4720,17 +4720,16 @@ void DB_ExternalInitAssets()
     BG_FillInAllWeaponItems();
 }
 
-// this is a hack, the real one is ifdef'd out
-static void r_PumpDemonware()
+// no-op pump callback for the preload wait loop
+static void DB_StreamPreloadPump()
 {
 
 }
-//extern void __cdecl r_PumpDemonware(); // KISAKTODO: remove
 void DB_StreamCompletePreload()
 {
     R_StreamUpdate_SetupInitialImageList();
     if ( DB_IsZoneTypeLoaded(0x4000) )
-        R_StreamUpdate_CompletePreload(r_PumpDemonware);
+        R_StreamUpdate_CompletePreload(DB_StreamPreloadPump);
 }
 
 void DB_UnarchiveAssets()

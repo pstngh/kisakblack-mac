@@ -4,8 +4,6 @@
 #include <game_mp/g_main_mp.h>
 #include "win_shared.h"
 #include <qcommon/threads.h>
-#include <DW/dwNet.h>
-#include <DemonWare/bdCore/bdSocket/bdAddr.h>
 #include <clientscript/cscr_debugger.h>
 #include <universal/com_memory.h>
 
@@ -49,7 +47,6 @@ int winsockInitialized;
 NET_IPSocket
 ====================
 */
-// LWSS ADD: from kcod4. This is to replace the shitty demonware net
 unsigned int __cdecl NET_IPSocket(const char *net_interface, int port)
 {
     const char *v2; // eax
@@ -321,27 +318,6 @@ int __cdecl Sys_StringToAdr(const char *s, netadr_t *a)
 
 int __cdecl Sys_GetPacket(netadr_t *net_from, msg_t *net_message)
 {
-#if 0
-    char *v3; // eax
-    int ret; // [esp+14h] [ebp-4h]
-
-    if ( G_ExitAfterToolComplete() )
-        return 0;
-    ret = dwRecvFrom(net_from, net_message->data, net_message->maxsize);
-    if ( ret == -2 || ret == -9 )
-        return 0;
-    if ( ret == net_message->maxsize )
-    {
-        v3 = NET_AdrToString(*net_from);
-        Com_Printf(16, "Oversize packet from %s\n", v3);
-        return 0;
-    }
-    else
-    {
-        net_message->cursize = ret;
-        return 1;
-    }
-#else //kcod4
     const char *v2; // eax
     const char *v3; // eax
     sockaddr from; // [esp+8h] [ebp-28h] BYREF
@@ -408,7 +384,6 @@ int __cdecl Sys_GetPacket(netadr_t *net_from, msg_t *net_message)
         }
     }
     return 0;
-#endif
 }
 
 void NetadrToSockadr(netadr_t *a, struct sockaddr *s) {
@@ -443,42 +418,6 @@ void NetadrToSockadr(netadr_t *a, struct sockaddr *s) {
 
 char __cdecl Sys_SendPacket(unsigned int length, unsigned __int8 *data, netadr_t to)
 {
-#if 0
-    const char *v4; // eax
-    char *v5; // eax
-    int err; // [esp+0h] [ebp-Ch]
-    int ret; // [esp+4h] [ebp-8h]
-
-    ret = dwSendTo(length, data, to);
-    if ( ret == -1 )
-    {
-        err = WSAGetLastError();
-        if ( err == 10035 )
-        {
-            return 1;
-        }
-        else if ( err == 10049 && to.type == NA_BROADCAST )
-        {
-            return 1;
-        }
-        else
-        {
-            v4 = NET_ErrorString();
-            Com_PrintError(16, "Sys_SendPacket: %s\n", v4);
-            return 0;
-        }
-    }
-    else if ( ret == -9 )
-    {
-        v5 = NET_AdrToString(to);
-        Com_PrintError(0, "Failed to send packet to %s\n", v5);
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
-#else //kcod4
     const char *v4; // eax
     int err; // [esp+0h] [ebp-20h]
     sockaddr addr; // [esp+4h] [ebp-1Ch] BYREF
@@ -534,7 +473,6 @@ char __cdecl Sys_SendPacket(unsigned int length, unsigned __int8 *data, netadr_t
     v4 = NET_ErrorString();
     Com_PrintError(16, "Sys_SendPacket: %s\n", v4);
     return 0;
-#endif
 }
 
 bool __cdecl Sys_IsLANAddress_IgnoreSubnet(netadr_t adr)
@@ -635,7 +573,6 @@ void __cdecl NET_OpenIP()
     ip = _Dvar_RegisterString("net_ip", "localhost", 0x20u, "Network IP Address");
     port = _Dvar_RegisterInt("net_port", 3074, 0, 0xFFFF, 0x20u, "Network port");
 
-    // LWSS ADD - network augmentation to replace demonware net (cod4)
     for (int i = 0; i < 10; ++i)
     {
         ip_socket = NET_IPSocket(ip->current.string, i + port->current.integer);
@@ -648,11 +585,6 @@ void __cdecl NET_OpenIP()
     }
     Com_PrintWarning(16, "WARNING: Couldn't allocate IP port\n");
     // LWSS END
-}
-
-int __cdecl dwPlatformInit(bdNetStartParams *params)
-{
-    return 0;
 }
 
 void __cdecl NET_SocketPool_Init()

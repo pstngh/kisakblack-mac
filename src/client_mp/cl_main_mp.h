@@ -384,9 +384,9 @@ struct XNADDR // sizeof=0x19
 struct __declspec(align(4)) serverInfo_t // sizeof=0x178
 {                                                                             // XREF: .data:s_quickmatchCandidates/r
         XNADDR xnaddr;                                            // XREF: SND_SurfaceTypeToReflectance+19C/o
-        bdSecurityKey xnkey;                                // XREF: CL_LanConnect_f+13/o
+        XNKEY xnkey;                                // XREF: CL_LanConnect_f+13/o
                                                                                 // CL_LanConnect_f+EC/o ...
-        bdSecurityID xnkid;                                 // XREF: PM_Weapon_FireWeapon+17D/o
+        XNKID xnkid;                                 // XREF: PM_Weapon_FireWeapon+17D/o
                                                                                 // CL_LanConnect_f+1E/o ...
         // padding byte
         // padding byte
@@ -408,7 +408,7 @@ struct __declspec(align(4)) serverInfo_t // sizeof=0x178
         unsigned __int8 pure;
         char consoleDisabled;
         unsigned __int8 netType;
-        unsigned __int8 clients;                        // XREF: CL_QuickMatch_ChooseSession(void)+A9/r
+        unsigned __int8 clients;
         unsigned __int8 maxClients;
         unsigned __int8 dirty;
         char friendlyfire;
@@ -422,8 +422,7 @@ struct __declspec(align(4)) serverInfo_t // sizeof=0x178
         __int16 minPing;                                        // XREF: SV_ServerThread+1D6/o
                                                                                 // SND_SurfaceTypeToReflectance+1B0/o ...
         __int16 maxPing;
-        __int16 ping;                                             // XREF: CL_QuickMatch_Init(void)+80/w
-                                                                                // CL_QuickMatch_ChooseSession(void)+BA/r
+        __int16 ping;
         // padding byte
         // padding byte
         int pingedTime;
@@ -439,15 +438,13 @@ struct __declspec(align(4)) serverInfo_t // sizeof=0x178
         // padding byte
         // padding byte
         // padding byte
-        unsigned __int64 bdUserID;                    // XREF: CG_CanSeeFriendlyHead(int,centity_s const *)+3D2/o
+        unsigned __int64 serverUid;                    // XREF: CG_CanSeeFriendlyHead(int,centity_s const *)+3D2/o
                                                                                 // CG_ScanForCrosshairEntityInternal+30A/o ...
-        int lastRequestTime;                                // XREF: CL_CACValidate_Frame(void)+25B/r
-                                                                                // CL_CACValidate_Frame(void)+29C/w
+        int lastRequestTime;
         int region;
-        int score;                                                    // XREF: CL_QuickMatch_ChooseSession(void)+99/r
+        int score;
                                                                                 // Flame_Server_Trace+80/o ...
-        int wagerBet;                                             // XREF: CL_QuickMatch_ChooseSession(void)+EE/r
-                                                                                // CL_QuickMatch_ChooseSession(void)+108/r ...
+        int wagerBet;
         int playlist;                                             // XREF: VEH_TouchEntities+2E9/o
         int licensetype;
         unsigned __int8 basictraining;            // XREF: BG_ParseCommands(char const * *,animScriptItem_t *,animScriptData_t *)+524/o
@@ -604,10 +601,9 @@ struct clientStatic_t // sizeof=0x1CF2800
         int pingedServerCount;                            // XREF: CL_UpdateDirtyPings(int,int)+1B3/r
                                                                                 // CL_UpdateDirtyPings(int,int)+1BB/w ...
         int totalServersParsed;
-        int waitdwfindsessionsresponse;         // XREF: CL_ServersResponsePacket(MatchMakingInfo *,int,bool):loc_5693FC/w
+        int waitdwfindsessionsresponse;
                                                                                 // CL_FindServers_f(void):def_569581/w ...
         int numrankedservers;                             // XREF: CL_GetServerList(int,serverInfo_t * *,int * *)+A3/o
-                                                                                // CL_CACValidate_Frame(void)+8A/r ...
         // padding byte
         // padding byte
         // padding byte
@@ -645,12 +641,11 @@ struct clientStatic_t // sizeof=0x1CF2800
         serverInfo_t recentServers[20000];    // XREF: CG_Calc3rdPersonVehicleViewValues(int)+F49/o
                                                                                 // CG_CanSeeFriendlyHead(int,centity_s const *)+3D2/o ...
         int lastFindSessionsTime;                     // XREF: CL_FindServers_f(void)+164/w
-                                                                                // CL_CACValidate_Frame(void)+7C/r ...
         int numfavoriteservers;                         // XREF: CL_GetServerList(int,serverInfo_t * *,int * *)+EE/o
                                                                                 // GetServerCounts:$LN3_139/r
         serverInfo_t favoriteServers[128];    // XREF: CL_GetServerList(int,serverInfo_t * *,int * *)+E5/o
         int pingUpdateSource;                             // XREF: CL_UpdateDirtyPings(int,int)+3A/w
-                                                                                // CL_ServerInfoPacket(bdSecurityID *,msg_t *,int)+1E/r ...
+                                                                                // CL_ServerInfoPacket(XNKID *,msg_t *,int)+1E/r ...
         Material *whiteMaterial;                        // XREF: ConDraw_Box:loc_54B8D0/r
                                                                                 // ConDraw_Box+C7/r ...
         Material *consoleMaterial;                    // XREF: CL_InitRenderer(void)+E9/w
@@ -1174,11 +1169,6 @@ Font_s *__cdecl CL_RegisterFont(const char *fontName, int imageTrack);
 float (*__cdecl CL_GetMapCenter())[3];
 void __cdecl CL_SanitizeClanName();
 int __cdecl CL_FilterChar(unsigned __int8 input);
-//bdTrulyRandomImpl *__cdecl bdSingleton<bdTrulyRandomImpl>::getInstance();
-//void bdSingleton<bdTrulyRandomImpl>::destroyInstance();
-//bdSingletonRegistryImpl *__cdecl bdSingleton<bdSingletonRegistryImpl>::getInstance();
-//bdSingletonRegistryImpl *__thiscall bdSingletonRegistryImpl::bdSingletonRegistryImpl(bdSingletonRegistryImpl *this);
-//void bdSingleton<bdSingletonRegistryImpl>::destroyInstance();
 //clientStatic_t *__thiscall clientStatic_t::clientStatic_t(clientStatic_t *this);
 bool __cdecl CL_IsLocalClientInGame(int localClientNum);
 

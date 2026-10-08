@@ -15,13 +15,11 @@
 #include "live_steam_achievements.h"
 #include "live_win.h"
 #include "live_steamp2p.h"
-#include "live_steam_client.h"
 
 const dvar_t *livesteam_sv_vac;
 
 bool g_liveSteamInitialized;
 LiveSteamP2P s_SteamP2P;
-LiveSteamClient *g_liveLocalSteamClient;
 
 void __cdecl SteamAPIDebugTextHook(int severity, const char *pchDebugText)
 {
@@ -249,7 +247,7 @@ void __cdecl LiveSteam_TestFriends_f()
             n,
             &aOffline[20 * (i == 3) + 15 * (i == 2) + 8 * (i == 1)]);
         dwID = LiveSteam_GetFriendXuid(n);
-        Com_Printf_NoFilter("STEAM: bdOnlineUserID is: %I64x\n", dwID);
+        Com_Printf_NoFilter("STEAM: xuid is: %I64x\n", dwID);
     }
     n = LiveSteam_GetNumFriendsOnTheServer();
     Com_Printf_NoFilter("STEAM: LiveSteam_GetNumFriendsOnTheServer(): %d\n", n);
@@ -311,7 +309,6 @@ void __cdecl LiveSteam_CheckForP2PMessages()
             break;
         //LiveSteamP2P::ReadPacket(&s_SteamP2P, messageBuffer, 0x40u, &messagesize, &remoteID);
         s_SteamP2P.ReadPacket(messageBuffer, 64, &messagesize, &remoteID);
-        Live_DispatchP2PMessage(messageBuffer, messagesize, remoteID.ConvertToUint64());
     }
 }
 
@@ -348,56 +345,6 @@ const char *__cdecl LiveSteam_GetClientPersonaName(bool shortName)
 
     Com_sprintf(shorName, 0x40u, "%.16s", s);
     return shorName;
-}
-
-char __cdecl LiveSteam_DWUserNameFromSteamID(char *dwUserName)
-{
-    ISteamUser *v2; // [esp+0h] [ebp-18h]
-    _BYTE v3[8]; // [esp+8h] [ebp-10h] BYREF
-    unsigned __int64 steamid; // [esp+10h] [ebp-8h]
-
-    if (g_liveSteamInitialized)
-    {
-        //v2 = SteamUser();
-        //steamid = v2->GetSteamID(v2, v3)->m_steamid.m_unAll64Bits;
-        sprintf_s(dwUserName, 0x40u, "%s%I64x", "steam", SteamUser()->GetSteamID().ConvertToUint64());
-        return 1;
-    }
-    else
-    {
-        *dwUserName = 0;
-        return 0;
-    }
-}
-
-char __cdecl LiveSteam_AuthRequestTicket(const void *authBlob, unsigned int authBlobSize)
-{
-    if ( !g_liveSteamInitialized )
-        return 0;
-    if ( (!authBlob || !authBlobSize)
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\live\\live_steam.cpp",
-                    573,
-                    0,
-                    "%s",
-                    "authBlob && authBlobSize") )
-    {
-        __debugbreak();
-    }
-    //LiveSteamClient::RequestEncryptedAppTicket(g_liveLocalSteamClient, authBlob, authBlobSize);
-    g_liveLocalSteamClient->RequestEncryptedAppTicket(authBlob, authBlobSize);
-    return 1;
-}
-
-char __cdecl LiveSteam_AuthGetRequestedTicket(void *ticketBuf, unsigned int ticketBufSize, unsigned int *ticketSize)
-{
-    if (g_liveLocalSteamClient->resultOnRequestEncryptedAppTicket == k_EResultOK)
-    {
-        //return LiveSteamClient::GetRetrievedEncryptedAppTicket(g_liveLocalSteamClient, ticketBuf, ticketBufSize, ticketSize);
-        return g_liveLocalSteamClient->GetRetrievedEncryptedAppTicket(ticketBuf, ticketBufSize, ticketSize);
-    }
-    else
-        return 0;
 }
 
 int __cdecl LiveSteam_Client_ConnectToSteamServer(unsigned __int64 serverID, void *authBlob, unsigned int bufferSize)

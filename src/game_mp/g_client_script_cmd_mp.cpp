@@ -1,3 +1,4 @@
+#include <live/live_sessions_win.h>
 #include "g_client_script_cmd_mp.h"
 #include "g_main_mp.h"
 #include <clientscript/cscr_vm.h>
@@ -42,7 +43,6 @@
 #include <turret/turret_placement.h>
 #include <cgame/cg_scr_main.h>
 #include <sound/snd_bank.h>
-#include <live/live_sessions_win.h>
 
 static void __cdecl METHOD_NULLSUB(scr_entref_t entref)
 {

@@ -6,12 +6,9 @@
 #include <ui_mp/ui_feeders_mp.h>
 #include "ui_utils.h"
 #include "ui_playlists.h"
-#include <live/live_leaderboard.h>
 #include <live/live_friends_pc.h>
 #include <live/live_win.h>
-#include <live/live_meetplayer.h>
 #include "ui_friends.h"
-#include <live/live_fileshare.h>
 #include <client_mp/cl_ui_mp.h>
 #include <client_mp/cl_cgame_mp.h>
 #include <live/live_pcache.h>
@@ -20,11 +17,9 @@
 #include <client_mp/cl_scrn_mp.h>
 #include <client_mp/cl_main_pc_mp.h>
 #include "ui_emblem.h"
-#include <live/live_fileshare_search.h>
 #include <cgame/cg_compass.h>
 
 
-XuidInfo recentPlayerInfo;
 FriendInfo friendInfo;
 
 int __cdecl UI_FeederCount(int localClientNum, int contextIndex, float feederID, listBoxDef_s *listPtr)
@@ -100,9 +95,8 @@ int __cdecl UI_FeederCount(int localClientNum, int contextIndex, float feederID,
         result = Playlist_GetCategoryCount();
         break;
     case 29:
-        leaderboardFeederCount = LB_FeederCount(localClientNum);
-        Dvar_SetBool((dvar_s*)ui_leaderboardFeederCountNotZero, leaderboardFeederCount > 0);
-        result = leaderboardFeederCount;
+        Dvar_SetBool((dvar_s*)ui_leaderboardFeederCountNotZero, 0);
+        result = 0;
         break;
     case 32:
         friendCount = Friends_GetCount(controllerIndex, 0);
@@ -114,29 +108,21 @@ int __cdecl UI_FeederCount(int localClientNum, int contextIndex, float feederID,
         result = 0;
         break;
     case 47:
-        result = Live_GetInvitesCount();
+        result = 0;
         break;
     case 50:
-        noOfMetPlayers = LiveMeetPlayer_GetNoOfMetPlayers(controllerIndex);
-        LiveMeetPlayer_SortMetPlayers(controllerIndex, noOfMetPlayers);
-        Dvar_SetBool((dvar_s *)ui_recentPlayerCountNotZero, noOfMetPlayers > 0);
-        result = noOfMetPlayers;
+        Dvar_SetBool((dvar_s *)ui_recentPlayerCountNotZero, 0);
+        result = 0;
         break;
     case 54:
         result = listPtr->rowCount;
         break;
     case 74:
-    case 84:
-        result = Live_FileShare_GetSearchResultsCount();
-        break;
     case 79:
-        result = Live_FileShare_GetOtherPrivateSlotsCount();
-        break;
     case 80:
-        result = Live_FileShare_GetMyPrivateSlotsCount();
-        break;
+    case 84:
     case 86:
-        result = 3 * Live_FileShare_GetMyPrivateSlotsCount();
+        result = 0;
         break;
     case 91:
         result = sharedUiInfo.serverStatusInfoScoreBoard.numLines;
@@ -244,7 +230,7 @@ _CustomClassDescription *__cdecl UI_FeederItemText(
             CategoryIdForNum = Playlist_GetCategoryIdForNum(index);
             return (_CustomClassDescription *)Playlist_GetCategoryLocalizedName(controllerIndex, CategoryIdForNum);
         case 29:
-            return (_CustomClassDescription *)LB_FeederItemText(localClientNum, index, column, handle);
+            return (_CustomClassDescription *)"";
         case 32:
         case 50:
         case 101:
@@ -262,36 +248,22 @@ _CustomClassDescription *__cdecl UI_FeederItemText(
         case 46:
             return (_CustomClassDescription *)"";
         case 47:
-            return (_CustomClassDescription *)UI_FeederItemText_Invites(
-                                                                                    controllerIndex,
-                                                                                    (int)feederID,
-                                                                                    index,
-                                                                                    column,
-                                                                                    handle,
-                                                                                    useOwnerDraw);
+            return (_CustomClassDescription *)"";
         case 54:
             return (_CustomClassDescription *)UI_FeederItemText_DynamicMenu(contextIndex, index, column, listPtr, handle);
         case 70:
             return (_CustomClassDescription *)"";
         case 74:
-            return (_CustomClassDescription *)Live_FileShare_SearchResultsItemText(
-                                                                                    controllerIndex,
-                                                                                    listPtr->startPos[contextIndex],
-                                                                                    listPtr->cursorPos[contextIndex],
-                                                                                    index,
-                                                                                    useOwnerDraw);
+            return (_CustomClassDescription *)"";
         case 76:
             return (_CustomClassDescription *)UI_FeederItemText_NewCategories(controllerIndex, item, index, column, handle);
         case 77:
             return (_CustomClassDescription *)UI_FeederItemText_NewPlaylists(controllerIndex, item, index, column, handle);
         case 79:
-            return (_CustomClassDescription *)Live_FileShare_PrivateSlotsText(controllerIndex, 79, index, column, handle);
         case 80:
-            return (_CustomClassDescription *)Live_FileShare_PrivateSlotsText(controllerIndex, 80, index, column, handle);
         case 84:
-            return (_CustomClassDescription *)"";
         case 86:
-            return (_CustomClassDescription *)Live_FileShare_PrivateSlotsIngameText(controllerIndex, index, column, handle);
+            return (_CustomClassDescription *)"";
         case 91:
             return (_CustomClassDescription *)UI_FeederItemText_ServerStatusScoreboard(index, column);
         default:
@@ -717,8 +689,6 @@ const char *__cdecl UI_FeederItemText_CommmonPlayerListHandler(
     char *v9; // eax
     unsigned int LastMetTime; // eax
     int v11; // [esp-4h] [ebp-9Ch]
-    XuidInfo result; // [esp+10h] [ebp-88h] BYREF
-    _BYTE v13[48]; // [esp+40h] [ebp-58h] BYREF
     int prestige; // [esp+74h] [ebp-24h] BYREF
     const char *emblemBackingName; // [esp+78h] [ebp-20h]
     int rank; // [esp+7Ch] [ebp-1Ch] BYREF
@@ -742,13 +712,6 @@ const char *__cdecl UI_FeederItemText_CommmonPlayerListHandler(
             xuid = friendInfo.dwid;
             name = friendInfo.name;
         }
-    }
-    else if ( feederId == 50 )
-    {
-        memcpy(v13, LiveMeetPlayer_GetMetFriendInfo(&result, controllerIndex, index), sizeof(v13));
-        memcpy(&recentPlayerInfo, v13, sizeof(recentPlayerInfo));
-        xuid = recentPlayerInfo.playerXuids;
-        name = recentPlayerInfo.gamertag;
     }
     switch ( column )
     {
@@ -810,11 +773,6 @@ const char *__cdecl UI_FeederItemText_CommmonPlayerListHandler(
                 }
                 return UI_SafeTranslateString(presenceString);
             }
-            else if ( feederId == 50 )
-            {
-                LastMetTime = LiveMeetPlayer_GetLastMetTime(controllerIndex, index);
-                return GetRecentPlayerInfoString(LastMetTime / 0x3C);
-            }
             else
             {
                 return "";
@@ -822,90 +780,6 @@ const char *__cdecl UI_FeederItemText_CommmonPlayerListHandler(
         default:
             return "";
     }
-}
-
-char *__cdecl GetRecentPlayerInfoString(int minutes)
-{
-    char *v1; // eax
-    char *v2; // eax
-    char *v4; // eax
-    char *v5; // eax
-    char *v6; // eax
-    char *v7; // eax
-    int hours; // [esp+0h] [ebp-Ch]
-
-    hours = minutes / 60;
-    if ( minutes / 1440 < 1 )
-    {
-        if ( hours < 1 )
-        {
-            if ( minutes < 1 )
-            {
-                return UI_SafeTranslateString("MPUI_LAST_MET_LESS_THAN_A_MIN_AGO");
-            }
-            else
-            {
-                v6 = UI_SafeTranslateString("MPUI_LAST_MET_N_MINS_AGO");
-                v7 = UI_ReplaceConversionInt(v6, minutes);
-                return va("%s", v7);
-            }
-        }
-        else
-        {
-            v4 = UI_SafeTranslateString("MPUI_LAST_MET_N_HOURS_AGO");
-            v5 = UI_ReplaceConversionInt(v4, hours);
-            return va("%s", v5);
-        }
-    }
-    else
-    {
-        v1 = UI_SafeTranslateString("MPUI_LAST_MET_N_DAYS_AGO");
-        v2 = UI_ReplaceConversionInt(v1, minutes / 1440);
-        return va("%s", v2);
-    }
-}
-
-const char *__cdecl UI_FeederItemText_Invites(
-                int controllerIndex,
-                int feederId,
-                int index,
-                int column,
-                Material **handle,
-                bool *useOwnerDraw)
-{
-    unsigned __int64 v6; // rax
-    XuidInfo result; // [esp+8Ch] [ebp-168h] BYREF
-    _BYTE v9[48]; // [esp+BCh] [ebp-138h] BYREF
-    XuidInfo metinfo; // [esp+ECh] [ebp-108h] BYREF
-    int j; // [esp+120h] [ebp-D4h]
-    FriendInfo finfo; // [esp+124h] [ebp-D0h] BYREF
-    int i; // [esp+1E0h] [ebp-14h]
-    unsigned __int64 friendInviteId; // [esp+1E4h] [ebp-10h]
-    int count; // [esp+1ECh] [ebp-8h]
-    int invitesCount; // [esp+1F0h] [ebp-4h]
-
-    invitesCount = Live_GetInvitesCount();
-    if ( index >= 0 && index < invitesCount )
-    {
-        LODWORD(v6) = Live_GetInviteFriend(index);
-        friendInviteId = v6;
-        count = Friends_GetCount(controllerIndex, 0);
-        for ( i = 0; i < count; ++i )
-        {
-            Friends_GetByIndex(controllerIndex, 0, i, &finfo);
-            if ( finfo.dwid == friendInviteId )
-                return UI_FeederItemText_CommmonPlayerListHandler(controllerIndex, 32, i, column, handle, useOwnerDraw);
-        }
-        count = LiveMeetPlayer_GetNoOfMetPlayers(0);
-        for ( j = 0; j < count; ++j )
-        {
-            memcpy(v9, LiveMeetPlayer_GetMetFriendInfo(&result, 0, j), sizeof(v9));
-            memcpy(&metinfo, v9, sizeof(metinfo));
-            if ( metinfo.playerXuids == friendInviteId )
-                return UI_FeederItemText_CommmonPlayerListHandler(controllerIndex, 50, j, column, handle, useOwnerDraw);
-        }
-    }
-    return "";
 }
 
 char *__cdecl UI_FeederItemText_Playlists(int controllerIndex, int index)
@@ -1121,54 +995,12 @@ void __cdecl UI_FeederItemOwnerDraw(
             UI_FeederItemOwnerDraw_OnlineFriends(controllerIndex, contextIndex, item, rect, index, col, color);
             break;
         case 47:
-            UI_FeederItemOwnerDraw_Invites(controllerIndex, contextIndex, item, rect, index, col, color);
-            break;
         case 50:
-            UI_FeederItemOwnerDraw_RecentPlayers(controllerIndex, contextIndex, item, rect, index, col, color);
-            break;
         case 74:
-            UI_FeederItemOwnerDraw_FileShareSearchResults(controllerIndex, contextIndex, item, rect, index, col, color);
-            break;
+            return;
         default:
             UI_Project_FeederItemOwnerDraw(localClientNum, contextIndex, feederID, rect, index);
             break;
-    }
-}
-
-void __cdecl UI_FeederItemOwnerDraw_Invites(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                const rectDef_s *rect,
-                int index,
-                int col,
-                const float *color)
-{
-    unsigned __int64 v7; // rax
-    int LocalClientNum; // eax
-    unsigned __int64 dwid; // [esp-8h] [ebp-D8h]
-    FriendInfo info; // [esp+0h] [ebp-D0h] BYREF
-    int i; // [esp+BCh] [ebp-14h]
-    unsigned __int64 friendInviteId; // [esp+C0h] [ebp-10h]
-    int friendsCount; // [esp+C8h] [ebp-8h]
-    int invitesCount; // [esp+CCh] [ebp-4h]
-
-    invitesCount = Live_GetInvitesCount();
-    if ( index >= 0 && index < invitesCount )
-    {
-        LODWORD(v7) = Live_GetInviteFriend(index);
-        friendInviteId = v7;
-        friendsCount = Friends_GetCount(controllerIndex, 0);
-        for ( i = 0; i < friendsCount; ++i )
-        {
-            Friends_GetByIndex(controllerIndex, 0, i, &info);
-            if ( info.dwid == friendInviteId )
-            {
-                dwid = info.dwid;
-                LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-                UI_DrawPlayerEmblemByXuid(LocalClientNum, contextIndex, item, rect, color, dwid);
-            }
-        }
     }
 }
 
@@ -1191,47 +1023,6 @@ void __cdecl UI_FeederItemOwnerDraw_OnlineFriends(
         LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
         UI_DrawPlayerEmblemByXuid(LocalClientNum, contextIndex, item, rect, color, dwid);
     }
-}
-
-void __cdecl UI_FeederItemOwnerDraw_RecentPlayers(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                const rectDef_s *rect,
-                int index,
-                int col,
-                const float *color)
-{
-    int LocalClientNum; // eax
-    unsigned __int64 playerXuids; // [esp-8h] [ebp-70h]
-    XuidInfo result; // [esp+8h] [ebp-60h] BYREF
-    _BYTE v10[48]; // [esp+38h] [ebp-30h] BYREF
-
-    memcpy(v10, LiveMeetPlayer_GetMetFriendInfo(&result, controllerIndex, index), sizeof(v10));
-    memcpy(&recentPlayerInfo, v10, sizeof(recentPlayerInfo));
-    playerXuids = recentPlayerInfo.playerXuids;
-    LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    UI_DrawPlayerEmblemByXuid(LocalClientNum, contextIndex, item, rect, color, playerXuids);
-}
-
-void __cdecl UI_FeederItemOwnerDraw_FileShareSearchResults(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                const rectDef_s *rect,
-                int index,
-                int col,
-                const float *color)
-{
-    CL_DrawSpinner(
-        &scrPlaceView[contextIndex],
-        rect->x - 75.0,
-        rect->y + 6.0,
-        rect->w - 10.0,
-        rect->h - 10.0,
-        rect->horzAlign,
-        rect->vertAlign,
-        color);
 }
 
 void __cdecl UI_FeederItemColor(
@@ -1317,8 +1108,6 @@ LABEL_117:
                 color->vector[2] = listPtr->disableColor[2];
                 color->vector[3] = listPtr->disableColor[3];
             }
-            if ( feederID == 74.0 )
-                Live_FileShareSearch_FeederColor(listPtr, item, contextIndex, index, column, color);
             return;
         }
         if ( onFocus )
@@ -1618,16 +1407,6 @@ LABEL_117:
         }
         else
         {
-            if ( feederID == 80.0 )
-            {
-                Live_FileShare_FeederColor(listPtr, item, contextIndex, index, column, FILESHARE_BUFFER_PRIMARY, color);
-                return;
-            }
-            if ( feederID == 79.0 )
-            {
-                Live_FileShare_FeederColor(listPtr, item, contextIndex, index, column, FILESHARE_BUFFER_SECONDARY, color);
-                return;
-            }
             if ( !UI_Project_FeederItemColor(
                             controllerIndex,
                             contextIndex,
@@ -1678,8 +1457,6 @@ bool __cdecl UI_OverrideKeyPress(int localClientNum, int contextIndex, itemDef_s
     int v19; // [esp+1Ch] [ebp-188h]
     int v20; // [esp+20h] [ebp-184h]
     int v21; // [esp+24h] [ebp-180h]
-    XuidInfo result; // [esp+2Ch] [ebp-178h] BYREF
-    _BYTE v23[48]; // [esp+5Ch] [ebp-148h] BYREF
     int newCursorPos; // [esp+90h] [ebp-114h]
     int index; // [esp+94h] [ebp-110h]
     int newIndex; // [esp+98h] [ebp-10Ch]
@@ -1768,33 +1545,7 @@ bool __cdecl UI_OverrideKeyPress(int localClientNum, int contextIndex, itemDef_s
             Item_ListBox_SetCursorPos(localClientNum, contextIndex, item, lastIndex, viewMax, newCursorPos, 1);
             return 1;
         case '2':
-            currIndex = listPtr->cursorPos[contextIndex];
-            lastIndex = (int)(UI_FeederCount(localClientNum, contextIndex, (float)(int)listPtr->special, listPtr) - 1);
-            viewMax = Item_ListBox_Viewmax(localClientNum, contextIndex, item);
-            if ( key != 28 && key != 20 && key != 29 && key != 21 && key != 154 && key != 155 )
-                return 0;
-            index = currIndex;
-            if ( key == 28 || key == 20 || key == 154 )
-            {
-                if ( currIndex <= 0 )
-                    v19 = lastIndex;
-                else
-                    v19 = currIndex - 1;
-                index = v19;
-            }
-            else
-            {
-                if ( currIndex >= lastIndex )
-                    v18 = 0;
-                else
-                    v18 = currIndex + 1;
-                index = v18;
-            }
-            memcpy(v23, LiveMeetPlayer_GetMetFriendInfo(&result, controllerIndex, index), sizeof(v23));
-            memcpy(&recentPlayerInfo, v23, sizeof(recentPlayerInfo));
-            s_selectedMetPlayerXUID = recentPlayerInfo.playerXuids;
-            Item_ListBox_SetCursorPos(localClientNum, contextIndex, item, lastIndex, viewMax, index, 1);
-            return 1;
+            return 0; // recent players came from the online service
         case '6':
             jumpToIndex = 0;
             i = 0;
@@ -1835,61 +1586,9 @@ LABEL_188:
             i = currIndex - 1;
             break;
         case 'J':
-            dc = (UiContext *)UI_UIContext_GetInfo(contextIndex);
-            rect = *Window_GetRect(&item->window);
-            rect.w = rect.w - 14.0;
-            return (key == 13 || key == 200 || key == 1)
-                    && Rect_ContainsPoint(dc->contextIndex, &rect, dc->cursor.x, dc->cursor.y)
-                    && !Live_FileShareSearch_FeederItemEnabled(listPtr->cursorPos[contextIndex]);
         case 'O':
-            if ( key == 31 || key == 23 )
-            {
-                if ( fsOtherUserPrivateSlotCol->current.integer == 2 )
-                    Dvar_SetInt((dvar_s *)fsOtherUserPrivateSlotCol, 0);
-                else
-                    Dvar_SetInt((dvar_s *)fsOtherUserPrivateSlotCol, fsOtherUserPrivateSlotCol->current.integer + 1);
-            }
-            else if ( key == 30 || key == 22 )
-            {
-                if ( fsOtherUserPrivateSlotCol->current.integer )
-                    Dvar_SetInt((dvar_s *)fsOtherUserPrivateSlotCol, fsOtherUserPrivateSlotCol->current.integer - 1);
-                else
-                    Dvar_SetInt((dvar_s *)fsOtherUserPrivateSlotCol, 2);
-            }
-            return 0;
         case 'P':
-            if ( key == 31 || key == 23 || key == 157 )
-            {
-                if ( fsPrivateSlotCol->current.integer == 2 )
-                    Dvar_SetInt((dvar_s *)fsPrivateSlotCol, 0);
-                else
-                    Dvar_SetInt((dvar_s *)fsPrivateSlotCol, fsPrivateSlotCol->current.integer + 1);
-            }
-            else if ( key == 30 || key == 22 || key == 156 )
-            {
-                if ( fsPrivateSlotCol->current.integer )
-                    Dvar_SetInt((dvar_s *)fsPrivateSlotCol, fsPrivateSlotCol->current.integer - 1);
-                else
-                    Dvar_SetInt((dvar_s *)fsPrivateSlotCol, 2);
-            }
-            Com_LocalClient_GetControllerIndex(localClientNum);
-            if ( !CG_IsShowingZombieMap() )
-            {
-                currIndex = listPtr->cursorPos[contextIndex];
-                if ( currIndex == UI_FeederCount(localClientNum, contextIndex, (float)(int)listPtr->special, listPtr) - 1 && (key == 29 || key == 21) )
-                {
-                    listPtr->cursorPos[contextIndex] = 0;
-                    v13 = UI_UIContext_GetInfo(contextIndex);
-                    Menus_SetFocusToItem(localClientNum, &v13->uiDC, "menu_fileshare_myshare", "new_frame_button_1");
-                }
-                if ( !currIndex && (key == 28 || key == 20) )
-                {
-                    listPtr->cursorPos[contextIndex] = 0;
-                    v14 = UI_UIContext_GetInfo(contextIndex);
-                    Menus_SetFocusToItem(localClientNum, &v14->uiDC, "menu_fileshare_myshare", "new_frame_button_1");
-                }
-            }
-            return 0;
+            return 0; // file share lists came from the online service
         case 'Z':
             UI_GetListDetails(localClientNum, contextIndex, item, (char*)"clan_tag_list_edit", &itemToFocus, &lastIndex, &viewMax);
             UI_GetListDetails(localClientNum, contextIndex, item, (char*)"clan_tag_list", &itemToFocus1, &lastIndex1, &viewMax1);
@@ -2124,8 +1823,7 @@ void __cdecl UI_OverrideCursorPos(int localClientNum, int contextIndex, itemDef_
             UI_OverrideCursorPos_Categories(contextIndex, listPtr);
             break;
         case 29:
-            UI_OverrideCursorPos_Leaderboards(localClientNum, contextIndex, item, listPtr);
-            break;
+            return;
         case 32:
             UI_OverrideCursorPos_OnlineFriends(controllerIndex, contextIndex, item, listPtr);
             break;
@@ -2137,60 +1835,19 @@ void __cdecl UI_OverrideCursorPos(int localClientNum, int contextIndex, itemDef_
         case 70:
             return;
         case 47:
-            UI_OverrideCursorPos_Invites(contextIndex, listPtr);
-            break;
         case 50:
-            UI_OverrideCursorPos_RecentPlayers(controllerIndex, contextIndex, item, listPtr);
-            break;
+            return;
         case 54:
             UI_OverrideCursorPos_DynamicMenu(contextIndex, listPtr);
             break;
         case 74:
-            UI_OverrideCursorPos_FileShareSearchResults(localClientNum, contextIndex, listPtr);
-            break;
         case 80:
-            UI_OverrideCursorPos_FileShareMySlots(localClientNum, contextIndex, listPtr);
-            break;
+            return;
         default:
             if ( !UI_Project_OverrideCursorPos(localClientNum, contextIndex, item) )
                 UI_OverrideCursorPos_Default(localClientNum, contextIndex, feederID, listPtr);
             break;
     }
-}
-
-void __cdecl UI_OverrideCursorPos_RecentPlayers(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                listBoxDef_s *listPtr)
-{
-    XuidInfo result; // [esp+8h] [ebp-A0h] BYREF
-    _BYTE v5[48]; // [esp+38h] [ebp-70h] BYREF
-    XuidInfo info; // [esp+68h] [ebp-40h] BYREF
-    int currentIndex; // [esp+A0h] [ebp-8h]
-    int count; // [esp+A4h] [ebp-4h]
-
-    if ( controllerIndex == -1
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_feeders.cpp",
-                    2788,
-                    0,
-                    "%s",
-                    "controllerIndex != INVALID_CONTROLLER_PORT") )
-    {
-        __debugbreak();
-    }
-    count = Friends_GetCount(controllerIndex, 1);
-    if ( listPtr->cursorPos[contextIndex] >= count || listPtr->cursorPos[contextIndex] < 0 )
-    {
-        listPtr->cursorPos[contextIndex] = 0;
-        listPtr->startPos[contextIndex] = 0;
-    }
-    currentIndex = listPtr->cursorPos[contextIndex];
-    memcpy(v5, LiveMeetPlayer_GetMetFriendInfo(&result, controllerIndex, currentIndex), sizeof(v5));
-    memcpy(&info, v5, sizeof(info));
-    s_selectedMetPlayerXUID = info.playerXuids;
-    s_selectedPlayerXUID = 0;
 }
 
 void __cdecl UI_OverrideCursorPos_OnlineFriends(
@@ -2229,82 +1886,6 @@ void __cdecl UI_OverrideCursorPos_OnlineFriends(
     {
         s_selectedPlayerXUID = 0;
     }
-}
-
-void __cdecl UI_OverrideCursorPos_FileShareSearchResults(int localClientNum, int contextIndex, listBoxDef_s *listPtr)
-{
-    int numResults; // [esp+0h] [ebp-4h]
-
-    Com_LocalClient_GetControllerIndex(localClientNum);
-    numResults = Live_FileShare_GetSearchResultsCount();
-    if ( numResults )
-    {
-        if ( listPtr->cursorPos[contextIndex] < numResults )
-        {
-            if ( listPtr->cursorPos[contextIndex] < 0 )
-                listPtr->cursorPos[contextIndex] = 0;
-        }
-        else
-        {
-            listPtr->cursorPos[contextIndex] = numResults - 1;
-        }
-    }
-    else
-    {
-        listPtr->cursorPos[contextIndex] = 0;
-        listPtr->startPos[contextIndex] = 0;
-        listPtr->endPos[contextIndex] = 0;
-    }
-}
-
-void __cdecl UI_OverrideCursorPos_FileShareMySlots(int localClientNum, int contextIndex, listBoxDef_s *listPtr)
-{
-    int numResults; // [esp+8h] [ebp-4h]
-
-    Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( !CG_IsShowingZombieMap() )
-    {
-        if ( fshSelectLastSlotRow && fshSelectLastSlotRow->current.integer == 1 )
-        {
-            listPtr->cursorPos[contextIndex] = UI_FeederCount(
-                                                                                     localClientNum,
-                                                                                     contextIndex,
-                                                                                     (float)(int)listPtr->special,
-                                                                                     listPtr)
-                                                                             - 1;
-            Dvar_SetInt((dvar_s *)fshSelectLastSlotRow, 0);
-        }
-        else if ( fshSelectFirstSlotRow && fshSelectFirstSlotRow->current.integer == 1 )
-        {
-            listPtr->cursorPos[contextIndex] = 0;
-            Dvar_SetInt((dvar_s *)fshSelectFirstSlotRow, 0);
-        }
-    }
-    numResults = UI_FeederCount(localClientNum, contextIndex, (float)(int)listPtr->special, listPtr);
-    if ( listPtr->cursorPos[contextIndex] >= numResults )
-        listPtr->cursorPos[contextIndex] = numResults - 1;
-}
-
-void __cdecl UI_OverrideCursorPos_Invites(int contextIndex, listBoxDef_s *listPtr)
-{
-    int inviteIndex; // [esp+0h] [ebp-8h]
-    int numInvites; // [esp+4h] [ebp-4h]
-
-    numInvites = Live_GetInvitesCount();
-    if ( numInvites )
-    {
-        if ( listPtr->cursorPos[contextIndex] >= numInvites )
-            listPtr->cursorPos[contextIndex] = numInvites - 1;
-    }
-    else
-    {
-        listPtr->cursorPos[contextIndex] = 0;
-    }
-    inviteIndex = ui_inviteSelectedInd->current.integer;
-    if ( inviteIndex <= 0 )
-        listPtr->cursorPos[contextIndex] = 0;
-    else
-        listPtr->cursorPos[contextIndex] = inviteIndex;
 }
 
 void __cdecl UI_OverrideCursorPos_Playlists(int contextIndex, listBoxDef_s *listPtr)
@@ -2413,18 +1994,6 @@ void __cdecl UI_OverrideCursorPos_Servers(int localClientNum, int contextIndex, 
     }
 }
 
-void __cdecl UI_OverrideCursorPos_Leaderboards(
-                int localClientNum,
-                int contextIndex,
-                itemDef_s *item,
-                listBoxDef_s *listPtr)
-{
-    int viewmax; // [esp+0h] [ebp-4h]
-
-    viewmax = Item_ListBox_Viewmax(localClientNum, contextIndex, item);
-    LB_OverrideCursorPos(viewmax, &listPtr->cursorPos[contextIndex], &listPtr->startPos[contextIndex]);
-}
-
 void __cdecl UI_OverrideCursorPos_DynamicMenu(int contextIndex, listBoxDef_s *listPtr)
 {
     int j; // [esp+0h] [ebp-4h]
@@ -2469,8 +2038,6 @@ void __cdecl UI_FeederSelection(int localClientNum, int contextIndex, float feed
     int ControllerIndex; // eax
     char *GametypeInternalName; // eax
     char *GametypeLocalizedName; // eax
-    XuidInfo result; // [esp+28h] [ebp-6Ch] BYREF
-    _BYTE v8[48]; // [esp+58h] [ebp-3Ch] BYREF
     uiInfo_s *uiInfo; // [esp+90h] [ebp-4h]
 
     if ( index < 0
@@ -2517,8 +2084,6 @@ void __cdecl UI_FeederSelection(int localClientNum, int contextIndex, float feed
             UI_FeederSelection_Categories(contextIndex, feederID, index);
             break;
         case 29:
-            LB_FeederSelection(index);
-            break;
         case 32:
         case 45:
         case 46:
@@ -2528,13 +2093,8 @@ void __cdecl UI_FeederSelection(int localClientNum, int contextIndex, float feed
             UI_FeederSelection_CustomGametypes(contextIndex, feederID, index);
             break;
         case 47:
-            UI_FeederSelection_Invites(contextIndex, feederID, index);
-            break;
         case 50:
-            ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-            memcpy(v8, LiveMeetPlayer_GetMetFriendInfo(&result, ControllerIndex, index), sizeof(v8));
-            memcpy(&recentPlayerInfo, v8, sizeof(recentPlayerInfo));
-            break;
+            return;
         case 54:
             Dvar_SetInt((dvar_s *)selectedMenuItemIndex, index);
             break;
@@ -2576,19 +2136,6 @@ void __cdecl UI_FeederSelection_Servers(int contextIndex, float feederID, int in
     v4 = Info_ValueForKey(info_1, "mapname");
     for (pos = va("levelshots/%s", v4); *pos; ++pos)
         *pos = tolower(*pos);
-}
-
-void __cdecl UI_FeederSelection_Invites(int contextIndex, float feederID, int index)
-{
-    if ( index < 0
-        && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\ui\\ui_feeders.cpp", 3820, 0, "%s", "index >= 0") )
-    {
-        __debugbreak();
-    }
-    if ( index < Live_GetInvitesCount() )
-        Dvar_SetInt((dvar_s *)ui_inviteSelectedInd, index);
-    else
-        Dvar_SetInt((dvar_s *)ui_inviteSelectedInd, 0);
 }
 
 void __cdecl UI_FeederSelection_Playlists(int localClientNum, int contextIndex, float feederID, int index)
@@ -2683,7 +2230,6 @@ void __cdecl UI_FeederSelection_Categories(int contextIndex, float feederID, int
     }
 }
 
-LBSelectedPlayerInfo info_2;
 char __cdecl UI_FeederDataExtended(
                 int localClientNum,
                 itemDef_s *item,
@@ -2731,44 +2277,20 @@ char __cdecl UI_FeederDataExtended(
     switch ( (int)feederID )
     {
         case 29:
-            v6 = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-            LB_GetSelectedPlayerInfo(v6, &info_2);
-            if ( I_stricmp(field, "xuid") )
-            {
-                if ( I_stricmp(field, "name") )
-                {
-                    v7 = 0;
-                }
-                else
-                {
-                    *stringResult = info_2.gamerTag;
-                    v7 = 1;
-                }
-            }
-            else
-            {
-                *stringResult = va("%lld", info_2.playerXuid);
-                v7 = 1;
-            }
-            result = v7;
+            result = 0;
             break;
         case 32:
             result = UI_FeederDataExtended_OnlineFriends(controllerIndex, index, field, stringResult);
             break;
-        case 50:
-            result = UI_FeederDataExtended_RecentPlayers(controllerIndex, index, field, stringResult);
-            break;
         case 54:
             result = UI_FeederDataExtended_DynamicMenu(index, listBox, field, stringResult);
             break;
+        case 50:
         case 74:
-            result = Live_FileShare_GetFeederData(controllerIndex, 74, index, field, (const char **)stringResult, floatResult);
-            break;
         case 79:
-            result = Live_FileShare_GetFeederData(controllerIndex, 79, index, field, (const char **)stringResult, floatResult);
-            break;
         case 80:
-            result = Live_FileShare_GetFeederData(controllerIndex, 80, index, field, (const char **)stringResult, floatResult);
+        case 86:
+            result = 0;
             break;
         case 84:
             if ( I_stricmp(field, "index") )
@@ -2781,9 +2303,6 @@ char __cdecl UI_FeederDataExtended(
                 v8 = 1;
             }
             result = v8;
-            break;
-        case 86:
-            result = Live_FileShare_GetFeederData(controllerIndex, 86, index, field, (const char **)stringResult, floatResult);
             break;
         default:
             result = UI_Project_FeederDataExtended(controllerIndex, contextIndex, (int)feederID, listBox, field, stringResult);
@@ -2819,46 +2338,6 @@ char __cdecl UI_FeederDataExtended_OnlineFriends(
     {
         if ( Friends_GetByIndex(controllerIndex, 0, index, &info_4) )
             *stringResult = va("%lld", info_4.dwid);
-        else
-            *stringResult = 0;
-        return 1;
-    }
-}
-
-char __cdecl UI_FeederDataExtended_RecentPlayers(
-                int controllerIndex,
-                int index,
-                const char *field,
-                char **stringResult)
-{
-    XuidInfo v5; // [esp+8h] [ebp-C0h] BYREF
-    _BYTE v6[48]; // [esp+38h] [ebp-90h] BYREF
-    XuidInfo result; // [esp+68h] [ebp-60h] BYREF
-    _BYTE v8[48]; // [esp+98h] [ebp-30h] BYREF
-
-    if ( I_stricmp(field, "xuid") )
-    {
-        if ( I_stricmp(field, "name") )
-        {
-            return 0;
-        }
-        else
-        {
-            memcpy(v6, LiveMeetPlayer_GetMetFriendInfo(&v5, controllerIndex, index), sizeof(v6));
-            memcpy(&recentPlayerInfo, v6, sizeof(recentPlayerInfo));
-            if ( recentPlayerInfo.playerXuids )
-                *stringResult = recentPlayerInfo.gamertag;
-            else
-                *stringResult = 0;
-            return 1;
-        }
-    }
-    else
-    {
-        memcpy(v8, LiveMeetPlayer_GetMetFriendInfo(&result, controllerIndex, index), sizeof(v8));
-        memcpy(&recentPlayerInfo, v8, sizeof(recentPlayerInfo));
-        if ( recentPlayerInfo.playerXuids )
-            *stringResult = va("%lld", recentPlayerInfo.playerXuids);
         else
             *stringResult = 0;
         return 1;

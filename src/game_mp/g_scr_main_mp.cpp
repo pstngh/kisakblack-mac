@@ -46,7 +46,6 @@
 #include <server_mp/sv_main_pc_mp.h>
 #include <universal/com_files.h>
 #include <universal/q_parse.h>
-#include <DW/MatchRecorder.h>
 #include <client/splitscreen.h>
 #include <bgame/bg_unlockable_items.h>
 #include <live/live_stats.h>
@@ -60,7 +59,6 @@
 #include <ui_mp/ui_gametype_variants_mp.h>
 #include "pregame.h"
 #include <live/live_storage_win.h>
-#include <live/live_counter.h>
 #include <game/g_client_fields.h>
 #include <game/g_scr_mover.h>
 #include "actor_mp.h"
@@ -15321,7 +15319,6 @@ void GScr_IsWeaponScopeOverlay()
 
 void GScr_PCServerUpdatePlaylist()
 {
-    SV_FetchWADDeferred();
 }
 
 void __cdecl GScr_GetPregameTeam(scr_entref_t entref)
@@ -15442,88 +15439,13 @@ void GScr_PixMarker()
 
 void GScr_IncrementCounter()
 {
-    int LicenseType; // eax
-    char *counterType; // [esp+0h] [ebp-10h]
-    int counterId; // [esp+4h] [ebp-Ch]
-    int increment; // [esp+8h] [ebp-8h]
-
-    if ( Scr_GetNumParam(SCRIPTINSTANCE_SERVER) == 2 )
-    {
-        LicenseType = SV_GetLicenseType();
-        if ( SV_IsServerRanked(LicenseType) )
-        {
-            counterType = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-            increment = Scr_GetInt(1u, SCRIPTINSTANCE_SERVER);
-            if ( increment )
-            {
-                if ( increment < 0
-                    && !Assert_MyHandler(
-                                "C:\\projects_pc\\cod\\codsrc\\src\\game_mp\\g_scr_main_mp.cpp",
-                                17746,
-                                0,
-                                "%s",
-                                "increment >= 0") )
-                {
-                    __debugbreak();
-                }
-                if ( increment >= 0 )
-                {
-                    counterId = LiveCounter_CounterStringToID(counterType);
-                    if ( counterId == -1 )
-                        Com_PrintError(16, "Invalid counter string id: %s\n", counterType);
-                    else
-                        LiveCounter_IncrementCounterValue(counterId, increment);
-                }
-                else
-                {
-                    Com_PrintError(16, "Invalid param: <increment value> must be greater than or equal to zero\n");
-                }
-            }
-        }
-    }
-    else
-    {
-        Com_PrintError(16, "Invalid param count. usage: incrementCounter( <counter id>, <increment value> )\n");
-    }
+    // Global counters were kept by the online service. Scripts still call this, so accept and ignore.
 }
 
 void GScr_GetCounterTotal()
 {
-    __int64 v0; // rax
-    char *v1; // eax
-    char *counterType; // [esp+Ch] [ebp-Ch]
-    int counterId; // [esp+10h] [ebp-8h]
-    int numParam; // [esp+14h] [ebp-4h]
-
-    numParam = Scr_GetNumParam(SCRIPTINSTANCE_SERVER);
-    counterType = Scr_GetString(0, SCRIPTINSTANCE_SERVER);
-    if ( numParam == 1 )
-    {
-        counterId = LiveCounter_CounterStringToID(counterType);
-        if ( counterId == -1 )
-        {
-            Com_PrintError(16, "Invalid counter string id: %s\n", counterType);
-            Scr_AddString((char *)"", SCRIPTINSTANCE_SERVER);
-        }
-        else
-        {
-            LODWORD(v0) = LiveCounter_GetCounterTotalValue(counterId);
-            if ( v0 == -1 )
-            {
-                Scr_AddString((char *)"", SCRIPTINSTANCE_SERVER);
-            }
-            else
-            {
-                v1 = va("%llu", v0);
-                Scr_AddString(v1, SCRIPTINSTANCE_SERVER);
-            }
-        }
-    }
-    else
-    {
-        Com_PrintError(16, "Invalid param count. usage: <string returned> getCounterTotal( <counter id> ).\n");
-        Scr_AddString((char *)"", SCRIPTINSTANCE_SERVER);
-    }
+    // Global counters were kept by the online service; report "no value" like the old failure path.
+    Scr_AddString((char *)"", SCRIPTINSTANCE_SERVER);
 }
 
 void GScr_SetScoreboardColumns()

@@ -454,7 +454,7 @@ const char *g_expFunctionNames[457] =
   "canRenderClip",
   "canShowContentFromUser",
   "isContentRatingAllowed",
-  "isDemonwareFetchingDone",
+  "isDemonwareFetchingDone", // keyword used by the shipped menus; backed by IsOnlineDataFetched
   "GetIndexIntoMatchScoreboard",
   "GetWagerPlaceForMatchScoreboard",
   "GetWagerGametypeNameFromEnum",

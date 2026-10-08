@@ -55,7 +55,7 @@ enum CriticalSection : __int32
     CRITSECT_STREAM_SYNC_COMMAND         = 0x31,
     CRITSECT_NETTHREAD_OVERRIDE            = 0x32,
     CRITSECT_DEMONWARE                             = 0x33,
-    CRITSECT_DEFERRED_DW                         = 0x34,
+    CRITSECT_UNUSED_34                           = 0x34,
     CRITSECT_IK                                            = 0x35,
     CRITSECT_TL_MEMALLOC                         = 0x36,
     CRITSECT_VA_ALLOC                                = 0x37,

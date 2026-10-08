@@ -3,7 +3,6 @@
 #include <live/live_win.h>
 #include <cgame/cg_compass.h>
 #include <flame/flame_system.h>
-#include <DW/dwMatchMaking.h>
 #include <cgame_mp/cg_consolecmds_mp.h>
 #include "splitscreen.h"
 #include <gfx_d3d/r_rendercmds.h>

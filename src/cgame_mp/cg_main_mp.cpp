@@ -2974,7 +2974,6 @@ void __cdecl CG_Init(int localClientNum, int serverMessageNum, int serverCommand
     CL_CM_LoadMap(cgs->mapname);
     Menu_Setup(&cgDC[localClientNum]);
     CG_LoadingString(localClientNum, "graphics");
-    CG_ParsePlayerInfos();
     if ( !g_mapLoaded )
     {
         CG_LoadingString(localClientNum, cgs->mapname);

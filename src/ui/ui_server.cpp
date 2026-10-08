@@ -722,27 +722,12 @@ void __cdecl UI_AddServerToFavoritesList(const char *pszName, const char *pszAdd
 
 void __cdecl UI_AddServerToFavoritesList(unsigned __int64 uid)
 {
-    Live_AddFavourite(0, uid);
+    // Favourites were stored in the online profile.
 }
 
 void __cdecl UI_RemoveServerFromFavoritesList()
 {
-    char *v0; // eax
-    unsigned __int64 uid; // [esp+0h] [ebp-410h] BYREF
-    char buff[1028]; // [esp+8h] [ebp-408h] BYREF
-
-    if (sharedUiInfo.serverStatus.currentServer >= 0
-        && sharedUiInfo.serverStatus.currentServer < sharedUiInfo.serverStatus.numDisplayServers)
-    {
-        LAN_GetServerInfo(
-            ui_netSource->current.integer,
-            sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer],
-            buff,
-            1024);
-        v0 = Info_ValueForKey(buff, "dwuserid");
-        StringToXUID(v0, &uid);
-        Live_DeleteFavourite(uid);
-    }
+    // Favourites were stored in the online profile.
 }
 
 // local variable allocation has failed, the output may be wrong!
@@ -785,10 +770,7 @@ void __cdecl UI_DrawServerRefreshDate(
         LerpColor(color, lowLight, newColor, (float)(*(float *)&v7 * 0.5) + 0.5);
         if (LAN_WaitServerResponse())
         {
-            if (Dvar_GetBool("dw_loggedin"))
-                string = UI_SafeTranslateString("EXE_WAITINGFORMASTERSERVERRESPONSE");
-            else
-                string = UI_SafeTranslateString("PLATFORM_NOT_ONLINE");
+            string = UI_SafeTranslateString("PLATFORM_NOT_ONLINE");
         }
         else
         {

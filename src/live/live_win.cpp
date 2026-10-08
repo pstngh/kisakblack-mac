@@ -1,37 +1,24 @@
+#include "live_sessions_win.h"
 #include "live_win.h"
-#include <win32/win_tasks.h>
 #include "live_steam.h"
-#include <DW/dwLogOn_pc.h>
 #include "live_friends_pc.h"
 #include <qcommon/com_clients.h>
 #include <client/client.h>
 #include <client_mp/cl_main_pc_mp.h>
 #include <game_mp/g_main_mp.h>
-#include "live_sessions_win.h"
-#include "live_groups_dw.h"
 #include "live_pcache.h"
-#include "live_meetplayer.h"
-#include "live_leaderboard.h"
-#include "live_counter.h"
-#include <DW/dwUtils_pc.h>
 #include "live_steam_achievements.h"
 #include <universal/com_files.h>
 #include <win32/win_net.h>
-#include <DW/dwStats.h>
 #include <win32/win_shared.h>
 #include <win32/win_gamerprofile.h>
 #include "live_storage_win.h"
-#include <DW/dwUtils.h>
 #include <client/splitscreen.h>
 #include <server_mp/sv_main_mp.h>
 #include <gfx_d3d/r_rendercmds.h>
 
 const char *bot_difficulties[5] = { "easy", "normal", "hard", "fu", NULL };
 
-PrivateProfileInfo s_profileInfo;
-favourite_t s_favourites[42];
-recentServer_t s_recentServers[30];
-unsigned __int8 s_recentServersBuf[480];
 unsigned int s_blockedListCount;
 unsigned __int64 s_blockedList[50];
 
@@ -39,14 +26,8 @@ bool g_shouldComError;
 const char *g_comErrorString;
 
 bool g_presenceSecKeyAndIDRegistered;
-bool s_updatePerformanceValues;
-int s_performanceValueTimer;
-int s_uploadBitsPerSec;
 
-MatchMakingInfo *g_matchmakingInfo;
-overlappedTask overlappedTasks_3[32];
 XenonUserData xenonUserData[1];
-unsigned __int64 s_lastInvite;
 
 unsigned __int64 s_selectedPlayerXUID;
 unsigned __int64 s_selectedMetPlayerXUID;
@@ -58,10 +39,7 @@ bool g_shouldWeHost = true;
 
 
 const dvar_t *live_service;
-const dvar_t *dw_loggedin;
-const dvar_t *dw_active;
 const dvar_t *pc_newversionavailable;
-const dvar_t *dw_dupe_key;
 const dvar_t *xblive_loggedin;
 const dvar_t *xenon_voiceDebug;
 const dvar_t *xenon_voiceDegrade;
@@ -77,34 +55,22 @@ const dvar_t *xblive_wagermatch;
 const dvar_t *xblive_basictraining;
 const dvar_t *xblive_basictraining_popup;
 const dvar_t *bot_tips;
-const dvar_t *party_simulateLongQoS;
 const dvar_t *xblive_clanListChanged;
 const dvar_t *teamsplitter_verbose;
 const dvar_t *xblive_matchEndingSoon;
 const dvar_t *ui_isClanMember;
-const dvar_t *dw_numaccounts;
 const dvar_t *xenon_maxVoicePacketsPerSec;
 const dvar_t *xenon_maxVoicePacketsPerSecForServer;
-const dvar_t *bandwidth_retry_interval;
 const dvar_t *xblive_mappacks;
 const dvar_t *bot_friends;
 const dvar_t *bot_enemies;
-const dvar_t *invite_waitPeriod;
 const dvar_t *steamid;
-const dvar_t *dw_popup;
-const dvar_t *inviteText;
 const dvar_t *scr_bot_difficulty;
 const dvar_t *clancard_clanid;
 //const dvar_t *clanName;
 const dvar_t *bot_difficulty;
-const dvar_t *dw_usernames[5];
 
 
-
-void __cdecl Live_ClearDWOverlappedTasks()
-{
-    TaskManager_ClearOverlappedTasks(overlappedTasks_3);
-}
 
 char __cdecl Live_ContentRatingAllowed()
 {
@@ -116,11 +82,6 @@ char __cdecl Live_ContentRatingAllowed()
 bool __cdecl Live_IsUserSignedInToLive()
 {
     return LiveSteam_IsClientSignedInOnline();
-}
-
-bool __cdecl Live_IsUserSignedInToDemonware(int controllerIndex)
-{
-    return false;
 }
 
 char __cdecl Live_RequireUserToPlayOnline()
@@ -188,118 +149,6 @@ int __cdecl CL_ControllerIndex_GetSignInState(int controllerIndex)
     return xenonUserData[controllerIndex].signinState;
 }
 
-void __cdecl Live_InitiateDemonWareConnect_f()
-{
-}
-
-void __cdecl Live_SendInvite_f()
-{
-    const char *friendName; // [esp+10h] [ebp-4h]
-
-    if ( Cmd_Argc() >= 2 )
-    {
-        friendName = Cmd_Argv(1);
-        Live_SendInvite(friendName);
-    }
-    else
-    {
-        Com_PrintError(0, (char*)"PLATFORM_STEAM_OFFLINE");
-    }
-}
-
-void __cdecl Live_AcceptInvite_f()
-{
-    const char *v0; // eax
-    const char *v1; // eax
-    unsigned __int64 friendid; // [esp+18h] [ebp-8h] BYREF
-
-    if ( Cmd_Argc() == 2 )
-    {
-        v0 = Cmd_Argv(1);
-        if ( Friend_GetByName(0, v0, &friendid) )
-        {
-            Live_AcceptInvite(friendid);
-        }
-        else
-        {
-            v1 = Cmd_Argv(1);
-            //Com_PrintError(23, (char *)&stru_D50258.do_fancy_upsampling, v1);
-            Com_PrintError(23, "%s", v1);
-        }
-    }
-    else
-    {
-        Com_PrintError(0, (char *)"(kisak) need more args"); // (char *)&stru_D50258.output_components);
-    }
-}
-
-void __cdecl Live_AcceptLastInvite_f()
-{
-    if ( s_lastInvite )
-        Live_AcceptInvite(s_lastInvite);
-}
-
-void __cdecl Live_RevokeInvite_f()
-{
-    const char *v0; // eax
-    const char *v1; // eax
-    unsigned __int64 friendid; // [esp+18h] [ebp-8h] BYREF
-
-    if ( Cmd_Argc() == 2 )
-    {
-        v0 = Cmd_Argv(1);
-        if ( Friend_GetByName(0, v0, &friendid) )
-        {
-            Live_RevokeInvite(friendid);
-        }
-        else
-        {
-            v1 = Cmd_Argv(1);
-            Com_PrintError(23, (char *)"Couldn't get id for friend %s", v1);
-        }
-    }
-    else
-    {
-        Com_PrintError(0, (char *)"USAGE: revokeinvite <friendname>\n");
-    }
-}
-
-void __cdecl Live_JoinSessionInProgress_f()
-{
-    const char *v0; // eax
-    unsigned __int64 v1; // rax
-    const char *v2; // eax
-    unsigned __int64 friendid; // [esp+20h] [ebp-8h] BYREF
-
-    if ( Cmd_Argc() == 2 )
-    {
-        v0 = Cmd_Argv(1);
-        if ( Friend_GetByName(0, v0, &friendid) )
-        {
-            Live_JoinSessionInProgress(friendid, 0);
-        }
-        else if ( s_selectedPlayerXUID )
-        {
-            Live_JoinSessionInProgress(s_selectedPlayerXUID, 0);
-        }
-        else if ( __PAIR64__(s_selectedMetPlayerXUID, 0) == HIDWORD(s_selectedMetPlayerXUID) )
-        {
-            v2 = Cmd_Argv(1);
-            Com_PrintError(23, (char *)"Couldn't get id for friend %s", v2);
-        }
-        else
-        {
-            LODWORD(v1) = LiveMeetPlayer_GetPlayerSessionByID(s_selectedMetPlayerXUID);
-            if ( v1 )
-                Live_JoinSessionInProgress(v1, 1);
-        }
-    }
-    else
-    {
-        Com_PrintError(23, (char *)"Usage: joinsession <friendName>\n");
-    }
-}
-
 void __cdecl Live_ToggleMute_f()
 {
     const char *v1; // eax
@@ -341,31 +190,10 @@ void __cdecl Live_ToggleMute_f()
     }
 }
 
-cmd_function_s Live_InitiateDemonWareConnect_f_VAR;
-cmd_function_s Live_UpdateInfoForInGameList_f_VAR;
-cmd_function_s Live_JoinSessionInProgress_f_VAR;
-cmd_function_s Live_SendInvite_f_VAR;
-cmd_function_s Live_AcceptInvite_f_VAR;
-cmd_function_s Live_RevokeInvite_f_VAR;
-cmd_function_s Live_ListInvites_f_VAR;
-cmd_function_s Live_AddPlayerAsFriend_f_VAR;
-cmd_function_s Live_AcceptLastInvite_f_VAR;
 cmd_function_s Live_ToggleMute_f_VAR;
-
-const char *dwUsers[5] =
-{
-    "dw_user0",
-    "dw_user1",
-    "dw_user2",
-    "dw_user3",
-    "dw_user4",
-};
 
 void __cdecl Live_InitPlatform()
 {
-    int i; // [esp+0h] [ebp-8h]
-    int controllerIndex; // [esp+4h] [ebp-4h]
-
     memset(xenonUserData, 0, sizeof(xenonUserData));
     s_signInRequirement[0] = 0;
     live_service = _Dvar_RegisterBool("live_service", 1, 0x10u, "online service on/off");
@@ -376,53 +204,17 @@ void __cdecl Live_InitPlatform()
     else
     {
         steamid = _Dvar_RegisterString("steamid", (char *)"", 0x40u, "Player's SteamID");
-        dw_loggedin = _Dvar_RegisterBool("dw_loggedin", 0, 0x40u, "Every frame is updated with Demonware login status");
-        dw_active = _Dvar_RegisterBool("dw_active", 1, 0, "Pumps Live_Frame() (and hence DW) if true");
         pc_newversionavailable = _Dvar_RegisterBool(
                                                              "pc_newversionavailable",
                                                              0,
                                                              0x40u,
                                                              "True if new version available for download");
-        dw_dupe_key = _Dvar_RegisterBool("dw_dupe_key", 0, 0x40u, "True if key-in-use message from Demonware");
-        dw_numaccounts = _Dvar_RegisterInt(
-                                             "dw_numaccounts",
-                                             -1,
-                                             -1,
-                                             5,
-                                             0,
-                                             "Number of online accounts registered for the license");
-        for ( i = 5;
-            i--; 
-            dw_usernames[i] = _Dvar_RegisterString(dwUsers[i], (char *)"", 0, "Online user name registered for the license") )
-        {
-            ;
-        }
-        dw_popup = _Dvar_RegisterString("dw_popup", (char *)"", 0, "Online services popup");
-        Live_InitFavourites();
-        for ( controllerIndex = 0; controllerIndex < 1; ++controllerIndex )
-            //BLOPS_NULLSUB();
-        LiveGroups_Init();
         PCache_Init();
-        Cmd_AddCommandInternal(
-            "initiateDemonWareConnect",
-            Live_InitiateDemonWareConnect_f,
-            &Live_InitiateDemonWareConnect_f_VAR);
-        Cmd_AddCommandInternal("updateInfoForInGameList", BLOPS_NULLSUB, &Live_UpdateInfoForInGameList_f_VAR);
-        Cmd_AddCommandInternal("JoinsessionInProgress", Live_JoinSessionInProgress_f, &Live_JoinSessionInProgress_f_VAR);
-        Cmd_AddCommandInternal("sendinvite", Live_SendInvite_f, &Live_SendInvite_f_VAR);
-        Cmd_AddCommandInternal("acceptinvite", Live_AcceptInvite_f, &Live_AcceptInvite_f_VAR);
-        Cmd_AddCommandInternal("revokeinvite", Live_RevokeInvite_f, &Live_RevokeInvite_f_VAR);
-        Cmd_AddCommandInternal("listinvites", Live_ListInvites_f, &Live_ListInvites_f_VAR);
-        Cmd_AddCommandInternal("xaddfriend", Live_AddPlayerAsFriend_f, &Live_AddPlayerAsFriend_f_VAR);
-        Cmd_AddCommandInternal("acceptInvitation", Live_AcceptLastInvite_f, &Live_AcceptLastInvite_f_VAR);
         Cmd_AddCommandInternal("mp_toggleMute", Live_ToggleMute_f, &Live_ToggleMute_f_VAR);
         Session_Init();
         g_shouldWeHost = 1;
-        LB_Init();
         LiveStorage_Init();
         Friends_Init();
-        //BLOPS_NULLSUB();
-        LiveCounter_Init();
         xblive_loggedin = _Dvar_RegisterBool("xblive_loggedin", 0, 0, "User is logged into online service");
         xenon_voiceDebug = _Dvar_RegisterBool("xenon_voiceDebug", 0, 0, "Debug voice communication");
         xenon_voiceDegrade = _Dvar_RegisterBool("xenon_voiceDegrade", 0, 0, "Degrade voice quality");
@@ -447,15 +239,7 @@ void __cdecl Live_InitPlatform()
                                                                 "false = load the dlc maps from content packages, true = load the dlc maps from the local"
                                                                 " machine harddrive");
         session_nonblocking = _Dvar_RegisterBool("session_nonblocking", 1, 0, "Non-blocking Session code");
-        inviteText = _Dvar_RegisterString("inviteText", (char *)"", 0, "Text to display for the game invite");
         systemUiActive = _Dvar_RegisterBool("systemUiActive", 0, 0, "Is the system UI active");
-        bandwidth_retry_interval = _Dvar_RegisterInt(
-                                                                 "bandwidth_retry_interval",
-                                                                 180000,
-                                                                 0,
-                                                                 0x7FFFFFFF,
-                                                                 0,
-                                                                 "Interval at which Bandwidth test will be retried");
         xblive_showmarketplace = _Dvar_RegisterBool(
                                                              "xblive_showmarketplace",
                                                              0,
@@ -501,18 +285,6 @@ void __cdecl Live_InitPlatform()
                                              1u,
                                              "Difficulty level of the basic training bots");
         bot_tips = _Dvar_RegisterBool("bot_tips", 1, 1u, "Combat tips enabled in basic training");
-        party_simulateLongQoS = _Dvar_RegisterBool(
-                                                            "party_simulateLongQoS",
-                                                            0,
-                                                            0,
-                                                            "simulate a real QoS which takes around 30 seconds");
-        invite_waitPeriod = _Dvar_RegisterInt(
-                                                    "invite_waitPeriod",
-                                                    30000,
-                                                    15000,
-                                                    0x7FFFFFFF,
-                                                    0,
-                                                    "time in msec you have to wait between sending invites to the same friend");
         xblive_clanListChanged = _Dvar_RegisterBool("xblive_clanListChanged", 0, 0, "Clan list gets updated");
         teamsplitter_verbose = _Dvar_RegisterBool(
                                                          "teamsplitter_verbose",
@@ -540,17 +312,7 @@ void __cdecl Live_InitPlatform()
                                                                 " machine harddrive");
         clanName = _Dvar_RegisterString("clanName", (char *)"", 0, "Your clan abbreviation");
         g_presenceSecKeyAndIDRegistered = 0;
-        s_updatePerformanceValues = 0;
-        s_performanceValueTimer = 0;
     }
-}
-
-bool __cdecl Live_HandleDWChallengeResponse(
-                unsigned __int64 senderID,
-                unsigned __int8 *message,
-                unsigned int messageSize)
-{
-    return 1;
 }
 
 int __cdecl Live_GetControllerFromXUID(unsigned __int64 player)
@@ -575,32 +337,6 @@ void __cdecl Live_GiveAchievement(int localControllerIndex, const char *achievem
 bool __cdecl Live_IsInLiveGame()
 {
     return g_serverSession.sessionHandle && onlinegame->current.enabled;
-}
-
-void __cdecl Session_CleanUpStatsWrites()
-{
-    int tasknum; // [esp+4h] [ebp-4h]
-
-    R_BeginRemoteScreenUpdate();
-    for ( tasknum = 0; tasknum < 32; ++tasknum )
-    {
-        if ( overlappedTasks_3[tasknum].active && overlappedTasks_3[tasknum].type == 2 )
-        {
-            while ( Live_SetPlayerTeamRankComplete(tasknum) == TASK_NOTCOMPLETE )
-                NET_Sleep(1u);
-        }
-    }
-    R_EndRemoteScreenUpdate(0);
-}
-
-taskCompleteResults __cdecl Live_SetPlayerTeamRankComplete(int slot)
-{
-    return Live_SetPlayerTeamRanksComplete(slot);
-}
-
-taskCompleteResults __cdecl Live_SetPlayerTeamRanksComplete(int slot)
-{
-    return TASK_COMPLETE;
 }
 
 unsigned __int64 g_fakeXUID; // KISAKTODO: value?
@@ -683,7 +419,6 @@ void Live_UserSignedIn(int controllerIndex)
         Com_Printf(16, "GamerProfile_LogInProfile took %ims\n", v3 - startTime);
     }
     netCodeVersion = 1044;
-    LiveGroups_RegisterPlayer(controllerIndex);
 }
 
 bool Live_UserSignedInToLive(int controllerIndex, char **disconnectMessage)
@@ -697,14 +432,6 @@ bool Live_UserSignedInToLive(int controllerIndex, char **disconnectMessage)
     Live_UserSignedIn(controllerIndex);
     xenonUserData[controllerIndex].signinState = 2;
     xenonUserData[controllerIndex].isGuestUser = 0;
-    Live_GetOurUploadBandwidth(controllerIndex);
-    LiveStorage_FetchRequiredFiles(controllerIndex);
-    LiveMeetPlayer_DownloadMetPlayersList(0);
-    LiveCounter_Init();
-    LiveCounter_SetupCounters();
-    Live_GetPrivateProfile();
-    Live_ReadRecentServers();
-    Live_RequestSessionsFromFriends();
     LiveStorage_SetAllStatsNotFetched(controllerIndex);
     LiveStorage_ReadStats(controllerIndex, 0, 0);
     //BG_EvalVehicleName();
@@ -754,9 +481,7 @@ bool __cdecl Live_IsSignedIn(int controllerIndex)
 
 bool __cdecl Live_IsSignedInToLive()
 {
-    if ( !LiveSteam_IsClientSignedInOnline() )
-        return 0;
-    return dw_active && dw_active->current.enabled;
+    return LiveSteam_IsClientSignedInOnline();
 }
 
 unsigned long long __cdecl Live_GetXuid(int controllerIndex)
@@ -795,84 +520,6 @@ char __cdecl Live_ShowMarketplaceUI()
     return 1;
 }
 
-int __cdecl Live_GetUploadSpeed()
-{
-    return s_uploadBitsPerSec;
-}
-
-void __cdecl Live_GetOurUploadBandwidth(int localControllerIndex)
-{
-}
-
-char __cdecl Live_BandwidthTestInProgress()
-{
-    return TaskManager_TaskIsInProgress(overlappedTasks_3, 3);
-}
-
-void __cdecl Live_CheckOngoingTasks()
-{
-    const char *v0; // eax
-    int tasknum; // [esp+1Ch] [ebp-4h]
-
-    Sys_EnterCriticalSection(CRITSECT_LIVE);
-    for ( tasknum = 0; tasknum < 32; ++tasknum )
-    {
-        if ( overlappedTasks_3[tasknum].active )
-        {
-            switch ( overlappedTasks_3[tasknum].type )
-            {
-                case 1:
-                    if ( (unsigned int)Live_QoSProbeComplete(tasknum) > TASK_COMPLETE )
-                        Com_PrintError(16, "Error getting player QoS results\n");
-                    break;
-                case 2:
-                    if ( (unsigned int)Live_SetPlayerTeamRankComplete(tasknum) > TASK_COMPLETE )
-                        Com_PrintError(16, "Error writing stats\n");
-                    break;
-                case 3:
-                    if ( (unsigned int)Live_GetBandwidthTestComplete(tasknum) >= 2 )
-                        Com_PrintError(16, "Error getting player bandwidth test results\n");
-                    break;
-                case 5:
-                    if ( (unsigned int)Live_FetchPartyPerformanceValuesComplete() > 1 )
-                        Com_PrintError(16, "Error fetching party performance values\n");
-                    break;
-                case 6:
-                    if ( (unsigned int)Live_UpdatePerformanceValuesComplete(tasknum) > TASK_COMPLETE )
-                        Com_PrintError(16, "Error fetching performance values\n");
-                    break;
-                case 7:
-                    continue;
-                case 8:
-                    if ( (unsigned int)CL_LocalClient_GetActiveCount() > 1 )
-                        Com_PrintError(16, "Error inviting friend\n");
-                    break;
-                default:
-                    v0 = va("Unknown live task type %i\n", overlappedTasks_3[tasknum].type);
-                    if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp", 3533, 0, v0) )
-                        __debugbreak();
-                    break;
-            }
-        }
-    }
-    Sys_LeaveCriticalSection(CRITSECT_LIVE);
-}
-
-int __cdecl Live_GetBandwidthTestComplete(int slot)
-{
-    return 0;
-}
-
-taskCompleteResults __cdecl Live_QoSProbeComplete(int slot)
-{
-    return TASK_NOTCOMPLETE;
-}
-
-bool __cdecl Live_QoSProbeEarlyComplete(dwQoSMultiProbeListener *listener)
-{
-    return 0;
-}
-
 void __cdecl PC_InitSigninState()
 {
 }
@@ -891,57 +538,6 @@ void __cdecl Live_DelayedComError(const char *comErrorString)
 void __cdecl Live_Frame()
 {
     ;
-}
-
-int __cdecl Live_FetchPartyPerformanceValuesComplete()
-{
-    if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_win.cpp", 4924, 0, "PC MP not using Party") )
-        __debugbreak();
-    return 2;
-}
-
-taskCompleteResults __cdecl Live_UpdatePerformanceValuesComplete(int slot)
-{
-    return TASK_COMPLETE;
-}
-
-void Live_UpdateAveragePerformance()
-{
-}
-
-int __cdecl Live_GetAveragePerformance()
-{
-    int avgPerformance; // [esp+0h] [ebp-20h]
-    int sessionSlot; // [esp+4h] [ebp-1Ch]
-    int numMembers; // [esp+8h] [ebp-18h]
-    int totalPerformance; // [esp+Ch] [ebp-14h]
-    int i; // [esp+10h] [ebp-10h]
-    unsigned __int64 xuid; // [esp+18h] [ebp-8h]
-
-    totalPerformance = 0;
-    avgPerformance = 0;
-    numMembers = 0;
-    for ( i = 0; i < com_maxclients->current.integer; ++i )
-    {
-        xuid = 0;
-        if ( svs.clients && svs.clients[i].header.state >= CS_CONNECTED )
-        {
-            LODWORD(xuid) = svs.xuids[i];
-            HIDWORD(xuid) = LODWORD(svs.mapCenter[2 * i - 63]);
-        }
-        if ( xuid )
-        {
-            sessionSlot = Session_FindRegisteredUser(&g_serverSession, xuid);
-            if ( sessionSlot >= 0 )
-            {
-                totalPerformance += g_serverSession.registeredUsers[sessionSlot].performanceValue;
-                ++numMembers;
-            }
-        }
-    }
-    if ( numMembers > 0 )
-        return totalPerformance / numMembers;
-    return avgPerformance;
 }
 
 char __cdecl Live_IsUserBlocked(int controllerIndex, unsigned __int64 xuid)
@@ -973,468 +569,5 @@ bool __cdecl Live_CanConsoleViewContentFromUser(unsigned __int64 xuid)
 bool __cdecl Live_CanViewContentFromUser(int controllerIndex, unsigned __int64 xuid)
 {
     return Live_IsUserBlocked(controllerIndex, xuid) == 0;
-}
-
-void __cdecl Live_SendInvite(const char *friendName)
-{
-}
-
-void __cdecl Live_DumpFavourites()
-{
-    unsigned int i; // [esp+4h] [ebp-4h]
-
-    for ( i = 0; i < 0x2A; ++i )
-    {
-        if ( LODWORD(s_favourites[i].uid) || HIDWORD(s_favourites[i].uid) )
-            Com_DPrintf(0, "%llu\n", *(_QWORD *)s_favourites[i].addressblob);
-    }
-}
-
-void __cdecl Live_FindFavouriteServersSuccess(TaskRecord *task)
-{
-}
-
-bool __cdecl Live_FindFavouritesInProgress()
-{
-    return false;
-}
-
-void __cdecl Live_FindFavouriteServers()
-{
-}
-
-void __cdecl Live_FindFriendServersSuccess(TaskRecord *task)
-{
-}
-
-void __cdecl Live_FindFriendServers()
-{
-}
-
-void __cdecl Live_FindRecentServersSuccess(TaskRecord *task)
-{
-}
-
-void __cdecl Live_FindRecentServers()
-{
-}
-
-void __cdecl Live_SaveRecentServers()
-{
-    unsigned __int8 *ptr; // [esp+8h] [ebp-8h]
-    unsigned __int8 *ptra; // [esp+8h] [ebp-8h]
-    int i; // [esp+Ch] [ebp-4h]
-
-    ptr = s_recentServersBuf;
-    for ( i = 0; i < 30 && (LODWORD(s_recentServers[i].serverID) || HIDWORD(s_recentServers[i].serverID)); ++i )
-    {
-        *(unsigned int *)ptr = s_recentServers[i].serverID;
-        *((unsigned int *)ptr + 1) = HIDWORD(s_recentServers[i].serverID);
-        ptra = ptr + 8;
-        *(unsigned int *)ptra = s_recentServers[i].joinTime;
-        ptr = ptra + 4;
-    }
-    Com_DPrintf(23, "Serialized %i (%i bytes) recent servers\n", i, ptr - s_recentServersBuf);
-    LiveStorage_SaveRecentServers(s_recentServersBuf, ptr - s_recentServersBuf);
-}
-
-void __cdecl Live_ReadRecentServers()
-{
-    LiveStorage_ReadRecentServers(s_recentServersBuf, 480);
-}
-
-void __cdecl Live_PopulateRecentServers(unsigned __int8 *buf, int bufsize)
-{
-    int v2; // ecx
-    int i; // [esp+0h] [ebp-Ch]
-    unsigned __int8 *ptr; // [esp+8h] [ebp-4h]
-
-    ptr = buf;
-    for ( i = 0; i < 30 && ptr != &buf[bufsize]; ++i )
-    {
-        v2 = i;
-        LODWORD(s_recentServers[v2].serverID) = *(unsigned int *)ptr;
-        *(unsigned int *)(v2 * 16 + 174315068) = *((unsigned int *)ptr + 1);
-        s_recentServers[i].joinTime = *((unsigned int *)ptr + 2);
-        ptr += 12;
-    }
-}
-
-void __cdecl Live_AddRecentServer(unsigned __int64 serveruid)
-{
-    recentServer_t *serverent; // [esp+4h] [ebp-Ch]
-    int currentTime; // [esp+8h] [ebp-8h]
-    int i; // [esp+Ch] [ebp-4h]
-
-    currentTime = LiveStorage_GetUTC();
-    for ( i = 0; i < 30; ++i )
-    {
-        serverent = &s_recentServers[i];
-        if ( serveruid == serverent->serverID )
-        {
-            serverent->joinTime = currentTime;
-            break;
-        }
-        if ( !serverent->joinTime )
-        {
-            serverent->serverID = serveruid;
-            serverent->joinTime = currentTime;
-            break;
-        }
-    }
-    if ( i == 30 )
-    {
-        s_recentServers[29].joinTime = currentTime;
-        s_recentServers[29].serverID = serveruid;
-    }
-    qsort(s_recentServers, 0x1Eu, 0x10u, (int (__cdecl *)(const void *, const void *))compareRecentServers);
-    Live_SaveRecentServers();
-}
-
-int __cdecl compareRecentServers(unsigned int *server1, unsigned int *server2)
-{
-    return server2[2] - server1[2];
-}
-
-void __cdecl Live_GetFriendsOnServer(unsigned __int64 serverId, unsigned __int64 *friendIDs, int *numfriends)
-{
-}
-
-char __cdecl Live_AddFavourite_Ingame(unsigned __int64 serverid, unsigned __int64 serveruid)
-{
-    return 0;
-}
-
-void __cdecl Live_AddFavourite(unsigned __int64 serverid, unsigned __int64 serveruid)
-{
-    favourite_t *v2; // ecx
-    unsigned int v3; // ecx
-    unsigned int i; // [esp+4h] [ebp-4h]
-
-    for ( i = 0; i < 0x2A && (LODWORD(s_favourites[i].uid) || HIDWORD(s_favourites[i].uid)); ++i )
-        ;
-    if ( i < 0x2A )
-    {
-        v2 = &s_favourites[i];
-        *(unsigned int *)v2->addressblob = serverid;
-        *(_WORD *)&v2->addressblob[4] = WORD2(serverid);
-        v3 = i;
-        LODWORD(s_favourites[v3].uid) = serveruid;
-        *(unsigned int *)(v3 * 16 + 174313908) = HIDWORD(serveruid);
-    }
-    CL_SetFavourites_f();
-}
-
-void __cdecl Live_DeleteFavourite(unsigned __int64 serverid)
-{
-    unsigned int v1; // eax
-    unsigned int i; // [esp+4h] [ebp-4h]
-
-    for ( i = 0; i < 0x2A && serverid != __PAIR64__(HIDWORD(s_favourites[i].uid), s_favourites[i].uid); ++i )
-        ;
-    if ( i < 0x2A )
-    {
-        v1 = i;
-        LODWORD(s_favourites[v1].uid) = 0;
-        *(unsigned int *)(v1 * 16 + 174313908) = 0;
-        CL_SetFavourites_f();
-    }
-}
-
-void __cdecl Live_ParseFavsBlobs(unsigned __int8 *addrblob, unsigned __int8 *uidblob)
-{
-    favourite_t *v2; // eax
-    unsigned int v3; // edx
-    unsigned int i; // [esp+0h] [ebp-4h]
-
-    for ( i = 0; i < 0x2A && *uidblob; ++i )
-    {
-        v2 = &s_favourites[i];
-        *(unsigned int *)v2->addressblob = *(unsigned int *)addrblob;
-        *(_WORD *)&v2->addressblob[4] = *((_WORD *)addrblob + 2);
-        v3 = i;
-        LODWORD(s_favourites[v3].uid) = *(unsigned int *)uidblob;
-        *(unsigned int *)(v3 * 16 + 174313908) = *((unsigned int *)uidblob + 1);
-        addrblob += 6;
-        uidblob += 8;
-    }
-}
-
-void __cdecl Live_SetFavsBlobs(unsigned __int8 *addrblob, unsigned __int8 *uidblob)
-{
-    favourite_t *v2; // eax
-    unsigned int i; // [esp+4h] [ebp-4h]
-
-    memset(addrblob, 0, 0xFDu);
-    memset(uidblob, 0, 0x151u);
-    for ( i = 0; i < 0x2A; ++i )
-    {
-        if ( LODWORD(s_favourites[i].uid) || HIDWORD(s_favourites[i].uid) )
-        {
-            v2 = &s_favourites[i];
-            *(unsigned int *)addrblob = *(unsigned int *)v2->addressblob;
-            *((_WORD *)addrblob + 2) = *(_WORD *)&v2->addressblob[4];
-            addrblob += 6;
-            *(unsigned int *)uidblob = s_favourites[i].uid;
-            *((unsigned int *)uidblob + 1) = HIDWORD(s_favourites[i].uid);
-            uidblob += 8;
-        }
-    }
-}
-
-void __cdecl Live_GetPrivateProfileComplete()
-{
-    Live_ParseFavsBlobs(s_profileInfo.m_memberfavsblob, s_profileInfo.m_memberuids);
-}
-
-void __cdecl Live_GetPrivateProfileFailure()
-{
-    serverInfo_t *favservers; // [esp+0h] [ebp-8h] BYREF
-    int *count; // [esp+4h] [ebp-4h] BYREF
-
-    Com_PrintWarning(23, "Couldn't get favourites :(\n");
-    favservers = 0;
-    count = 0;
-    if ( CL_GetServerList(3, &favservers, &count) )
-        *count = 0;
-}
-
-void __cdecl Live_SetPrivateProfileComplete()
-{
-    Com_DPrintf(23, "Successfully saved favourites to DemonWare\n");
-}
-
-void __cdecl Live_SetPrivateProfileFailure()
-{
-    Com_PrintWarning(23, "Couldn't save favourites to DemonWare :(\n");
-}
-
-TaskRecord *__cdecl Live_GetPrivateProfile()
-{
-    return NULL;
-}
-
-TaskRecord *__cdecl Live_SetPrivateProfile()
-{
-    return NULL;
-}
-
-void __cdecl CL_GetFavourites_f()
-{
-    Live_GetPrivateProfile();
-}
-
-void __cdecl CL_SetFavourites_f()
-{
-    Live_SetFavsBlobs(s_profileInfo.m_memberfavsblob, s_profileInfo.m_memberuids);
-    Live_SetPrivateProfile();
-}
-
-void __cdecl CL_AddFavourite_f()
-{
-    const char *v0; // eax
-    const char *v1; // eax
-    int v2; // eax
-    unsigned __int64 v3; // [esp-8h] [ebp-18h]
-
-    v0 = Cmd_Argv(2);
-    v3 = atol(v0);
-    v1 = Cmd_Argv(1);
-    v2 = atol(v1);
-    Live_AddFavourite(v2, v3);
-}
-
-void __cdecl CL_DeleteFavourite_f()
-{
-    const char *v0; // eax
-    int servernum; // [esp+8h] [ebp-Ch]
-    int *count; // [esp+Ch] [ebp-8h] BYREF
-    serverInfo_t *servers; // [esp+10h] [ebp-4h] BYREF
-
-    v0 = Cmd_Argv(1);
-    servernum = atoi(v0);
-    servers = 0;
-    if ( CL_GetServerList(3, &servers, &count) )
-        Live_DeleteFavourite(servers[servernum].bdUserID);
-}
-
-void __cdecl CL_DumpFavourites_f()
-{
-    Live_DumpFavourites();
-}
-
-void __cdecl CL_NukeFavourites_f()
-{
-    memset(s_profileInfo.m_memberfavsblob, 0, sizeof(s_profileInfo.m_memberfavsblob));
-    memset(s_profileInfo.m_memberuids, 0, sizeof(s_profileInfo.m_memberuids));
-    Live_SetPrivateProfile();
-}
-
-cmd_function_s CL_GetFavourites_f_VAR;
-cmd_function_s CL_SetFavourites_f_VAR;
-cmd_function_s CL_AddFavourite_f_VAR;
-cmd_function_s CL_DeleteFavourite_f_VAR;
-cmd_function_s CL_DumpFavourites_f_VAR;
-cmd_function_s CL_NukeFavourites_f_VAR;
-
-void __cdecl Live_InitFavourites()
-{
-    unsigned int i; // [esp+0h] [ebp-4h]
-
-    for ( i = 0; i < 0x29; ++i )
-    {
-        s_favourites[i].uid = 0;
-    }
-
-    memset(s_profileInfo.m_memberfavsblob, 0, sizeof(s_profileInfo.m_memberfavsblob));
-    Cmd_AddCommandInternal("getfavourites", CL_GetFavourites_f, &CL_GetFavourites_f_VAR);
-    Cmd_AddCommandInternal("setfavourites", CL_SetFavourites_f, &CL_SetFavourites_f_VAR);
-    Cmd_AddCommandInternal("addfavourite", CL_AddFavourite_f, &CL_AddFavourite_f_VAR);
-    Cmd_AddCommandInternal("deletefavourite", CL_DeleteFavourite_f, &CL_DeleteFavourite_f_VAR);
-    Cmd_AddCommandInternal("dumpfavourites", CL_DumpFavourites_f, &CL_DumpFavourites_f_VAR);
-    Cmd_AddCommandInternal("nukfavourites", CL_NukeFavourites_f, &CL_NukeFavourites_f_VAR);
-}
-
-void __cdecl Live_AddRecentPlayers(unsigned __int64 *uids, const char **names, int numIDs)
-{
-}
-
-unsigned __int64 __cdecl Live_GetServerForFriend(unsigned __int64 friendId)
-{
-    return 0;
-}
-
-void __cdecl Live_JoinSessionInProgressComplete(TaskRecord *task)
-{
-}
-
-TaskRecord *__cdecl Live_JoinSessionInProgress(unsigned __int64 uid, bool recent)
-{
-    return NULL;
-}
-
-void __cdecl Live_AddFriendServer(unsigned __int64 serverID, unsigned __int64 friendID)
-{
-}
-
-void __cdecl Live_OnInvite(unsigned __int64 uid, bdSessionID sessionID, const char *password)
-{
-}
-
-void __cdecl Live_OnRevokeInvite(unsigned __int64 uid)
-{
-}
-
-bool __cdecl Live_RevokeInvite(unsigned __int64 friendID)
-{
-    return false;
-}
-
-char __cdecl Live_FindInviteFromFriend(unsigned __int64 friendID, bdSessionID *sessionID, char **password)
-{
-    return false;
-}
-
-char __cdecl Live_HandleInviteMessage(unsigned __int64 senderID, char *message)
-{
-    bool handled; // [esp+7h] [ebp-5h]
-
-    handled = 0;
-    if ( *message == 9 )
-    {
-        Live_OnRevokeInvite(senderID);
-        return 1;
-    }
-    else
-    {
-        Com_PrintWarning(23, "Unknown live message %u\n", *message);
-    }
-    return handled;
-}
-
-void __cdecl Live_AcceptInviteAsyncFailure()
-{
-    Com_PrintError(23, "couldn't accept invite :(\n");
-}
-
-void __cdecl Live_JoinWagerFromInvite()
-{
-}
-
-void __cdecl Live_AcceptInviteAsyncComplete(TaskRecord *task)
-{
-}
-
-TaskRecord *__cdecl Live_AcceptInviteAsync(bdSessionID sessionID)
-{
-    return NULL;
-}
-
-void __cdecl Live_AcceptInvite(unsigned __int64 frienduid)
-{
-}
-
-int __cdecl Live_GetInvitesCount()
-{
-    return 0;
-}
-
-int __cdecl Live_GetInviteFriend(int index)
-{
-    return 0;
-}
-
-void __cdecl Live_ListInvites_f()
-{
-}
-
-void __cdecl Live_AddPlayerAsFriend_f()
-{
-    const char *v0; // eax
-    __int64 xuid; // [esp+10h] [ebp-8h]
-
-    if ( Cmd_Argc() == 2 )
-    {
-        v0 = Cmd_Argv(1);
-        xuid = I_atoi64(v0);
-        LiveSteam_PopOverlayForSteamID(xuid);
-    }
-    else
-    {
-        Com_Printf(14, "usage: xaddfriend <xuid>\n");
-    }
-}
-
-bool __cdecl Live_ShouldBroadcastNewServer()
-{
-    return !Demo_IsPlaying();
-}
-
-void __cdecl Live_RespondToSessionRequest(unsigned __int64 from, unsigned __int8 flags)
-{
-}
-
-void __cdecl Live_RequestSessionsFromFriends()
-{
-}
-
-void __cdecl Live_RequestSessionsFromRecentPlayers()
-{
-}
-
-void __cdecl Live_DispatchP2PMessage(unsigned __int8 *message, unsigned int messagesize, unsigned __int64 from)
-{
-}
-
-void __cdecl Live_BroadcastSessionToFriends(unsigned __int64 sessionUID, unsigned __int8 flags)
-{
-}
-
-void __cdecl Live_BroadcastSessionToRecentPlayers(unsigned __int64 sessionUID, unsigned __int8 flags)
-{
-}
-
-void __cdecl Live_BroadcastSessionIfNeeded()
-{
 }
 

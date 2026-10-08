@@ -1,3 +1,4 @@
+#include <live/live_sessions_win.h>
 #include "sv_client_mp.h"
 #include <server_mp/sv_main_mp.h>
 #include <live/live_storage_win.h>
@@ -18,7 +19,6 @@
 #include <server_mp/sv_bot_mp.h>
 #include <server_mp/sv_ccmds_mp.h>
 #include <stringed/stringed_hooks.h>
-#include <DW/MatchRecorder.h>
 #include <qcommon/sv_msg_write_mp.h>
 #include <server_mp/sv_net_chan_mp.h>
 #include <server_mp/sv_snapshot_mp.h>
@@ -35,7 +35,6 @@
 #include <universal/com_memory.h>
 #include <qcommon/com_clients.h>
 #include <win32/win_voice.h>
-#include <live/live_sessions_win.h>
 #include <universal/com_shared.h>
 #include <server/sv_game.h>
 #include <bgame/bg_weapons.h>
@@ -72,41 +71,6 @@ int sv_serverId_value;
 unsigned __int16 botport;
 unsigned __int64 g_notifyLeave[32];
 
-void __cdecl SV_HandleDWChallengeResponse(netadr_t from, msg_t *msg)
-{
-    client_t *client; // [esp+0h] [ebp-10h]
-    unsigned int serverchallenge; // [esp+4h] [ebp-Ch] BYREF
-    int qport; // [esp+8h] [ebp-8h]
-
-    if ( msg )
-    {
-        qport = MSG_ReadShort(msg);
-        MSG_ReadData(msg, (unsigned __int8 *)&serverchallenge, 4);
-        Com_DPrintf(15, "DWCHALLENGERESPONSE: Read server challenge %u\n", serverchallenge);
-        client = SV_FindClientByAddress(from, qport);
-        if ( client )
-        {
-            if ( serverchallenge == client->dwchallenge )
-            {
-                Com_DPrintf(15, "DWCHALLENGERESPONSE: Matches\n");
-                client->dwchallenge = 0;
-                client->guid = client->dw_userID;
-                SV_DWReadClientCAC(client);
-                SV_DWReadClientStats(client);
-            }
-            else
-            {
-                Com_DPrintf(
-                    15,
-                    "DWCHALLENGERESPONSE: serverchallenge %u doesn't match what we sent client: %u. Ask Ewan.\n",
-                    serverchallenge,
-                    client->dwchallenge);
-                NET_OutOfBandPrint(NS_SERVER, client->header.netchan.remoteAddress, "error\nEXE_BAD_CHALLENGE");
-            }
-        }
-    }
-}
-
 void __cdecl SV_GetChallenge(netadr_t from)
 {
     int v1; // esi
@@ -119,11 +83,6 @@ void __cdecl SV_GetChallenge(netadr_t from)
     if ( sv_authenticating->current.enabled )
     {
         Com_Printf(0, "Dedicated server: Rejecting incoming connection, we're re-authing\n");
-        return;
-    }
-    else if ( sv_dwlsgerror->current.enabled )
-    {
-        Com_PrintWarning(0, "Dedicated server: Session update failure, rejecting incoming connection\n");
         return;
     }
 
@@ -508,8 +467,6 @@ void __cdecl SV_UploadStats(int clientNum)
     if ( client->header.state >= 3 )
     {
         SV_SendServerCommand(client, SV_CMD_RELIABLE, "%c", 81);
-        if ( !xblive_wagermatch->current.enabled )
-            SV_DWWriteClientStats(client);
     }
 }
 
@@ -990,7 +947,7 @@ void __cdecl SV_DirectConnect(netadr_t from)
             newcl->reservedSlot = slot;
         }
         uid = 0;
-        StringToXUID(Info_ValueForKey(userinfo, "bdOnlineUserID"), &uid);
+        StringToXUID(Info_ValueForKey(userinfo, "xuid"), &uid);
         if (SV_IsBannedGuid(uid) || SV_IsTempBannedGuid(uid))
         {
             NET_OutOfBandPrint(NS_SERVER, from, "error\nPATCH_BANNED_FROM_SERVER");
@@ -1203,12 +1160,12 @@ void __cdecl SV_DropClient(client_t *drop, const char *reason, bool tellThem, bo
         {
             if (g_notifyLeave[j] == 0)
             {
-                g_notifyLeave[j] = drop->dw_userID;
+                g_notifyLeave[j] = drop->userID;
             }
             //if (!(HIDWORD(g_notifyLeave[j]) | LODWORD(g_notifyLeave[j])))
             //{
-            //    LODWORD(g_notifyLeave[j]) = drop->dw_userID;
-            //    HIDWORD(g_notifyLeave[j]) = HIDWORD(drop->dw_userID);
+            //    LODWORD(g_notifyLeave[j]) = drop->userID;
+            //    HIDWORD(g_notifyLeave[j]) = HIDWORD(drop->userID);
             //}
         }
 
@@ -2427,7 +2384,7 @@ void __cdecl SV_UserinfoChanged(client_t *cl)
         clientNum = cl - svs.clients;
         bcassert(clientNum, com_maxclients->current.integer);
 
-        val = Info_ValueForKey(cl->userinfo, "bdOnlineUserID");
+        val = Info_ValueForKey(cl->userinfo, "xuid");
         StringToXUID(val, &newXuid);
         if ( newXuid ) // KISAKTODO: prob should ifdef off this branch
         {
@@ -3177,7 +3134,7 @@ gentity_s *__cdecl SV_AddTestClient()
         sprintf(
             file,
             "connect \"\\cg_predictItems\\1\\cl_punkbuster\\0\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\2"
-            "0\\rate\\5000\\name\\%s\\clanAbbrev\\3arc\\bdOnlineUserID\\%s\\protocol\\%d\\qport\\%d\"",
+            "0\\rate\\5000\\name\\%s\\clanAbbrev\\3arc\\xuid\\%s\\protocol\\%d\\qport\\%d\"",
             name,
             xuidStr,
             1044,

@@ -6,7 +6,6 @@
 #include <ui_mp/ui_gametype_custom_mp.h>
 #include <universal/com_stringtable_obj.h>
 #include <universal/q_parse.h>
-#include <live/live_counter.h>
 #include "bg_weapons_def.h"
 #include <ui_mp/ui_gametype_variants_mp.h>
 #include <client_mp/cl_main_mp.h>
@@ -1774,8 +1773,6 @@ void __cdecl BG_UnlockablesPurchaseItem(int controllerIndex, int itemIndex, int 
             currentCodPoints = LiveStats_GetCurrency(controllerIndex);
             if ( currentCodPoints >= cost )
             {
-                if ( itemInfo->group == ITEMGROUP_HEAD )
-                    LiveCounter_IncrementCounterValueByName("global_purchasedfacepaint", 1u);
                 if ( BG_UnlockablesSetItemPurchased(controllerIndex, itemIndex, 1) )
                     LiveStats_SpendCurrency(controllerIndex, cost, POINTSSPENT_UNLOCKABLE_ITEM, itemIndex);
             }
@@ -4083,18 +4080,6 @@ void __cdecl BG_UnlockablesPurchaseItemOption(int controllerIndex, int itemIndex
                     }
                     if ( BG_UnlockablesSetItemOptionPurchased(controllerIndex, itemIndex, optionIndex, 1) )
                     {
-                        WeaponOptionGroup = BG_GetWeaponOptionGroup(optionIndex);
-                        if ( WeaponOptionGroup )
-                        {
-                            if ( WeaponOptionGroup <= WEAPONOPTION_GROUP_FIRST || WeaponOptionGroup > WEAPONOPTION_GROUP_RETICLE_COLOR )
-                                goto LABEL_18;
-                        }
-                        else
-                        {
-                            LiveCounter_IncrementCounterValueByName("global_camopurchased", 1u);
-                        }
-                        LiveCounter_IncrementCounterValueByName("global_purchasedguncustomization", 1u);
-LABEL_18:
                         LiveStats_SpendCurrency(controllerIndex, cost, POINTSSPENT_UNLOCKABLE_ATTACHMENT_OPTION, itemIndex);
                     }
                 }

@@ -331,7 +331,7 @@ void __cdecl AreStatsFetched(int localClientNum, itemDef_s *item, OperandStack *
 void __cdecl AreContractsFetched(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl IsTimeSynced(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl IsContentRatingAllowed(int localClientNum, itemDef_s *item, OperandStack *dataStack);
-void __cdecl IsDemonwareFetchingDone(int localClientNum, itemDef_s *item, OperandStack *dataStack);
+void __cdecl IsOnlineDataFetched(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetUIRect(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 void __cdecl GetDStat(int localClientNum, itemDef_s *item, OperandStack *dataStack);
 char __cdecl GetSearchState(ddlState_t *searchState, OperandList *operandList, int listStartIndex);

@@ -148,7 +148,6 @@ struct client_t // sizeof=0x84D00
     int snapshotHistoryTime;
     int snapshotHistoryFrames;
     int messageHistorySize;
-    unsigned __int64 dw_userID;
+    unsigned __int64 userID;
     int notifyJoin;
-    unsigned int dwchallenge;
 };

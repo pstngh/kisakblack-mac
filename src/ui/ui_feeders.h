@@ -26,14 +26,6 @@ const char *__cdecl UI_FeederItemText_CommmonPlayerListHandler(
                 int column,
                 Material **handle,
                 bool *useOwnerDraw);
-char *__cdecl GetRecentPlayerInfoString(int minutes);
-const char *__cdecl UI_FeederItemText_Invites(
-                int controllerIndex,
-                int feederId,
-                int index,
-                int column,
-                Material **handle,
-                bool *useOwnerDraw);
 char *__cdecl UI_FeederItemText_Playlists(int controllerIndex, int index);
 const char *__cdecl UI_FeederItemText_NewCategories(
                 int controllerIndex,
@@ -65,31 +57,7 @@ void __cdecl UI_FeederItemOwnerDraw(
                 int index,
                 int col,
                 const float *color);
-void __cdecl UI_FeederItemOwnerDraw_Invites(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                const rectDef_s *rect,
-                int index,
-                int col,
-                const float *color);
 void __cdecl UI_FeederItemOwnerDraw_OnlineFriends(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                const rectDef_s *rect,
-                int index,
-                int col,
-                const float *color);
-void __cdecl UI_FeederItemOwnerDraw_RecentPlayers(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                const rectDef_s *rect,
-                int index,
-                int col,
-                const float *color);
-void __cdecl UI_FeederItemOwnerDraw_FileShareSearchResults(
                 int controllerIndex,
                 int contextIndex,
                 itemDef_s *item,
@@ -116,34 +84,20 @@ void __cdecl UI_GetListDetails(
                 int *viewMax);
 bool __cdecl UI_OverrideKeyPress(int localClientNum, int contextIndex, itemDef_s *item, int key);
 void __cdecl UI_OverrideCursorPos(int localClientNum, int contextIndex, itemDef_s *item);
-void __cdecl UI_OverrideCursorPos_RecentPlayers(
-                int controllerIndex,
-                int contextIndex,
-                itemDef_s *item,
-                listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_OnlineFriends(
                 int controllerIndex,
                 int contextIndex,
                 itemDef_s *item,
                 listBoxDef_s *listPtr);
-void __cdecl UI_OverrideCursorPos_FileShareSearchResults(int localClientNum, int contextIndex, listBoxDef_s *listPtr);
-void __cdecl UI_OverrideCursorPos_FileShareMySlots(int localClientNum, int contextIndex, listBoxDef_s *listPtr);
-void __cdecl UI_OverrideCursorPos_Invites(int contextIndex, listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_Playlists(int contextIndex, listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_Categories(int contextIndex, listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_Gamemodes(int contextIndex, listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_Servers(int localClientNum, int contextIndex, itemDef_s *item, listBoxDef_s *listPtr);
-void __cdecl UI_OverrideCursorPos_Leaderboards(
-                int localClientNum,
-                int contextIndex,
-                itemDef_s *item,
-                listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_DynamicMenu(int contextIndex, listBoxDef_s *listPtr);
 void __cdecl UI_OverrideCursorPos_Default(int localClientNum, int contextIndex, float feederID, listBoxDef_s *listPtr);
 void __cdecl UI_FeederSelection(int localClientNum, int contextIndex, float feederID, int index);
 void __cdecl UI_FeederSelection_AllMaps(int contextIndex, float feederID, int index);
 void __cdecl UI_FeederSelection_Servers(int contextIndex, float feederID, int index);
-void __cdecl UI_FeederSelection_Invites(int contextIndex, float feederID, int index);
 void __cdecl UI_FeederSelection_Playlists(int localClientNum, int contextIndex, float feederID, int index);
 void __cdecl UI_FeederSelection_Categories(int contextIndex, float feederID, int index);
 char __cdecl UI_FeederDataExtended(
@@ -153,11 +107,6 @@ char __cdecl UI_FeederDataExtended(
                 char **stringResult,
                 float *floatResult);
 char __cdecl UI_FeederDataExtended_OnlineFriends(
-                int controllerIndex,
-                int index,
-                const char *field,
-                char **stringResult);
-char __cdecl UI_FeederDataExtended_RecentPlayers(
                 int controllerIndex,
                 int index,
                 const char *field,

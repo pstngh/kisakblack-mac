@@ -21,8 +21,6 @@
 #include <devgui/devgui.h>
 #include "cl_cgame_mp.h"
 #include "cl_ui_mp.h"
-#include <live/live_fileshare.h>
-#include <live/live_fileshare_cache.h>
 #include <qcommon/threads.h>
 #include <gfx_d3d/r_rendercmds.h>
 #include <qcommon/mem_track.h>
@@ -34,7 +32,6 @@
 #include <qcommon/dobj_management.h>
 #include <qcommon/com_gamemodes.h>
 #include <demo/demo_playback.h>
-#include <live/live_leaderboard.h>
 #include <live/live_stats.h>
 #include <live/live_win.h>
 #include <cgame_mp/cg_newDraw_mp.h>
@@ -46,14 +43,11 @@
 #include <DynEntity/DynEntity_client.h>
 #include <client/cl_cin.h>
 #include "cl_input_mp.h"
-#include <DW/dwNet.h>
-#include <DW/dwMatchMaking.h>
 #include <win32/win_gamerprofile.h>
 #include <win32/win_voice.h>
 #include <live/live_presence_win.h>
 #include <ui/ui_playlists.h>
 #include "cl_scrn_mp.h"
-#include <DW/dwUtils_pc.h>
 #include <win32/win_net.h>
 #include <stringed/stringed_hooks.h>
 #include <client/cl_voice.h>
@@ -69,7 +63,6 @@
 #include <win32/win_input.h>
 #include <cgame/cg_compass.h>
 #include <client/cl_keys.h>
-#include <ui/ui_screenshot.h>
 #include <bgame/bg_fire.h>
 #include <gfx_d3d/r_ui3d.h>
 #include <game_mp/g_main_mp.h>
@@ -1086,8 +1079,6 @@ void __cdecl CL_ShutdownHunkUsers()
                             "!cls.uiStarted") )
                 __debugbreak();
         }
-        Live_FileShare_ClearSearchState();
-        Live_FileShare_CacheShutdown();
         cls.hunkUsersStarted = 0;
     }
 }
@@ -3125,7 +3116,6 @@ void __cdecl CL_Frame(int localClientNum, int msec)
     {
         CL_DevGuiFrame(localClientNum);
         UIContextIndex = Com_LocalClient_GetUIContextIndex(localClientNum);
-        UI_ScreenshotUpdate(localClientNum, UIContextIndex);
         CL_VoiceFrame(localClientNum);
         CL_UpdateColor();
         CL_CheckUserinfo(localClientNum);
@@ -3755,7 +3745,6 @@ cmd_function_s CL_Connect_f_VAR;
 cmd_function_s CL_Connect_f_VAR_SERVER;
 cmd_function_s CL_Reconnect_f_VAR;
 cmd_function_s CL_Reconnect_f_VAR_SERVER;
-cmd_function_s CL_FindServers_f_VAR;
 cmd_function_s CL_Rcon_f_VAR;
 cmd_function_s CL_ShowContextualItemUI_f_VAR;
 cmd_function_s CL_Ping_f_VAR;
@@ -4082,7 +4071,6 @@ void __cdecl CL_InitOnceForAllClients()
     Cmd_AddServerCommandInternal("connect", CL_Connect_f, &CL_Connect_f_VAR_SERVER);
     Cmd_AddCommandInternal("reconnect", Cbuf_AddServerText_f, &CL_Reconnect_f_VAR);
     Cmd_AddServerCommandInternal("reconnect", CL_Reconnect_f, &CL_Reconnect_f_VAR_SERVER);
-    Cmd_AddCommandInternal("findservers", CL_FindServers_f, &CL_FindServers_f_VAR);
     CL_RconInit();
     Cmd_AddCommandInternal("rcon", CL_Rcon_f, &CL_Rcon_f_VAR);
     Cmd_AddCommandInternal("showContextItem", CL_ShowContextualItemUI_f, &CL_ShowContextualItemUI_f_VAR);
@@ -4159,7 +4147,6 @@ void __cdecl CL_InitOnceForAllClients()
     Phys_Init();
     Ragdoll_Register();
     UI_Gametype_Custom_Init();
-    CL_QuickMatch_Init();
     CL_GetLocalClientVoiceCommunication(0)->voicePacketCount = 0;
     Scr_InitVariables(SCRIPTINSTANCE_CLIENT);
     Scr_Init(SCRIPTINSTANCE_CLIENT);
@@ -4413,7 +4400,6 @@ void __cdecl CL_CmdSetNewCustomName()
 void __cdecl CL_ResetStats_f()
 {
     PCache_NukeProfile(0);
-    LiveStorage_DeleteGlobalStats(0);
 }
 
 void __cdecl CL_Init(int localClientNum)
@@ -4646,8 +4632,6 @@ int __cdecl CL_UpdateDirtyPings(int localClientNum, unsigned int source)
             if ( !servers[slot].pingedTime )
             {
                 servers[slot].pingedTime = Sys_Milliseconds();
-                Com_DPrintf(14, "Pinging server %d\n", slot);
-                CL_RawPingServer(&servers[slot], 2u);
                 ++sentCount;
                 ++cls.pingedServerCount;
             }
@@ -4664,21 +4648,6 @@ int __cdecl CL_UpdateDirtyPings(int localClientNum, unsigned int source)
 
 void __cdecl CL_ShowIP_f()
 {
-#if 0 // LWSS: disabled for now due to using the trash bd lib
-    unsigned __int16 Port; // ax
-    bdAddr *v1; // [esp+Ch] [ebp-18h]
-    int v2; // [esp+14h] [ebp-10h]
-    bdReference<bdCommonAddr> v3; // [esp+1Ch] [ebp-8h] BYREF
-    bdSocketRouter *socketRouter; // [esp+20h] [ebp-4h]
-
-    Sys_ShowIP();
-    socketRouter = dwGetSocketRouter();
-    v2 = *(unsigned int *)bdSocketRouter::getLocalCommonAddr(socketRouter, (int)&v3);
-    v1 = *(bdAddr **)bdCommonAddr::getLocalAddrs(v2);
-    Port = bdAddr::getPort(v1);
-    Com_Printf(0, "Port is %u\n", Port);
-    bdReference<bdRemoteTask>::~bdReference<bdRemoteTask>(&v3);
-#endif
 }
 
 char szServerIPAddress[128];
@@ -5243,44 +5212,44 @@ int __cdecl CL_FilterChar(unsigned __int8 input)
 //    //v15 = 128;
 //    //for ( i = this->localServers; --v15 >= 0; ++i )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey(&i->xnkey);
-//    //    bdSecurityID::bdSecurityID(&i->xnkid);
+//    //    XNKEY::XNKEY(&i->xnkey);
+//    //    XNKID::XNKID(&i->xnkid);
 //    //}
 //    //v13 = 20000;
 //    //for ( j = this->rankedServers; --v13 >= 0; ++j )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey(&j->xnkey);
-//    //    bdSecurityID::bdSecurityID(&j->xnkid);
+//    //    XNKEY::XNKEY(&j->xnkey);
+//    //    XNKID::XNKID(&j->xnkid);
 //    //}
 //    //v11 = 20000;
 //    //for ( k = this->unrankedServers; --v11 >= 0; ++k )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey(&k->xnkey);
-//    //    bdSecurityID::bdSecurityID(&k->xnkid);
+//    //    XNKEY::XNKEY(&k->xnkey);
+//    //    XNKID::XNKID(&k->xnkid);
 //    //}
 //    //v9 = 20000;
 //    //for ( m = (char *)&s_unlockableItems.itemTable[21].challengeIndices[1] + (unsigned int)this; --v9 >= 0; m += 376 )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey((bdSecurityKey *)(m + 25));
-//    //    bdSecurityID::bdSecurityID((bdSecurityID *)(m + 41));
+//    //    XNKEY::XNKEY((XNKEY *)(m + 25));
+//    //    XNKID::XNKID((XNKID *)(m + 41));
 //    //}
 //    //v7 = 256;
 //    //for ( n = &cls.rankedServers[16220].hostName[(unsigned int)this + 19]; --v7 >= 0; n += 376 )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey((bdSecurityKey *)(n + 25));
-//    //    bdSecurityID::bdSecurityID((bdSecurityID *)(n + 41));
+//    //    XNKEY::XNKEY((XNKEY *)(n + 25));
+//    //    XNKID::XNKID((XNKID *)(n + 41));
 //    //}
 //    //v5 = 20000;
 //    //for ( ii = &cls.rankedServers[16476].hostName[(unsigned int)this + 27]; --v5 >= 0; ii += 376 )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey((bdSecurityKey *)(ii + 25));
-//    //    bdSecurityID::bdSecurityID((bdSecurityID *)(ii + 41));
+//    //    XNKEY::XNKEY((XNKEY *)(ii + 25));
+//    //    XNKID::XNKID((XNKID *)(ii + 41));
 //    //}
 //    //v3 = 128;
 //    //for ( jj = &cls.unrankedServers[16476].hostName[(unsigned int)this + 27]; --v3 >= 0; jj += 376 )
 //    //{
-//    //    bdSecurityKey::bdSecurityKey((bdSecurityKey *)(jj + 25));
-//    //    bdSecurityID::bdSecurityID((bdSecurityID *)(jj + 41));
+//    //    XNKEY::XNKEY((XNKEY *)(jj + 25));
+//    //    XNKID::XNKID((XNKID *)(jj + 41));
 //    //}
 //    //return this;
 //}

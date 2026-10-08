@@ -1,3 +1,4 @@
+#include <live/live_sessions_win.h>
 #include "win_voice.h"
 #include <qcommon/common.h>
 #include <Windows.h>
@@ -9,7 +10,6 @@
 #include <groupvoice/play.h>
 #include <client/cl_main.h>
 #include "win_shared.h"
-#include <live/live_sessions_win.h>
 
 const dvar_t *winvoice_mic_mute;
 const dvar_t *winvoice_mic_reclevel;

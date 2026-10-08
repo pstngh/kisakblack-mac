@@ -5,7 +5,6 @@
 #include <win32/win_shared.h>
 #include <client_mp/cl_net_chan_mp.h>
 #include <universal/com_files.h>
-#include <DW/dwNet.h>
 #include <win32/win_net.h>
 
 #include <Windows.h>

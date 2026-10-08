@@ -1,15 +1,14 @@
+#include <live/live_sessions_win.h>
 #include "demo_common.h"
 
 #include <qcommon/cmd.h>
 #include <ui/ui_shared.h>
-#include <live/live_fileshare.h>
 #include <client_mp/sv_client_mp.h>
 #include <live/live_win.h>
 #include <qcommon/common.h>
 #include <live/live_stats.h>
 #include <server_mp/sv_main_mp.h>
 #include <qcommon/com_clients.h>
-#include <DW/MatchRecorder.h>
 #include "demo_recording.h"
 #include <live/live_storage.h>
 #include <universal/com_shared.h>
@@ -30,13 +29,11 @@
 #include "demo_ui.h"
 #include <client/cl_keys.h>
 #include <ctime>
-#include <live/live_counter.h>
 #include <game_mp/g_main_mp.h>
 #include <qcommon/com_gamemodes.h>
 #include <mjpeg/mjpeg.h>
 #include "demo_profile.h"
 #include <universal/com_workercmds.h>
-#include <live/live_sessions_win.h>
 
 const char *demo_tags_enum_string_37[8] =
 {
@@ -98,9 +95,6 @@ const dvar_t *demo_packetsPerSecondMax;
 const dvar_t *demo_bytesPerSecondMax;
 
 demoMain demo;
-ddlState_t g_fileShareRootState;
-ddlDef_t *g_fileshareDDL;
-demoRecordedFileUploadInfo s_demoUploadInfo;
 
 void __cdecl Demo_RegisterDvars()
 {
@@ -283,8 +277,6 @@ cmd_function_s Demo_PreviewClip_f_VAR;
 cmd_function_s Demo_PreviewClip_f_VAR_SERVER;
 cmd_function_s Demo_DeleteClip_f_VAR;
 cmd_function_s Demo_DeleteClip_f_VAR_SERVER;
-cmd_function_s Demo_SaveAndUploadClip_f_VAR;
-cmd_function_s Demo_SaveAndUploadClip_f_VAR_SERVER;
 cmd_function_s Demo_SaveSegment_f_VAR;
 cmd_function_s Demo_SaveSegment_f_VAR_SERVER;
 cmd_function_s Demo_MoveSegment_f_VAR;
@@ -348,8 +340,6 @@ void __cdecl Demo_RegisterCommands()
     Cmd_AddServerCommandInternal("demo_previewclip", Demo_PreviewClip_f, &Demo_PreviewClip_f_VAR_SERVER);
     Cmd_AddCommandInternal("demo_deleteclip", Cbuf_AddServerText_f, &Demo_DeleteClip_f_VAR);
     Cmd_AddServerCommandInternal("demo_deleteclip", Demo_DeleteClip_f, &Demo_DeleteClip_f_VAR_SERVER);
-    Cmd_AddCommandInternal("demo_saveanduploadclip", Cbuf_AddServerText_f, &Demo_SaveAndUploadClip_f_VAR);
-    Cmd_AddServerCommandInternal("demo_saveanduploadclip", Demo_SaveAndUploadClip_f, &Demo_SaveAndUploadClip_f_VAR_SERVER);
     Cmd_AddCommandInternal("demo_savesegment", Cbuf_AddServerText_f, &Demo_SaveSegment_f_VAR);
     Cmd_AddServerCommandInternal("demo_savesegment", Demo_SaveSegment_f, &Demo_SaveSegment_f_VAR_SERVER);
     Cmd_AddCommandInternal("demo_movesegment", Cbuf_AddServerText_f, &Demo_MoveSegment_f_VAR);
@@ -393,327 +383,6 @@ void __cdecl Demo_RemoveDemoClient_f()
     SV_RemoveDemoClient();
 }
 
-void __cdecl Demo_SetTags(
-                int controllerIndex,
-                int *numTags,
-                bdTag *tags,
-                demoMetaInfo *info,
-                fileShareSearchFileType fileType)
-{
-    int IndexFromGameType; // eax
-    int j; // [esp+0h] [ebp-14h]
-    int i; // [esp+10h] [ebp-4h]
-
-    if ( fileType == FILESHARE_FILETYPE_SCREENSHOT
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\demo\\demo_common.cpp",
-                    258,
-                    0,
-                    "%s",
-                    "fileType != FILESHARE_FILETYPE_SCREENSHOT") )
-    {
-        __debugbreak();
-    }
-    *numTags = 0;
-    for ( i = 0; i < sharedUiInfo.mapCount; ++i )
-    {
-        if ( !I_strcmp(sharedUiInfo.mapList[i].mapLoadName, info->mapName) )
-        {
-            Live_FileShare_AddTag(2u, i, numTags, tags, 40);
-            break;
-        }
-    }
-    IndexFromGameType = Live_FileShare_GetIndexFromGameType(info->gameType);
-    Live_FileShare_AddTag(1u, IndexFromGameType, numTags, tags, 40);
-    switch ( fileType )
-    {
-        case FILESHARE_FILETYPE_CLIP:
-        case FILESHARE_FILETYPE_FILM:
-            Live_FileShare_AddTag(3u, info->type + 1, numTags, tags, 40);
-            break;
-        case FILESHARE_PUBLICFILES_START:
-            Live_FileShare_AddTag(3u, 0x8000u, numTags, tags, 40);
-            break;
-        case FILESHARE_FILETYPE_SCREENSHOT:
-            Live_FileShare_AddTag(3u, 3u, numTags, tags, 40);
-            break;
-    }
-    if ( fileType != FILESHARE_FILETYPE_SCREENSHOT )
-    {
-        for ( j = 0; j < info->numConnectedPlayersInfoCount; ++j )
-            Live_FileShare_AddTag(4u, info->connectedPlayers[j].xuid, numTags, tags, 40);
-    }
-}
-
-void __cdecl Demo_SetTags(
-                int controllerIndex,
-                int *numTags,
-                bdTag *tags,
-                screenshotMetaInfo *info,
-                fileShareSearchFileType fileType)
-{
-    int IndexFromGameType; // eax
-    int j; // [esp+0h] [ebp-10h]
-    int i; // [esp+4h] [ebp-Ch]
-
-    if ( fileType != FILESHARE_FILETYPE_SCREENSHOT
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\demo\\demo_common.cpp",
-                    313,
-                    0,
-                    "%s",
-                    "fileType == FILESHARE_FILETYPE_SCREENSHOT") )
-    {
-        __debugbreak();
-    }
-    *numTags = 0;
-    for ( i = 0; i < sharedUiInfo.mapCount; ++i )
-    {
-        if ( !I_strcmp(sharedUiInfo.mapList[i].mapLoadName, info->mapName) )
-        {
-            Live_FileShare_AddTag(2u, i, numTags, tags, 40);
-            break;
-        }
-    }
-    IndexFromGameType = Live_FileShare_GetIndexFromGameType(info->gameType);
-    Live_FileShare_AddTag(1u, IndexFromGameType, numTags, tags, 40);
-    Live_FileShare_AddTag(3u, 3u, numTags, tags, 40);
-    for ( j = 0; j < demo.playback->screenshotInfo.screenshotPlayers.count; ++j )
-        Live_FileShare_AddTag(4u, demo.playback->screenshotInfo.screenshotPlayers.playerXuids[j], numTags, tags, 40);
-}
-
-char __cdecl Demo_SetMetaData(
-                int controllerIndex,
-                char *metaData,
-                int *metaDataSize,
-                demoMetaInfo *dInfo,
-                screenshotMetaInfo *sInfo,
-                fileShareSearchFileType fileType)
-{
-    char *ClientName; // eax
-    unsigned __int64 v8; // rax
-    int v9; // eax
-    int v10; // eax
-    bool v11; // eax
-    bool isModifiedDescription; // [esp+7h] [ebp-125h]
-    bool isModifiedName; // [esp+Fh] [ebp-11Dh]
-    char backup[256]; // [esp+14h] [ebp-118h] BYREF
-    ddlState_t state; // [esp+118h] [ebp-14h] BYREF
-    int bitSize; // [esp+128h] [ebp-4h]
-
-    if ( fileType == FILESHARE_FILETYPE_SCREENSHOT )
-    {
-        if ( !sInfo )
-        {
-            if ( !Assert_MyHandler(
-                            "C:\\projects_pc\\cod\\codsrc\\src\\demo\\demo_common.cpp",
-                            352,
-                            0,
-                            "Screenshot info expected while setting meta data.") )
-                __debugbreak();
-            return 0;
-        }
-        goto LABEL_11;
-    }
-    if ( dInfo )
-    {
-LABEL_11:
-        if ( !DDL_AssociateBuffer(metaData, 255, g_fileshareDDL)
-            && !DDL_FixBufferVersion(metaData, g_fileshareDDL, "ddl_mp/file_share.ddl", backup, 255) )
-        {
-            return 0;
-        }
-        bitSize = DDL_GetTotalBufferBitSize(g_fileshareDDL);
-        *metaDataSize = bitSize / 8;
-        if ( bitSize % 8 )
-            ++*metaDataSize;
-        if ( DDL_MoveToName(&g_fileShareRootState, &state, "authorName")
-            && (ClientName = Live_ControllerIndex_GetClientName(controllerIndex), DDL_SetString(&state, ClientName, metaData)) )
-        {
-            if ( DDL_MoveToName(&g_fileShareRootState, &state, "authorXuid")
-                && (LODWORD(v8) = Live_GetXuid(controllerIndex), DDL_SetInt64(&state, v8, metaData)) )
-            {
-                if ( DDL_MoveToName(&g_fileShareRootState, &state, "name")
-                    && (fileType != FILESHARE_FILETYPE_SCREENSHOT
-                        ? (v9 = DDL_SetString(&state, dInfo->name, metaData))
-                        : (v9 = DDL_SetString(&state, sInfo->name, metaData)),
-                            v9) )
-                {
-                    if ( DDL_MoveToName(&g_fileShareRootState, &state, "isModifiedName")
-                        && (fileType != FILESHARE_FILETYPE_SCREENSHOT
-                            ? (isModifiedName = dInfo->isModifiedName)
-                            : (isModifiedName = sInfo->isModifiedName),
-                                DDL_SetInt(&state, isModifiedName, metaData)) )
-                    {
-                        if ( DDL_MoveToName(&g_fileShareRootState, &state, "description")
-                            && (fileType != FILESHARE_FILETYPE_SCREENSHOT
-                                ? (v10 = DDL_SetString(&state, dInfo->description, metaData))
-                                : (v10 = DDL_SetString(&state, sInfo->description, metaData)),
-                                    v10) )
-                        {
-                            if ( DDL_MoveToName(&g_fileShareRootState, &state, "isModifiedDescription")
-                                && (fileType != FILESHARE_FILETYPE_SCREENSHOT
-                                    ? (isModifiedDescription = dInfo->isModifiedDescription)
-                                    : (isModifiedDescription = sInfo->isModifiedDescription),
-                                        DDL_SetInt(&state, isModifiedDescription, metaData)) )
-                            {
-                                if ( DDL_MoveToName(&g_fileShareRootState, &state, "createTime")
-                                    && (fileType != FILESHARE_FILETYPE_SCREENSHOT
-                                        ? (v11 = DDL_SetInt(&state, dInfo->createTime, metaData))
-                                        : (v11 = DDL_SetInt(&state, sInfo->createTime, metaData)),
-                                            v11) )
-                                {
-                                    if ( fileType == FILESHARE_FILETYPE_SCREENSHOT
-                                        || DDL_MoveToName(&g_fileShareRootState, &state, "length")
-                                        && DDL_SetInt(&state, dInfo->endTime - dInfo->startTime, metaData) )
-                                    {
-                                        return 1;
-                                    }
-                                    else
-                                    {
-                                        Com_PrintError(16, "Could not set 'length' in the file share ddl.\n");
-                                        return 0;
-                                    }
-                                }
-                                else
-                                {
-                                    Com_PrintError(16, "Could not set 'createTime' in the file share ddl.\n");
-                                    return 0;
-                                }
-                            }
-                            else
-                            {
-                                Com_PrintError(16, "Could not set 'isModifiedDescription' in the file share ddl.\n");
-                                return 0;
-                            }
-                        }
-                        else
-                        {
-                            Com_PrintError(16, "Could not set 'description' in the file share ddl.\n");
-                            return 0;
-                        }
-                    }
-                    else
-                    {
-                        Com_PrintError(16, "Could not set 'isModifiedName' in the file share ddl.\n");
-                        return 0;
-                    }
-                }
-                else
-                {
-                    Com_PrintError(16, "Could not set 'name' in the file share ddl.\n");
-                    return 0;
-                }
-            }
-            else
-            {
-                Com_PrintError(16, "Could not set 'authorXuid' in the file share ddl.\n");
-                return 0;
-            }
-        }
-        else
-        {
-            Com_PrintError(16, "Could not set 'authorName' in the file share ddl.\n");
-            return 0;
-        }
-    }
-    if ( !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\demo\\demo_common.cpp",
-                    358,
-                    0,
-                    "Demo info expected while setting meta data.") )
-        __debugbreak();
-    return 0;
-}
-
-char gamerTag_0[32];
-void __cdecl Demo_StreamingSuccessCallback(int controllerIndex, unsigned __int64 fileID)
-{
-    const ddlState_t *RootDDLState; // eax
-    int v3; // eax
-    char *ClientName; // eax
-    int v5; // [esp+18h] [ebp-3F0h]
-    bdTaskResult *k; // [esp+1Ch] [ebp-3ECh]
-    int v7; // [esp+20h] [ebp-3E8h]
-    bdTag *j; // [esp+24h] [ebp-3E4h]
-    signed int i; // [esp+28h] [ebp-3E0h]
-    int numTags; // [esp+2Ch] [ebp-3DCh] BYREF
-    ddlState_t localState; // [esp+30h] [ebp-3D8h] BYREF
-    char *matchRecordBuffer; // [esp+40h] [ebp-3C8h] BYREF
-    int matchRecordBufferSize; // [esp+44h] [ebp-3C4h] BYREF
-    bdTag tags[40]; // [esp+48h] [ebp-3C0h] BYREF
-    int savedregs; // [esp+408h] [ebp+0h] BYREF
-
-    RootDDLState = LiveStats_GetRootDDLState();
-    DDL_MoveTo(RootDDLState, &localState, 2, "AfterActionReportStats", "demoFileID");
-    if ( svs.clients )
-    {
-        for ( i = 0; i < demo.header.maxClients; ++i )
-        {
-            if ( svs.clients[i].header.state == CS_ACTIVE )
-                SV_SetClientDInt64Stat(i, &localState, fileID);
-        }
-    }
-    matchRecordBuffer = 0;
-    matchRecordBufferSize = 0;
-    if ( fileID )
-    {
-        {
-            ClientName = Live_ControllerIndex_GetClientName(controllerIndex);
-            I_strncpyz(gamerTag_0, ClientName, 32);
-            matchRecordBuffer = gamerTag_0;
-            matchRecordBufferSize = strlen(gamerTag_0);
-        }
-        v7 = 40;
-        for (j = tags; --v7 >= 0; ++j)
-        {
-            //bdTag::bdTag(j);
-            new (j) bdTag();
-        }
-        numTags = 0;
-        Demo_SetTags(controllerIndex, &numTags, tags, &demo.info, FILESHARE_FILETYPE_FILM);
-        memcpy(s_demoUploadInfo.tags, tags, sizeof(s_demoUploadInfo.tags));
-        s_demoUploadInfo.numTags = numTags;
-        memset(s_demoUploadInfo.metaData, 0, sizeof(s_demoUploadInfo.metaData));
-        Live_FileShare_WritePublicMetaDataTags(s_demoUploadInfo.metaData, tags, numTags);
-        Live_FileShare_WritePublicMetaDataLength(s_demoUploadInfo.metaData, demo.info.endTime - demo.info.startTime);
-        Live_FileShare_WritePublicMetaDataCreateTime(s_demoUploadInfo.metaData, demo.info.createTime);
-        s_demoUploadInfo.metaDataSize = 512;
-        Dvar_SetString((dvar_s *)fsSelectedFileName, demo.info.name);
-        Dvar_SetString((dvar_s *)fsSelectedFileDescription, demo.info.description);
-        Dvar_SetBool((dvar_s *)fsIsSelectedFileNameModified, 0);
-        Dvar_SetBool((dvar_s *)fsIsSelectedFileDescriptionModified, 0);
-        LiveStorage_FileShare_WriteSummary(
-            controllerIndex,
-            fileID,
-            FILESHARE_LOCATION_POOLEDSTORAGE,
-            matchRecordBuffer,
-            matchRecordBufferSize,
-            s_demoUploadInfo.metaData,
-            s_demoUploadInfo.metaDataSize,
-            tags,
-            numTags,
-            0);
-        v5 = 40;
-
-        //for ( k = (bdTaskResult *)&savedregs; --v5 >= 0; bdTag::~bdTag(k) )
-        // 
-        //    k -= 6;
-
-        //for (int i = 0; i < 40; i++)
-        //    delete &tags[i];
-    }
-    else
-    {
-        Com_PrintError(16, "Trying to write a summary for a file that didn't get uploaded. Bailing out.\n");
-    }
-}
-
-void __cdecl Demo_StreamingFailureCallback()
-{
-    Demo_StopStreaming();
-}
-
 void __cdecl Demo_StartRecord_f()
 {
     const char *v0; // eax
@@ -726,7 +395,6 @@ void __cdecl Demo_StartRecord_f()
     int tm_min; // [esp-4h] [ebp-64h]
     int i; // [esp+0h] [ebp-60h]
     qtime_s systemTime; // [esp+4h] [ebp-5Ch] BYREF
-    fileShareWriteFileInfo fileInfo; // [esp+2Ch] [ebp-34h] BYREF
 
     if ( Demo_IsIdle() )
     {
@@ -751,18 +419,6 @@ void __cdecl Demo_StartRecord_f()
             demo.header.settings.systemlink = Dvar_GetBool("systemlink");
             demo.header.settings.combatTraining = Dvar_GetBool("xblive_basictraining");
             demo.header.settings.customGameMode = UI_Gametype_IsUsingCustom();
-            fileInfo.category = 1;
-            fileInfo.fileName = va("%s.demo", demo.demoName);
-            fileInfo.tags = 0;
-            fileInfo.location = FILESHARE_LOCATION_POOLEDSTORAGE;
-            fileInfo.fileSlot = 6;
-            memset(&fileInfo.thumbData, 0, 12);
-            fileInfo.fileSize = 0;
-            fileInfo.dataCallback = (unsigned int (__cdecl *)(void *, unsigned int, unsigned int))Demo_WriteToStream;
-            fileInfo.successCallback = Demo_StreamingSuccessCallback;
-            fileInfo.failureCallback = (void (__cdecl *)(int))Demo_StreamingFailureCallback;
-            if ( LiveStorage_FileShare_WriteFile(0, &fileInfo) )
-                Demo_StartStreaming(0);
             v1 = Session_HostNum(&g_serverSession);
             Demo_SetDemoClientIndex(v1);
             Demo_WriteHeader(&demo.msg, 0);
@@ -1636,7 +1292,6 @@ void __cdecl Demo_StartClipRecord_f()
                             else if ( demo.playback->clipRecordBufIndex < 999424 )
                             {
                                 Demo_SetCmdInProgess();
-                                Dvar_SetInt((dvar_s *)fsSelectedFileTagIndex, 0);
                                 demo.playback->prevClipRecordBufIndex = demo.playback->clipRecordBufIndex;
                                 demo.playback->prevClipTime = demo.playback->clipTime;
                                 CL_GetLocalClientGlobals(0);
@@ -1792,66 +1447,6 @@ void __cdecl Demo_DeleteClip_f()
     else
     {
         Com_Printf(0, "Usage: demo_deleteclip\n");
-    }
-}
-
-void __cdecl Demo_SaveAndUploadClip_f()
-{
-    const char *v0; // eax
-    int v1; // eax
-    const char *v2; // eax
-    signed int slot; // [esp+10h] [ebp-8h]
-
-    if ( SV_Cmd_Argc() == 3 )
-    {
-        if ( Demo_IsPlaybackInited() )
-        {
-            if ( Demo_GetClipState() )
-            {
-                v0 = Cmd_Argv(1);
-                v1 = atoi(v0);
-                if ( Demo_ShouldProcessCmd(v1) )
-                {
-                    if ( demo.playback->segmentCount )
-                    {
-                        if ( Demo_GetTotalClipDuration() >= 1000 )
-                        {
-                            Demo_SetCmdInProgess();
-                            v2 = Cmd_Argv(2);
-                            slot = atoi(v2);
-                            if ( slot && slot <= 3 * Live_FileShare_GetMyPrivateSlotsCount() )
-                                Demo_WriteRecordedClip(0, slot);
-                            else
-                                Com_PrintError(16, "Failed to upload clip. Invalid slot.\n");
-                        }
-                        else
-                        {
-                            Demo_Error(0, "MPUI_ERROR_CAPS", "MENU_DEMO_TOTAL_DURATION_LESS_THAN_ONE");
-                        }
-                    }
-                    else
-                    {
-                        Com_PrintError(14, "Cant save a clip with 0 segments.\n");
-                    }
-                }
-                else
-                {
-                    Com_PrintError(14, "A command is in progress. We cant process this command.\n");
-                }
-            }
-            else
-            {
-                Com_PrintError(14, "The clip system is not recording.\n");
-            }
-        }
-        else
-        {
-            Com_PrintError(14, "Playback memory isnt inited.\n");
-        }
-    }
-    else
-    {
-        Com_Printf(0, "Usage: demo_saveanduploadclip <cmdNum> <slotNum>.");
     }
 }
 
@@ -2391,7 +1986,6 @@ void    Demo_Screenshot_f()
             demo.playback->screenshotInfo.isModifiedDescription = 0;
             I_strncpyz(demo.playback->screenshotInfo.gameType, demo.info.gameType, 256);
             I_strncpyz(demo.playback->screenshotInfo.mapName, demo.info.mapName, 256);
-            Dvar_SetInt((dvar_s *)fsSelectedFileTagIndex, 0);
             Com_RealTime(&systemTime, 1);
             demo.playback->screenshotInfo.week = systemTime.tm_yday / 7;
             demo.playback->screenshotInfo.month = systemTime.tm_mon + 1;
@@ -2461,7 +2055,6 @@ void __cdecl Demo_RenderMovie_f()
     {
         if ( Demo_IsIdle() )
         {
-            LiveCounter_IncrementCounterValueByName("global_fileshare_rendered", 1u);
             v0 = Cmd_Argv(1);
             v1 = va("demo_play %s 1\n", v0);
             Cbuf_AddText(0, v1);
@@ -2665,7 +2258,6 @@ void __cdecl Demo_End(bool abnormalTermination)
     }
     Demo_SetDemoClientState(0);
     Demo_PrintProfileData();
-    Demo_StopStreaming();
     Demo_CloseFile(demo.demoFileHandle);
     Demo_SetDemoState(0);
     g_democlientindex = 0;
@@ -2687,83 +2279,12 @@ void __cdecl Demo_End(bool abnormalTermination)
     num_heli_height_lock_patches = 0;
 }
 
-void __cdecl Demo_ReadDataCallback(char *data, unsigned int dataSize)
-{
-    Demo_Write(data, dataSize, s_demoFileHandle);
-}
-
-void __cdecl Demo_ReadDataSuccessPlayIt(dwFileShareReadFileTask *task)
-{
-    const char *v1; // eax
-
-    Com_Printf(16, "Demo download successful.\n");
-    v1 = va("demo_play %s 0\n", task->descriptor.m_fileName);
-    Cbuf_AddText(0, v1);
-}
-
-void __cdecl Demo_ReadDataSuccessRenderIt(dwFileShareReadFileTask *task)
-{
-    const char *v1; // eax
-
-    Com_Printf(16, "Demo download successful.\n");
-    v1 = va("demo_rendermovie %s\n", task->descriptor.m_fileName);
-    Cbuf_AddText(0, v1);
-}
-
-void __cdecl Demo_ReadDataFailure()
-{
-    Com_Printf(16, "Demo download failed.\n");
-    if ( Menu_IsMenuOpenAndVisible(0, "popup_downloadingfile") )
-    {
-        UI_CloseMenuImmediate(0, "popup_downloadingfile");
-        UI_OpenMenu(0, "menu_fileshare_error");
-    }
-}
-
-void __cdecl Demo_DownloadFile(
-                int controllerIndex,
-                char *filmName,
-                unsigned __int64 fileId,
-                int fileSize,
-                bool isUserFile,
-                bool renderIt)
-{
-    char ospath[260]; // [esp+0h] [ebp-138h] BYREF
-    fileShareReadFileInfo fileInfo; // [esp+108h] [ebp-30h] BYREF
-
-    memset(ospath, 0, 0x100u);
-    Demo_GetDemoPath(ospath);
-    s_demoFileHandle = Demo_OpenFileWrite(filmName, ospath, 0);
-    if ( Demo_IsStreamBufferAllocated() )
-    {
-        Demo_GetCurrentAllocatedFileSize();
-        Demo_ReturnStreamBufferMemory();
-    }
-    Demo_AllocateMemoryFromStreamBuffer(fileSize);
-    if ( isUserFile )
-        fileInfo.location = FILESHARE_LOCATION_USERSTORAGE;
-    else
-        fileInfo.location = FILESHARE_LOCATION_POOLEDSTORAGE;
-    fileInfo.fileID = fileId;
-    fileInfo.fileSize = fileSize;
-    fileInfo.isStreamed = 1;
-    fileInfo.dataCallback = (void (__cdecl *)(void *, unsigned int, unsigned int, unsigned int))Demo_ReadDataCallback;
-    if ( renderIt )
-        fileInfo.successCallback = Demo_ReadDataSuccessRenderIt;
-    else
-        fileInfo.successCallback = Demo_ReadDataSuccessPlayIt;
-    fileInfo.failureCallback = (void (__cdecl *)(dwFileShareReadFileTask *))Demo_ReadDataFailure;
-    fileInfo.cacheBuffer = Demo_GetStreamAllocatedBuffer();
-    LiveStorage_FileShare_ReadFile(controllerIndex, &fileInfo);
-}
-
 //void __thiscall demoRecordedFileUploadInfo::~demoRecordedFileUploadInfo(demoRecordedFileUploadInfo *this)
 //{
 //    int v1; // [esp+4h] [ebp-8h]
 //    int *i; // [esp+8h] [ebp-4h]
 //
 //    v1 = 40;
-//    for ( i = &this->numTags; --v1 >= 0; bdTag::~bdTag((bdTaskResult *)i) )
 //        i -= 6;
 //}
 //

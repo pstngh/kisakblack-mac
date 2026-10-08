@@ -1,5 +1,4 @@
 #include "live_pcache_profile.h"
-#include <universal/UserInfo.h>
 #include "live_stats.h"
 #include "live_win.h"
 
@@ -25,36 +24,6 @@ void __cdecl PCache_ProfileInit()
 ddlDef_t *__cdecl PCache_GetPublicProfileDDL()
 {
     return g_playerDDL;
-}
-
-void __cdecl PCache_GetPublicProfilesCompleted(TaskRecord *task)
-{
-}
-
-void __cdecl PCache_GetPublicProfilesFailed(TaskRecord *task)
-{
-}
-
-void __cdecl PCache_SetPublicProfileCompleted(TaskRecord *task)
-{
-    PCache_Lock();
-    *((unsigned int *)task->payload + 6) &= ~1u;
-    PCache_Unlock();
-}
-
-void __cdecl PCache_SetPublicProfileFailed(TaskRecord *task)
-{
-    PCache_Lock();
-    *((unsigned int *)task->payload + 4) = PCache_Time() + 300;
-    PCache_Unlock();
-}
-
-void __cdecl PCache_GetPublicProfileCompleted(TaskRecord *task)
-{
-}
-
-void __cdecl PCache_GetPublicProfileFailed(TaskRecord *task)
-{
 }
 
 void __cdecl PCache_NukeProfile(int controlleridx)

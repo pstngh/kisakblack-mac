@@ -1,6 +1,6 @@
 // winsock2.h — minimal Winsock→BSD-sockets shim for non-Windows builds.
 //
-// The networking code (DemonWare/, qcommon net) is written against Winsock. Map the
+// The networking code (qcommon net) is written against Winsock. Map the
 // small surface it uses onto POSIX/BSD sockets. Grown as the net subsystem is
 // ported; today it provides the socket address types + the common call aliases.
 #ifndef KISAK_WINSOCK2_H

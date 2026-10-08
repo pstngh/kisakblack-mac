@@ -27,10 +27,8 @@
 #include "ui_localvars.h"
 #include "ui_shared_obj.h"
 #include <client_mp/cl_ui_pc_mp.h>
-#include <live/live_leaderboard.h>
 #include <client_mp/cl_main_pc_mp.h>
 #include "ui_feeders.h"
-#include <live/live_groups_dw.h>
 #include <game_mp/ui_gameinfo_mp.h>
 #include <client_mp/cl_input_mp.h>
 #include <win32/win_voice.h>
@@ -1209,11 +1207,11 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                                                                                                                     (const char **)args,
                                                                                                                                                                     (const char *)HIDWORD(args));
                                                                                                                                                             else
-                                                                                                                                                                LB_OnSelect(localClientNum);
+                                                                                                                                                                ; // leaderboards were online-only
                                                                                                                                                         }
                                                                                                                                                         else
                                                                                                                                                         {
-                                                                                                                                                            LB_ForceRefresh();
+                                                                                                                                                            ; // leaderboards were online-only
                                                                                                                                                         }
                                                                                                                                                     }
                                                                                                                                                     else
@@ -1398,7 +1396,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                                 *(_DWORD *)&sharedUiInfo.serverStatusAddress[4
                                                                                 * sharedUiInfo.serverStatus.currentServer
                                                                                 - 81328],
-                                                                                (bdSecurityID *)sharedUiInfo.serverStatusSecurityID,
+                                                                                (XNKID *)sharedUiInfo.serverStatusSecurityID,
                                                                                 8);
                                                                             UI_BuildServerStatusScoreBoard(localClientNum, uiInfoArray, 1);
                                                                         }
@@ -1416,7 +1414,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                                                             *(_DWORD *)&sharedUiInfo.serverStatusAddress[4
                                                                             * sharedUiInfo.serverStatus.currentServer
                                                                             - 81328],
-                                                                            (bdSecurityID *)sharedUiInfo.serverStatusSecurityID,
+                                                                            (XNKID *)sharedUiInfo.serverStatusSecurityID,
                                                                             8);
                                                                         UI_BuildServerStatus(localClientNum, uiInfoArray, 1);
                                                                     }
@@ -1488,13 +1486,11 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, __int64 args
                                         {
                                             UI_StartServerRefresh(localClientNum, contextIndex, 1);
                                             UI_BuildServerDisplayList(localClientNum, (uiInfo_s *)dc, 1);
-                                            feederID_4a = LiveGroups_GetCount((char*)"online/mp");
+                                            feederID_4a = 0; // online population counts came from the online service
                                             v10 = UI_SafeTranslateString("PLATFORM_PLAYERS_ONLINE");
                                             v11 = UI_ReplaceConversionInt(v10, feederID_4a);
                                             Dvar_SetString((dvar_s*)ui_browserPlayerCount, v11);
-                                            CountByType = LiveGroups_GetCountByType(SERVER_GROUP_RANKED);
-                                            v13 = LiveGroups_GetCountByType(SERVER_GROUP_UNRANKED) + CountByType;
-                                            feederID_4b = LiveGroups_GetCountByType(SERVER_GROUP_WAGER) + v13;
+                                            feederID_4b = 0;
                                             v14 = UI_SafeTranslateString("PLATFORM_ALL_SERVERS");
                                             v15 = UI_ReplaceConversionInt(v14, feederID_4b);
                                             Dvar_SetString((dvar_s*)ui_browserDedicatedServerCount, v15);
@@ -2848,21 +2844,9 @@ void __cdecl UI_DrawLoggedInUser(
     name = (char *)Dvar_GetString("com_playerProfile");
     if ( I_strcmp(name, "default") )
     {
-        if ( Dvar_GetBool("dw_loggedin") )
-        {
-            v9 = UI_SafeTranslateString("PLATFORM_ONLINE");
-            name = va("%s: %s", v9, name);
-            v8 = UI_TextWidth(name, 0x7FFFFFFF, font, scale);
-        }
-        else
-        {
-            if ( !Dvar_GetBool("dw_loggedin") )
-            {
-                v10 = UI_SafeTranslateString("PLATFORM_OFFLINE");
-                name = va("%s: %s", v10, name);
-            }
-            v8 = UI_TextWidth(name, 0x7FFFFFFF, font, scale);
-        }
+        v10 = UI_SafeTranslateString("PLATFORM_OFFLINE");
+        name = va("%s: %s", v10, name);
+        v8 = UI_TextWidth(name, 0x7FFFFFFF, font, scale);
     }
     else
     {
@@ -3651,8 +3635,6 @@ void __cdecl UI_KeyEvent(int localClientNum, int key, int down)
             bypassKeyClear = 1;
         if ( UI_KeyEvent_CancelButtonPressed(&uiInfo->uiDC, menu, key, down) )
             Menus_CloseAll(localClientNum, &uiInfo->uiDC);
-        if ( UI_KeyEvent_AutoJoinButtonPressed(localClientNum, &uiInfo->uiDC, menu, key, down) )
-            Live_AcceptLastInvite_f();
         if ( Key_IsCatcherActive(localClientNum, 336) )
             Menu_HandleKey(localClientNum, &uiInfo->uiDC, menu, key, down);
         if ( !Menu_GetFocused(&uiInfo->uiDC) )

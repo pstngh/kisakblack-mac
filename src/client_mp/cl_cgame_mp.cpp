@@ -1234,7 +1234,6 @@ void __cdecl CL_RestartCGame(int localClientNum)
     CG_ParseServerInfo(localClientNum);
     CG_ParseCodInfo(localClientNum);
     CG_ParseFog(localClientNum);
-    CG_ParsePlayerInfos();
     CG_Veh_RegisterMaterials();
     FX_KillAllEffects(localClientNum);
     CL_SetLocalClientConnectionState(localClientNum, CA_PRIMED);

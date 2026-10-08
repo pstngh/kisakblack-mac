@@ -1,7 +1,6 @@
 #include "live_friends_pc.h"
 
 #include <steam/steam_api.h>
-#include "live_meetplayer.h"
 
 int g_sortedNumFriends;
 int g_sortedFriendsRedirect[256];
@@ -164,8 +163,6 @@ int __cdecl Friends_GetCount(int __formal, int type)
 {
     if ( !type )
         return LiveSteam_GetNumFriends();
-    if ( type == 1 )
-        return LiveMeetPlayer_GetNoOfMetPlayers(0);
     return 0;
 }
 

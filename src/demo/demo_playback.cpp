@@ -3,7 +3,6 @@
 #include <universal/physicalmemory.h>
 #include "demo_ui.h"
 #include <live/live_win.h>
-#include <live/live_fileshare.h>
 #include <cgame_mp/cg_local_mp.h>
 #include <win32/win_shared.h>
 #include "demo_files.h"
@@ -15,7 +14,6 @@
 #include <win32/win_net.h>
 #include <cgame/cg_draw_names.h>
 #include <qcommon/com_clients.h>
-#include <DW/dwRecordEvent.h>
 #include <cgame_mp/cg_ui_animate_mp.h>
 #include <cgame_mp/cg_newDraw_mp.h>
 #include <client/cl_keys.h>
@@ -50,7 +48,6 @@
 #include <ui_mp/ui_main_mp.h>
 #include <physics/rope_gamestate.h>
 #include <ui_mp/ui_gametype_custom_mp.h>
-#include <live/live_counter.h>
 #include <sound/snd_public_async.h>
 #include <win32/win_gamepad.h>
 #include <game/g_scr_helicopter.h>
@@ -443,91 +440,11 @@ char __cdecl Demo_IsPlayerTagged(int localClientNum, demoTagPlayers *players, un
     return 0;
 }
 
-void __cdecl Demo_SaveScreenshotSuccessful(int controllerIndex, unsigned __int64 fileID)
-{
-    int LocalClientNum; // eax
-    int v3; // eax
-    char *ClientName; // eax
-    int v5; // eax
-    char *v6; // [esp-4h] [ebp-50Ch]
-    int v7; // [esp+10h] [ebp-4F8h]
-    bdTaskResult *k; // [esp+14h] [ebp-4F4h]
-    int v9; // [esp+18h] [ebp-4F0h]
-    bdTaskResult *m; // [esp+1Ch] [ebp-4ECh]
-    int v11; // [esp+20h] [ebp-4E8h]
-    bdTag *j; // [esp+24h] [ebp-4E4h]
-    int i; // [esp+28h] [ebp-4E0h]
-    int numTags; // [esp+2Ch] [ebp-4DCh] BYREF
-    char metaData[260]; // [esp+30h] [ebp-4D8h] BYREF
-    unsigned __int64 playerXuid; // [esp+138h] [ebp-3D0h]
-    int metaDataSize; // [esp+144h] [ebp-3C4h] BYREF
-    bdTag tags[40]; // [esp+148h] [ebp-3C0h] BYREF
-    int savedregs; // [esp+508h] [ebp+0h] BYREF
-
-    numTags = 0;
-    //v11 = 40;
-    //for ( j = tags; --v11 >= 0; ++j )
-    //    bdTag::bdTag(j);
-    metaDataSize = 0;
-    LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    Demo_Error(LocalClientNum, "", "MENU_DEMO_SCREENSHOT_UPLOAD_SUCCESS");
-    v3 = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    UI_CloseMenu(v3, "fileshare_slotselection_scr");
-    ClientName = Live_ControllerIndex_GetClientName(controllerIndex);
-    I_strncpyz(gamerTag_1, ClientName, 32);
-    memset(metaData, 0, 0xFFu);
-    Demo_SetTags(controllerIndex, &numTags, tags, &demo.playback->screenshotInfo, FILESHARE_FILETYPE_SCREENSHOT);
-    if ( Demo_SetMetaData(
-                 controllerIndex,
-                 metaData,
-                 &metaDataSize,
-                 0,
-                 &demo.playback->screenshotInfo,
-                 FILESHARE_FILETYPE_SCREENSHOT) )
-    {
-        for ( i = 0; i < demo.playback->screenshotInfo.screenshotPlayers.count; ++i )
-        {
-            playerXuid = demo.playback->screenshotInfo.screenshotPlayers.playerXuids[i];
-            Live_FileShare_AddTag(4u, playerXuid, &numTags, tags, 40);
-        }
-        Live_FileShare_AddTag(5u, fsSelectedFileTagIndex->current.integer, &numTags, tags, 40);
-        LiveStorage_FileShare_WriteSummary(
-            controllerIndex,
-            fileID,
-            FILESHARE_LOCATION_USERSTORAGE,
-            gamerTag_1,
-            strlen(gamerTag_1),
-            metaData,
-            metaDataSize,
-            tags,
-            numTags,
-            0);
-        v6 = va("userPublishNews TICKER_SCREENSHOTUPLOADED\n");
-        v5 = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-        Cmd_ExecuteSingleCommand(v5, controllerIndex, v6);
-#ifdef KISAK_DW_TELEMETRY
-        dwRecordEventFormat(0, 2u, "JPG{id:%lld location:%d}", fileID, 2);
-#endif
-        //v7 = 40;
-        //for ( k = (bdTaskResult *)&savedregs; --v7 >= 0; bdTag::~bdTag(k) )
-        //    k -= 6;
-    }
-    else
-    {
-        Com_PrintError(16, "Could not set meta data for uploaded file ID %llu. This is now an untagged file.\n", fileID);
-        //v9 = 40;
-        //for ( m = (bdTaskResult *)&savedregs; --v9 >= 0; bdTag::~bdTag(m) )
-        //    m -= 6;
-    }
-}
-
 void __cdecl Demo_SaveScreenshot(int localClientNum, unsigned int fileSlot)
 {
     const char *v2; // eax
-    int ControllerIndex; // eax
     int handle; // [esp+0h] [ebp-13Ch]
     char ospath[256]; // [esp+4h] [ebp-138h] BYREF
-    fileShareWriteFileInfo writeFileInfo; // [esp+108h] [ebp-34h] BYREF
 
     memset(ospath, 0, sizeof(ospath));
     if ( !Demo_IsPlaying() )
@@ -553,21 +470,6 @@ void __cdecl Demo_SaveScreenshot(int localClientNum, unsigned int fileSlot)
         Demo_Write((char *)g_JpegBuf, demo.playback->screenshotSize, handle);
         Demo_CloseFile(handle);
     }
-    writeFileInfo.category = 3;
-    writeFileInfo.fileData = g_JpegBuf;
-    writeFileInfo.fileSize = demo.playback->screenshotSize;
-    writeFileInfo.location = FILESHARE_LOCATION_USERSTORAGE;
-    writeFileInfo.fileSlot = fileSlot;
-    writeFileInfo.numTags = 0;
-    writeFileInfo.tags = 0;
-    writeFileInfo.fileName = va("Screenshot_%d.jpg", fileSlot);
-    writeFileInfo.thumbData = 0;
-    writeFileInfo.thumbDataSize = 0;
-    writeFileInfo.dataCallback = 0;
-    writeFileInfo.successCallback = Demo_SaveScreenshotSuccessful;
-    writeFileInfo.failureCallback = 0;
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    LiveStorage_FileShare_WriteFile(ControllerIndex, &writeFileInfo);
 }
 
 void __cdecl Demo_SetCmdInProgess()
@@ -4355,8 +4257,6 @@ void __cdecl Demo_SaveClipRecordMessageToMainMemory(
     demo.playback->clipRecordBufIndex += 4;
     memcpy(&demo.playback->mainClipRecordingBuf[demo.playback->clipRecordBufIndex], demo.msgBuf1, compressedSize);
     demo.playback->clipRecordBufIndex += compressedSize;
-    if ( forceWrite )
-        Demo_WriteRecordedClip(localClientNum, 1u);
     MSG_Init(&demo.playback->clipRecordingMsg, demo.playback->subClipRecordingBuf, 49152);
 }
 
@@ -4473,131 +4373,7 @@ void __cdecl Demo_PopulateClipPlayerTags(demoMetaInfo *info)
     }
 }
 
-int __cdecl Demo_SendClipToStreamingBuffer(unsigned __int8 *data, int dataSize, unsigned int bytesUploaded)
-{
-    int size; // [esp+0h] [ebp-4h]
-
-    if ( !bytesUploaded )
-    {
-        streamingState.buffer = 0;
-        streamingState.bufferSize = 0;
-        streamingState.phase = 0;
-        streamingState.segmentNo = 0;
-        streamingState.byteOffset = 0;
-        streamingState.isEnteringState = 1;
-        streamingState.totalDuration = 0;
-    }
-    if ( streamingState.phase == 5 && streamingState.byteOffset == streamingState.bufferSize )
-        return 0;
-    if ( streamingState.isEnteringState )
-        Demo_SetupClipStreamingState();
-    if ( streamingState.bufferSize - streamingState.byteOffset <= dataSize )
-    {
-        size = streamingState.bufferSize - streamingState.byteOffset;
-        memcpy(
-            data,
-            &streamingState.buffer[streamingState.byteOffset],
-            streamingState.bufferSize - streamingState.byteOffset);
-        streamingState.byteOffset += size;
-        Demo_MoveToNextPhase();
-        return size;
-    }
-    else
-    {
-        memcpy(data, &streamingState.buffer[streamingState.byteOffset], dataSize);
-        streamingState.byteOffset += dataSize;
-        return dataSize;
-    }
-}
-
 char gamerTag_2[32];
-void __cdecl Demo_UploadClipSuccess(int controllerIndex, unsigned __int64 fileID)
-{
-    int LocalClientNum; // eax
-    int v3; // eax
-    const char *v4; // eax
-    char *ClientName; // eax
-    int v6; // eax
-    char *v7; // [esp-4h] [ebp-4F8h]
-    int v8; // [esp+10h] [ebp-4E4h]
-    bdTaskResult *j; // [esp+14h] [ebp-4E0h]
-    int v10; // [esp+18h] [ebp-4DCh]
-    bdTaskResult *k; // [esp+1Ch] [ebp-4D8h]
-    int v12; // [esp+20h] [ebp-4D4h]
-    bdTag *i; // [esp+24h] [ebp-4D0h]
-    int numTags; // [esp+28h] [ebp-4CCh] BYREF
-    char metaData[256]; // [esp+2Ch] [ebp-4C8h] BYREF
-    int metaDataSize; // [esp+130h] [ebp-3C4h] BYREF
-    bdTag tags[40]; // [esp+134h] [ebp-3C0h] BYREF
-    int savedregs; // [esp+4F4h] [ebp+0h] BYREF
-
-    Demo_SetClipState(3);
-    Demo_SetClipModified(0);
-    LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    Demo_Error(LocalClientNum, "", "MENU_DEMO_CLIP_UPLOAD_SUCCESS");
-    v3 = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    UI_CloseMenu(v3, "fileshare_slotselection_clip");
-    v4 = va("Clip: Clip upload success.\n");
-    Demo_Printf(1024, v4);
-    Demo_SetCmdCompleted();
-    //v12 = 40;
-    //for ( i = tags; --v12 >= 0; ++i )
-    //    bdTag::bdTag(i);
-    numTags = 0;
-    metaDataSize = 0;
-    ClientName = Live_ControllerIndex_GetClientName(controllerIndex);
-    I_strncpyz(gamerTag_2, ClientName, 32);
-    memset(metaData, 0, 0xFFu);
-    Demo_SetTags(controllerIndex, &numTags, tags, &demo.playback->clipRecordInfo, FILESHARE_FILETYPE_CLIP);
-    if ( Demo_SetMetaData(
-                 controllerIndex,
-                 metaData,
-                 &metaDataSize,
-                 &demo.playback->clipRecordInfo,
-                 0,
-                 FILESHARE_FILETYPE_CLIP) )
-    {
-        Live_FileShare_AddTag(5u, fsSelectedFileTagIndex->current.integer, &numTags, tags, 40);
-        LiveStorage_FileShare_WriteSummary(
-            controllerIndex,
-            fileID,
-            FILESHARE_LOCATION_USERSTORAGE,
-            gamerTag_2,
-            &gamerTag_2[strlen(gamerTag_2) + 1] - (char *)&gamerTag_2[0],
-            metaData,
-            metaDataSize,
-            tags,
-            numTags,
-            0);
-        LiveCounter_IncrementCounterValueByName("global_fileshare_shared", 1u);
-        v7 = va("userPublishNews TICKER_CLIPUPLOADED\n");
-        v6 = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-        Cmd_ExecuteSingleCommand(v6, controllerIndex, v7);
-        //v8 = 40;
-        //for ( j = (bdTaskResult *)&savedregs; --v8 >= 0; bdTag::~bdTag(j) )
-        //    j -= 6;
-    }
-    else
-    {
-        Com_PrintError(16, "Could not set meta data for uploaded file ID %llu. This is now an untagged file.\n", fileID);
-        //v10 = 40;
-        //for ( k = (bdTaskResult *)&savedregs; --v10 >= 0; bdTag::~bdTag(k) )
-        //    k -= 6;
-    }
-}
-
-void __cdecl Demo_UploadClipFailure(int controllerIndex)
-{
-    int LocalClientNum; // eax
-    const char *v2; // eax
-
-    Demo_SetClipState(3);
-    LocalClientNum = Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-    Demo_Error(LocalClientNum, "", "MENU_DEMO_CLIP_UPLOAD_FAILURE");
-    v2 = va("Clip: Clip upload failed.\n");
-    Demo_Printf(1024, v2);
-    Demo_SetCmdCompleted();
-}
 
 void __cdecl Demo_PopulateHeliPatches(demoMetaInfo *info)
 {
@@ -4606,34 +4382,6 @@ void __cdecl Demo_PopulateHeliPatches(demoMetaInfo *info)
         (unsigned __int8 *)info->heliPatches,
         (unsigned __int8 *)heli_height_lock_patches,
         24 * info->numHeliPatchesCount);
-}
-
-void __cdecl Demo_WriteRecordedClip(int localClientNum, unsigned __int16 slot)
-{
-    demoMain *DemoName; // eax
-    int ControllerIndex; // eax
-    int v4; // eax
-    fileShareWriteFileInfo writeFileInfo; // [esp+0h] [ebp-34h] BYREF
-
-    Demo_SetClipState(5);
-    writeFileInfo.fileSlot = slot;
-    writeFileInfo.category = 2;
-    DemoName = Demo_GetDemoName();
-    writeFileInfo.fileName = va("%s_c.demo", DemoName->demoName);
-    writeFileInfo.fileData = 0;
-    writeFileInfo.fileSize = demo.playback->clipRecordBufIndex;
-    writeFileInfo.tags = 0;
-    memset(&writeFileInfo.thumbData, 0, 12);
-    writeFileInfo.location = FILESHARE_LOCATION_USERSTORAGE;
-    writeFileInfo.dataCallback = (unsigned int (__cdecl *)(void *, unsigned int, unsigned int))Demo_SendClipToStreamingBuffer;
-    writeFileInfo.successCallback = Demo_UploadClipSuccess;
-    writeFileInfo.failureCallback = Demo_UploadClipFailure;
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( LiveStorage_FileShare_WriteFile(ControllerIndex, &writeFileInfo) )
-    {
-        v4 = Com_LocalClient_GetControllerIndex(localClientNum);
-        Demo_StartStreaming(v4);
-    }
 }
 
 char *__cdecl Demo_AdjustTimeForConfigString(int configStringIndex, const char *string)

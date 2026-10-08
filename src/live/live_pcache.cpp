@@ -84,7 +84,7 @@ void __cdecl PCache_Update(int controllerIndex)
     {
         __debugbreak();
     }
-    if ( !LiveStorage_AreWeFetchingStats() && LiveStorage_DoWeHaveAllStats(0) )
+    if ( LiveStorage_DoWeHaveAllStats(0) )
     {
         PCache_BatchUpdatePublicProfiles(controllerIndex, s_publicProfiles, 256);
         PCache_BatchUpdatePlayerEmblems(controllerIndex, s_playerEmblems, 32);

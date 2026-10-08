@@ -36,7 +36,6 @@
 #include <qcommon/com_clients.h>
 #include <cgame/offhandweapons.h>
 #include <client_mp/cl_main_pc_mp.h>
-#include <live/live_leaderboard.h>
 #include <live/live_stats.h>
 #include <live/live_storage_win.h>
 #include <cgame/cg_hudelem.h>
@@ -157,39 +156,6 @@ void __cdecl CG_ParseTimeScale(int localClientNum)
     cgameGlob->timeScaleTimeStart = cgameGlob->time;
     info = CL_GetConfigString(0xEu);
     sscanf(info, "%g %d", &cgameGlob->timeScaleEnd, &cgameGlob->timeScaleTimeEnd);
-}
-
-void __cdecl CG_ParsePlayerInfos()
-{
-    int i; // [esp+10h] [ebp-44h]
-    const char *nameList; // [esp+14h] [ebp-40h] BYREF
-    char filteredName[32]; // [esp+18h] [ebp-3Ch] BYREF
-    int clientNum; // [esp+3Ch] [ebp-18h]
-    const char *playerName; // [esp+40h] [ebp-14h]
-    const char *xuidStr; // [esp+44h] [ebp-10h]
-    const char *playerInfo; // [esp+48h] [ebp-Ch]
-    unsigned __int64 uid; // [esp+4Ch] [ebp-8h] BYREF
-
-    for ( clientNum = 0; clientNum < 32; ++clientNum )
-    {
-        playerInfo = CL_GetConfigString(clientNum + 323);
-        if ( *playerInfo )
-        {
-            Cmd_TokenizeStringNoEval(playerInfo);
-            xuidStr = Cmd_Argv(0);
-            playerName = Cmd_Argv(1);
-            StringToXUID(xuidStr, &uid);
-            Cmd_EndTokenizedString();
-            I_strncpyz(filteredName, playerName, 32);
-            for ( i = 0; filteredName[i] && i < 32; ++i )
-            {
-                if ( filteredName[i] == 1 )
-                    filteredName[i] = 32;
-            }
-            nameList = filteredName;
-            Live_AddRecentPlayers(&uid, &nameList, 1);
-        }
-    }
 }
 
 void __cdecl CG_ParseGameEndTime(int localClientNum)
@@ -890,12 +856,6 @@ void __cdecl CG_DeployServerCommand(int localClientNum)
             LiveStats_SetStatChanged(v29, v52);
             break;
         case 0x50:
-            v30 = Com_LocalClient_GetControllerIndex(localClientNum);
-            if ( !LB_UploadPlayerStats(v30) )
-                Com_PrintError(
-                    22,
-                    "there was an error uploading player stats for local client on %i Demonware Leaderboard for PS3\n",
-                    localClientNum);
             break;
         case 0x51:
             LiveStorage_UploadStats();
@@ -1171,7 +1131,7 @@ void __cdecl CG_ConfigStringModified(int localClientNum)
                 }
                 else
                 {
-                    CG_ParsePlayerInfos();
+                    // player info strings only fed the online recent-players list
                 }
             }
             else

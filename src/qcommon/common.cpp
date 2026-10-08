@@ -22,7 +22,6 @@
 #include <glass/glass_client.h>
 #include <demo/demo_playback.h>
 #include <stringed/stringed_hooks.h>
-#include <universal/com_tasks.h>
 #include <csetjmp>
 #include <win32/win_splash.h>
 #include <clientscript/cscr_stringlist.h>
@@ -50,7 +49,6 @@
 #include <win32/win_stream.h>
 #include <client/cl_gamepad.h>
 #include <ddl/ddl_api.h>
-#include <DW/dwLogOn_pc.h>
 #include <gfx_d3d/r_stream.h>
 #include <universal/reliablemsg.h>
 #include <client_mp/cl_scrn_mp.h>
@@ -76,8 +74,6 @@
 #include <win32/win_input.h>
 #include "dobj_management.h"
 #include "cm_load.h"
-#include <ui/ui_screenshot.h>
-#include <live/live_fileshare_cache.h>
 #include <server/sv_game.h>
 #include <cgame_mp/cg_ents_mp.h>
 #include <bgame/bg_weapons_def.h>
@@ -103,7 +99,6 @@ cmd_function_s Com_WriteDefaults_f_VAR;
 char asc_CD51B0[3] = { '[', ']', '\0'};
 
 char cl_cdkey[34];
-char cl_cdkey_dw[34];
 char cl_cdkeychecksum[10] =
 { ' ', ' ', ' ', ' ', '\0', '\0', '\0', '\0', '\0', '\0' };
 
@@ -736,7 +731,6 @@ void Com_Error(errorParm_t code, const char *fmt, ...)
                 fflush(stdout);
                 ExitProcess(0xFFFFFFFF);
             }
-            TaskManager2_ComErrorCleanup();
             GlassCl_WaitUpdate();
             Value = (int *)Sys_GetValue(2);
             longjmp(Value, -1);
@@ -1090,48 +1084,14 @@ void __cdecl Com_DispatchClientPacketEvent(netadr_t adr, msg_t *netmsg)
 
 void __cdecl Com_ReadCDKey()
 {
-    unsigned int size; // [esp+0h] [ebp-2Ch]
-    _iobuf *f; // [esp+4h] [ebp-28h]
-    char regkey[32]; // [esp+8h] [ebp-24h] BYREF
-
-    f = fopen("dwclientkey.txt", "rt");
-    if ( f )
-    {
-        size = fread(regkey, 1u, 0x14u, f);
-        fclose(f);
-        if ( size == 20
-            && (regkey[20] = 0,
-                    memcpy((unsigned __int8 *)cl_cdkey, (unsigned __int8 *)regkey, 0x15u),
-                    cl_cdkey[22] = 0,
-                    *(unsigned int *)cl_cdkeychecksum = *(unsigned int *)&regkey[16],
-                    //byte_E0AA3C = 0,
-                    CL_LocalClient_GetActiveCount()) )
-        {
-            CL_ConvertRegKeytoDWKey(cl_cdkey, 0x15u);
-        }
-        else
-        {
-            Com_ClearCDKey();
-        }
-    }
+    // The key file belonged to the online service; start with a blank key.
+    Com_ClearCDKey();
 }
 
 int Com_ClearCDKey()
 {
     strcpy(cl_cdkey, "                                ");
     return 538976288;
-}
-
-void __cdecl CL_ConvertRegKeytoDWKey(char *key, unsigned int size)
-{
-    int i; // [esp+0h] [ebp-4h]
-
-    memcpy((unsigned __int8 *)cl_cdkey_dw, (unsigned __int8 *)key, size);
-    for (i = 4; i < 24; i += 5)
-    {
-        memcpy((unsigned __int8 *)&cl_cdkey_dw[i + 1], (unsigned __int8 *)&cl_cdkey_dw[i], 25 - i);
-        cl_cdkey_dw[i] = '-';
-    }
 }
 
 void __cdecl Com_SetRecommended(int localClientNum, int restart)
@@ -1801,7 +1761,6 @@ void __cdecl Com_Init_Try_Block_Function(char *commandLine)
     FS_InitFilesystem(1);
 
     Con_InitChannels();
-    TaskManager2_Init();
 
 
     DDL_Init();
@@ -2891,9 +2850,6 @@ unsigned int Com_Frame_Try_Block_Function()
             msec = 1;
     }
 
-    for ( localControllerIndex = 0; localControllerIndex < 1; ++localControllerIndex )
-        TaskManager2_ProcessTasks(localControllerIndex);
-
     Cbuf_Execute(0, Com_LocalClient_GetControllerIndex(0));
     ProcessStringEdCmds();
     ProcessGDTCmds();
@@ -3133,8 +3089,6 @@ void __cdecl Com_Close()
     R_FreeWaterSimulationBuffers();
     Com_ShutdownWorld();
     CM_Shutdown();
-    UI_ScreenshotShutdown();
-    Live_FileShare_CacheShutdown();
     Hunk_Clear();
     if ( useFastFile->current.enabled )
         DB_ShutdownXAssets();
@@ -3173,7 +3127,6 @@ void __cdecl Com_Restart()
     }
     Com_ShutdownWorld();
     CM_Shutdown();
-    UI_ScreenshotShutdown();
     Hunk_Clear();
     Hunk_UserReset(g_DebugHunkUser);
     CL_ShutdownDebugData();

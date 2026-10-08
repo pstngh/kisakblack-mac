@@ -27,6 +27,27 @@ struct netadr_t // sizeof=0x10
         int addrHandleIndex;                                // XREF: CL_ConnectionlessPacket(int,netadr_t,msg_t *,int)+210/r
 };
 
+// Opaque session id/key a server advertises in its info and status responses.
+struct XNKID // sizeof=0x8
+{
+        unsigned __int8 ab[8];
+};
+
+struct XNKEY // sizeof=0x10
+{
+        unsigned __int8 ab[16];
+};
+
+inline bool operator==(const XNKID &a, const XNKID &b)
+{
+        for ( int i = 0; i < 8; ++i )
+        {
+                if ( a.ab[i] != b.ab[i] )
+                        return false;
+        }
+        return true;
+}
+
 struct netProfilePacket_t // sizeof=0xC
 {                                                                             // XREF: netProfileStream_t/r
         int iTime;

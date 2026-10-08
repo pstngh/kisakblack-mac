@@ -5,7 +5,6 @@
 char *__cdecl SV_GetMapBaseName(char *mapname);
 void __cdecl SV_ReconnectClients(int savepersist);
 void __cdecl SV_MapRestart(int fast_restart);
-void __cdecl SV_RankUpClient(client_t *client);
 void __cdecl SV_Heartbeat_f();
 void __cdecl SV_AddOperatorCommands();
 void __cdecl SV_Map_f();
@@ -19,7 +18,6 @@ int __cdecl SV_KickUser_f(char *playerName, int maxPlayerNameLen);
 client_t *__cdecl SV_GetPlayerByName();
 int __cdecl SV_KickClient(client_t *cl, char *playerName, int maxPlayerNameLen, const char *reason);
 void __cdecl SV_Ban_f();
-void __cdecl SV_RankUp_f();
 void __cdecl SV_BanNum_f();
 client_t *__cdecl SV_GetPlayerByNum();
 void __cdecl SV_Unban_f();

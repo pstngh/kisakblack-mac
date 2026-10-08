@@ -13,7 +13,6 @@
 #include <qcommon/cmd.h>
 #include <game_mp/g_cmds_mp.h>
 #include <qcommon/files.h>
-#include <DW/dwNet.h>
 #include <game_mp/g_main_mp.h>
 #include <qcommon/com_gamemodes.h>
 #include <game_mp/pregame.h>
@@ -27,7 +26,6 @@
 #include "sv_bot_mp.h"
 #include <win32/win_main.h>
 #include <universal/com_workercmds.h>
-#include <universal/com_tasks.h>
 #include <cgame/cg_perf.h>
 #include <clientscript/cscr_debugger.h>
 #include <universal/com_memory.h>
@@ -332,7 +330,7 @@ void __cdecl SV_VoicePacket(netadr_t from, msg_t *msg)
     }
 }
 
-void __cdecl SVC_Status(netadr_t from, bdSecurityID *secID)
+void __cdecl SVC_Status(netadr_t from, XNKID *secID)
 {
     char *v2; // eax
     const char *v3; // eax
@@ -418,13 +416,13 @@ void __cdecl SVC_Status(netadr_t from, bdSecurityID *secID)
     Info_SetValueForKey(&s, (char *)"mod", v5);
     dst[0] = 5;
     v17 = &dst[1];
-    *(bdSecurityID *)&dst[1] = *secID;
+    *(XNKID *)&dst[1] = *secID;
     v17 = &dst[9];
     memcpy(&dst[9], (unsigned __int8 *)&s, &v12[strlen(&s)] - v12);
     NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
 }
 
-void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
+void __cdecl SVC_StatusScoreBoard(netadr_t from, XNKID *secID)
 {
     team_t ClientTeam; // eax
     int v3; // eax
@@ -513,13 +511,13 @@ void __cdecl SVC_StatusScoreBoard(netadr_t from, bdSecurityID *secID)
     }
     dst[0] = 7;
     v18 = &dst[1];
-    *(bdSecurityID *)&dst[1] = *secID;
+    *(XNKID *)&dst[1] = *secID;
     v18 = &dst[9];
     memcpy(&dst[9], tempServerMsgBuf, count);
     NET_OutOfBandPrint(NS_SERVER, from, (char*)dst);
 }
 
-void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
+void __cdecl SVC_Info(netadr_t from, XNKID *secID, bool quick)
 {
     const char *v3; // eax
     const char *v4; // eax
@@ -724,7 +722,7 @@ void __cdecl SVC_Info(netadr_t from, bdSecurityID *secID, bool quick)
             Info_SetValueForKey(infostring, "customclass", "1");
         response[0] = quick ? 9 : 3;
         ptr = &response[1];
-        *(bdSecurityID *)&response[1] = *secID;
+        *(XNKID *)&response[1] = *secID;
         ptr = &response[9];
         memcpy(
             (unsigned __int8 *)&response[9],
@@ -1234,8 +1232,6 @@ void     SV_ServerThread(unsigned int threadContext)
 
         G_ClearVehicleInputs();
         SV_RunEventLoop();
-        if ( Sys_IsServerThread() )
-            TaskManager2_PickUpDeferredTasks();
         if ( start )
         {
             SV_IncServerThreadOwnsGame();

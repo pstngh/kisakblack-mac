@@ -5,7 +5,6 @@ endif()
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 file(GLOB_RECURSE KISAK_PORTABLE_CPP CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/DemonWare/*.cpp"
     "${SRC_DIR}/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/tl/*.cpp"
 )
@@ -30,7 +29,6 @@ target_include_directories(${BIN_NAME} PRIVATE
     "${SRC_DIR}/libs/libtomcrypt-1.17/src/headers"
     "${SRC_DIR}/libs/libtommath-1.0"
     "${SRC_DIR}/libs/libvpx-1.5.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/DemonWare"
     "${CMAKE_CURRENT_SOURCE_DIR}/tl"
     "${SRC_DIR}/jpeg"
 )

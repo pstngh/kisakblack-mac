@@ -4,7 +4,6 @@
 #include <ui/ui_main.h>
 #include <qcommon/com_clients.h>
 #include <client/cl_keys.h>
-#include <live/live_fileshare.h>
 #include "demo_playback.h"
 #include <client/client.h>
 #include <win32/win_shared.h>
@@ -90,14 +89,6 @@ void __cdecl Demo_KeyboardComplete(int localClientNum, char *string, bool errorR
             case 5:
                 I_strncpyz(demo.playback->screenshotInfo.description, string, demo.keyboard.textSize);
                 demo.playback->screenshotInfo.isModifiedDescription = 1;
-                break;
-            case 6:
-                Dvar_SetString((dvar_s *)fsSelectedFileName, string);
-                Dvar_SetBool((dvar_s *)fsIsSelectedFileNameModified, 1);
-                break;
-            case 7:
-                Dvar_SetString((dvar_s *)fsSelectedFileDescription, string);
-                Dvar_SetBool((dvar_s *)fsIsSelectedFileDescriptionModified, 1);
                 break;
             default:
                 break;

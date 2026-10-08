@@ -16,14 +16,11 @@
 #include <ragdoll/ragdoll_controller.h>
 #include <universal/com_memory.h>
 #include <gfx_d3d/r_image.h>
-#include <DW/MatchRecorder.h>
 #include <live/live_win.h>
 #include <gfx_d3d/rb_resource.h>
 #include <live/live_stats.h>
 #include <ui/ui_atoms.h>
 #include <universal/com_expressions_eval.h>
-#include <live/live_fileshare.h>
-#include <ui/ui_screenshot.h>
 #include <client_mp/cl_cgame_mp.h>
 #include <gfx_d3d/r_ui3d.h>
 #include <live/live_combatrecord.h>
@@ -713,17 +710,8 @@ void __cdecl UI_Project_OwnerDraw(
         if ( item->forecolorAExp.filename )
             histSamples[1] = GetExpressionFloat(localClientNum, item, &item->forecolorAExp);
     }
-    if ( ownerDraw > 385 )
-    {
-        if ( ownerDraw == 387 )
-            Live_FileShare_PrivateRatingOwnerdraw(contextIndex, &rect, item, color);
-    }
-    else if ( ownerDraw == 385 )
-    {
-        ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-        Live_FileShare_MyRatingOwnerdraw(ControllerIndex, contextIndex, &rect, item, color);
-    }
-    else
+    // Ownerdraws 361-363, 385 and 387 drew online theater ratings; they draw nothing now.
+    if ( ownerDraw < 385 )
     {
         switch ( ownerDraw )
         {
@@ -759,18 +747,6 @@ void __cdecl UI_Project_OwnerDraw(
                 break;
             case 347:
                 UI_DrawCombatRecordHitLocHeatMap(contextIndex, &rect);
-                break;
-            case 361:
-                Live_FileShare_RatingOwnerdraw(contextIndex, &rect, item, color);
-                break;
-            case 362:
-                Live_FileShare_SubmitRatingOwnerdraw(contextIndex, &rect, item, color);
-                break;
-            case 363:
-                Live_FileShare_AvgSubmitRatingOwnerdraw(contextIndex, &rect, item, color);
-                break;
-            case 364:
-                UI_ScreenshotDraw(localClientNum, contextIndex, &rect, color);
                 break;
             case 381:
                 UI_DrawAttributeBar(localClientNum, contextIndex, item, &rect, dvarName);
@@ -2494,49 +2470,7 @@ void __cdecl UI_RunMenuScript_WagerWarning(int localClientNum, int contextIndex)
 char info_7[1024];
 void __cdecl UI_RunMenuScript_JoinServer(int localClientNum, int contextIndex)
 {
-    char *v3; // eax
-    int *count; // [esp+0h] [ebp-10h] BYREF
-    serverInfo_t *servers; // [esp+4h] [ebp-Ch] BYREF
-    uiInfo_s *uiInfo; // [esp+8h] [ebp-8h]
-
-    if (Dvar_GetInt("ui_joiningwagerfrominvite"))
-    {
-        Dvar_SetIntByName("ui_joiningwagerfrominvite", 0);
-        Live_JoinWagerFromInvite();
-    }
-    else
-    {
-        uiInfo = UI_UIContext_GetInfo(contextIndex);
-        CG_SetThirdPerson(0);
-        UI_UpdateDisplayServers(localClientNum, uiInfo);
-        LAN_GetServerInfo(
-            ui_netSource->current.integer,
-            sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer],
-            info_7,
-            1024);
-        v3 = Info_ValueForKey(info_7, "pswrd");
-        if (!atoi(v3) || Menu_IsMenuOpenAndVisible(contextIndex, "join_password_popmenu"))
-        {
-            if (sharedUiInfo.serverStatus.currentServer >= 0
-                && sharedUiInfo.serverStatus.currentServer < sharedUiInfo.serverStatus.numDisplayServers)
-            {
-                servers = 0;
-                if (CL_GetServerList(ui_netSource->current.integer, &servers, &count)
-                    && servers
-                    && sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer] < *count)
-                {
-                    CL_Connect(&servers[sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer]]);
-                }
-                Dvar_SetStringByName(
-                    "ui_mapname",
-                    servers[sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer]].mapName);
-            }
-        }
-        else
-        {
-            Menus_OpenByName(localClientNum, &uiInfo->uiDC, "join_password_popmenu");
-        }
-    }
+    // The server browser and favourites were online-service features.
 }
 
 void __cdecl UI_RunMenuScript_RefreshServer(int localClientNum, int contextIndex)
@@ -2548,15 +2482,7 @@ void __cdecl UI_RunMenuScript_RefreshServer(int localClientNum, int contextIndex
     if (!sharedUiInfo.serverStatus.refreshActive)
     {
         uiInfo = UI_UIContext_GetInfo(contextIndex);
-        servers = 0;
         UI_UpdateDisplayServers(localClientNum, uiInfo);
-        if (CL_GetServerList(ui_netSource->current.integer, &servers, &count)
-            && servers
-            && sharedUiInfo.serverStatus.currentServer >= 0
-            && sharedUiInfo.serverStatus.currentServer < sharedUiInfo.serverStatus.numDisplayServers)
-        {
-            CL_RawPingServer(&servers[sharedUiInfo.serverStatus.displayServers[sharedUiInfo.serverStatus.currentServer]], 2u);
-        }
     }
 }
 
@@ -2580,13 +2506,11 @@ void __cdecl UI_RunMenuScript_CreateFavorites(int localClientNum, int contextInd
 
 void __cdecl UI_RunMenuScript_CreateFavoriteInGame(int localClientNum)
 {
-    if ( CL_GetLocalClientConnection(localClientNum) )
-        Live_AddFavourite_Ingame(0, cls.serveruid);
+    // The server browser and favourites were online-service features.
 }
 
 void __cdecl UI_Project_InitOnceForAllClients()
 {
-    UI_ScreenshotInit();
     _Dvar_RegisterBool("ui_multiplayer", 1, 0x40u, "True if the game is multiplayer");
 }
 
@@ -2851,15 +2775,8 @@ void __cdecl UI_DrawConnectScreen(int localClientNum)
         displayConnectionInfo = 0;
         if ( Demo_IsPlaying() )
         {
-            if ( Live_FileShare_Theater_GetName((char **)&translation) )
-            {
-                Dvar_SetStringByName("ls_demotitle", (char *)translation);
-            }
-            else
-            {
-                TitleName = Demo_GetTitleName();
-                Dvar_SetStringByName("ls_demotitle", TitleName);
-            }
+            TitleName = Demo_GetTitleName();
+            Dvar_SetStringByName("ls_demotitle", TitleName);
             Demo_GetStartAndEndTime(&startTime, &endTime);
             Dvar_SetIntByName("ls_demoduration", (endTime - startTime) / 1000);
             if ( Demo_IsClipPlaying() )

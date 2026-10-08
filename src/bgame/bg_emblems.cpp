@@ -3,7 +3,6 @@
 #include <live/live_storage.h>
 #include <ddl/ddl_api.h>
 #include <qcommon/common.h>
-#include <live/live_counter.h>
 #include <ui/ui_main.h>
 #include <client/cl_compositing.h>
 #include <universal/com_encode.h>
@@ -116,7 +115,6 @@ char __cdecl BG_EmblemsPurchaseLayer(int controllerIndex)
                 buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
                 if ( DDL_SetInt(&searchState, purchasedCount + 1, (char *)buffer) )
                 {
-                    LiveCounter_IncrementCounterValueByName("global_emblem_layerspurchased", 1u);
                     LiveStats_SpendCurrency(controllerIndex, layer->cost, POINTSSPENT_EMBLEM_LAYER, 0);
                     BG_EmblemsFlushResults();
                     return 1;
@@ -525,7 +523,6 @@ char __cdecl BG_EmblemsPurchaseIcon(int controllerIndex, __int16 id)
                 buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
                 if ( DDL_SetInt(&searchState, 1u, (char *)buffer) )
                 {
-                    LiveCounter_IncrementCounterValueByName("global_emblem_imagespurchased", 1u);
                     LiveStats_SpendCurrency(controllerIndex, cost, POINTSSPENT_EMBLEM_ICON, 0);
                     BG_EmblemsFlushResults();
                     return 1;

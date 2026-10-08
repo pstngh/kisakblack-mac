@@ -8,6 +8,7 @@
 #include <qcommon/common.h>
 
 #include <string.h>
+#include <climits>
 #include <gfx_d3d/r_material.h>
 #include <universal/com_expressions_eval.h>
 #include <win32/win_shared.h>

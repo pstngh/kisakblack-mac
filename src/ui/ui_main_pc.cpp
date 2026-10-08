@@ -1360,10 +1360,7 @@ void __cdecl UI_DeclineFriend()
 
 void __cdecl UI_AcceptInvite()
 {
-    unsigned __int64 v0; // rax
-
-    LODWORD(v0) = Live_GetInviteFriend(ui_inviteSelectedInd->current.integer);
-    Live_AcceptInvite(v0);
+    // Invites were delivered by the online service.
 }
 
 void __cdecl UI_ClearMods()

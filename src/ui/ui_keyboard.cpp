@@ -4,7 +4,6 @@
 #include <demo/demo_ui.h>
 #include "ui_utils.h"
 #include <qcommon/com_clients.h>
-#include <qcommon/profanityfilter.h>
 #include <stringed/stringed_hooks.h>
 
 keyBoardUtitlity uiKeyboard;
@@ -97,19 +96,7 @@ void __cdecl UI_KeyboardComplete(int localClientNum)
     errorString = (char *)"";
     String = Dvar_GetString("ui_keyboard_dvar_new");
     Com_sprintf(textReturned, 0x400u, "%s", String);
-    if ( UI_VerifyString(textReturned) )
-    {
-        if ( textReturned[0] )
-        {
-            ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-            if ( isBadWord(ControllerIndex, textReturned) )
-            {
-                errorReported = 1;
-                errorString = "MENU_OFFENSIVETEXT";
-            }
-        }
-    }
-    else
+    if ( !UI_VerifyString(textReturned) )
     {
         errorReported = 1;
         errorString = "MENU_INVALIDCHARS";

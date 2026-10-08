@@ -10,8 +10,6 @@
 #include <cgame/cg_draw_names.h>
 #include <bgame/bg_unlockable_items.h>
 #include "live_contracts.h"
-#include "live_counter.h"
-#include <DW/MatchRecorder.h>
 #include <cgame/cg_compass.h>
 #include <ui_mp/ui_gametype_variants_mp.h>
 #include <client_mp/cl_main_pc_mp.h>
@@ -163,7 +161,7 @@ int __cdecl LiveStats_ValidateGlobalWithDDL(int controllerIndex)
 
 int __cdecl LiveStats_CanPerformStatOperation(int controllerIndex)
 {
-    if ( !Live_IsUserSignedInToLive() || !Live_IsUserSignedInToDemonware(controllerIndex) )
+    if ( !Live_IsUserSignedInToLive() )
         return 0;
     if ( LiveStorage_DoWeHaveCurrentStats(controllerIndex) )
     {
@@ -3900,7 +3898,6 @@ char __cdecl LiveStats_ValidateStatsBackup(int controllerIndex)
         LiveStats_GetIntPlayerBackupStatByKey(controllerIndex, &statsBackupVersion, MP_PLAYERSTATSKEY_STATS_VERSION);
         if ( statsBackupVersion == stat_version->current.integer )
         {
-            LiveStorage_StatsBackupFetchCompleted(controllerIndex);
             return 1;
         }
         else
@@ -4256,7 +4253,6 @@ void __cdecl LiveStats_ResetBasicTrainingStats(int controllerIndex)
             Dvar_SetInt((dvar_s *)custom_killstreak_mode, savedCustomKillstreakMode);
             Dvar_SetInt((dvar_s *)ui_useCustomClassInfo, savedUiUseCustomClassInfo);
             Dvar_SetBool((dvar_s *)xblive_basictraining, wasBasicTraining);
-            LiveStorage_WriteBasicTrainingStats(controllerIndex);
         }
     }
 }
@@ -4328,7 +4324,6 @@ void __cdecl LiveStats_ResetStats(int controllerIndex, bool versionChanged)
     LiveStats_WriteXUIDToStats(controllerIndex);
     if ( !versionChanged )
         LiveStats_ClearCustomClassWarning(controllerIndex);
-    CL_CACValidateRequest_f();
     Dvar_SetBool((dvar_s *)xblive_basictraining, wasBasicTraining);
 }
 
@@ -4580,7 +4575,6 @@ void __cdecl LiveStats_PresetigeStatsResetCmd()
                  && DDL_IterateNext(&searchStateChallenges, &searchStateChallenges) );
     }
     LiveStats_ResetGamemodeChallenges(liveStatsBuffer);
-    LiveCounter_IncrementCounterValueByName("global_prestiged", 1u);
 }
 
 void __cdecl SV_UpdatePersonalBestsForClient(int clientnum)

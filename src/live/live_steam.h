@@ -25,9 +25,6 @@ void __cdecl LiveSteam_SendP2PMessage(unsigned __int64 uid, unsigned __int8 *pay
 void __cdecl LiveSteam_Frame();
 void __cdecl LiveSteam_RunCallbacks();
 const char *__cdecl LiveSteam_GetClientPersonaName(bool shortName);
-char __cdecl LiveSteam_DWUserNameFromSteamID(char *dwUserName);
-char __cdecl LiveSteam_AuthRequestTicket(const void *authBlob, unsigned int authBlobSize);
-char __cdecl LiveSteam_AuthGetRequestedTicket(void *ticketBuf, unsigned int ticketBufSize, unsigned int *ticketSize);
 int __cdecl LiveSteam_Client_ConnectToSteamServer(unsigned __int64 serverID, void *authBlob, unsigned int bufferSize);
 void LiveSteam_Client_SteamDisconnect();
 

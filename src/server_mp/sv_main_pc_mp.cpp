@@ -6,7 +6,6 @@
 #include <game_mp/g_main_mp.h>
 #include <live/live_win.h>
 #include <game_mp/pregame.h>
-#include <DW/dwUtils_pc.h>
 #include <live/live_storage_pub.h>
 #include <ui/ui_playlists.h>
 #include <win32/win_main.h>
@@ -27,7 +26,7 @@ bool sessionCreateFinished;
 int s_numslotpasses;
 reservedslot_t s_reservedSlots[6];
 
-void __cdecl SV_ResetDWState()
+void __cdecl SV_ResetSessionState()
 {
     Com_Printf(0, "resetting state..\n");
     sessionCreated = 0;
@@ -62,34 +61,6 @@ int __cdecl SV_GetTime()
         __debugbreak();
     }
     return s_LSGTime;
-}
-
-void __cdecl SV_DWUserDisconnected(unsigned __int64 userID)
-{
-    int i; // [esp+8h] [ebp-4h]
-
-    if ( svs.clients )
-    {
-        for ( i = 0; i < com_maxclients->current.integer; ++i )
-        {
-            if ( svs.clients[i].header.state >= CS_CONNECTED
-                && !svs.clients[i].bIsTestClient
-                && !svs.clients[i].bIsDemoClient
-                && svs.clients[i].dw_userID == userID )
-            {
-                Com_Printf(
-                    0,
-                    "Treason uncloaked! User %s is still connected, but the LSG says they're gone!\n",
-                    svs.clients[i].name);
-                SV_DropClient(&svs.clients[i], "EXE_DISCONNECTED", 1, 1);
-                return;
-            }
-        }
-    }
-    else
-    {
-        Com_DPrintf(15, "Got user disconnected notification, but svs.clients is NULL.\n");
-    }
 }
 
 int __cdecl SV_GetSlotForPasswordIfFree(const char *password)
@@ -382,18 +353,9 @@ void __cdecl SVC_RemoteCommand(netadr_t from)
     }
 }
 
+// Match end used to upload leaderboards to the online service; nothing to do offline.
 void __cdecl SV_MatchEnd()
 {
-    void *v0; // ecx
-
-    if ( onlinegame )
-    {
-        if ( onlinegame->current.enabled )
-        {
-            Com_DPrintf(0, "\n*******SERVER: SV_MatchEnd called, uploading leaderboards.\n");
-            SV_CommitClientLeaderboards();
-        }
-    }
 }
 
 void __cdecl SV_SysLog_LogMessage(int severity, const char *msg)

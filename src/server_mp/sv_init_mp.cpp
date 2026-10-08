@@ -1,3 +1,4 @@
+#include <live/live_sessions_win.h>
 #include "sv_init_mp.h"
 #include <server/server.h>
 #include <qcommon/common.h>
@@ -31,9 +32,7 @@
 #include <qcommon/com_gamemodes.h>
 #include <qcommon/threads.h>
 #include <stringed/stringed_hooks.h>
-#include <live/live_sessions_win.h>
 #include <live/live_win.h>
-#include <DW/dwUtils_pc.h>
 #include <client_mp/cl_main_pc_mp.h>
 #include <qcommon/files.h>
 
@@ -67,7 +66,6 @@ const dvar_t *sv_floodProtect;
 const dvar_t *sv_showCommands;
 const dvar_t *sv_writeConfigStrings;
 const dvar_t *scr_writeConfigStrings;
-const dvar_t *sv_dwlsgerror;
 const dvar_t *sv_allowAnonymous;
 const dvar_t *sv_disableClientConsole;
 const dvar_t *sv_privatePassword;
@@ -352,7 +350,7 @@ void __cdecl SV_SetXUIDConfigStrings()
         client = &svs.clients[i];
         if ( client->header.state == CS_ACTIVE )
         {
-            XUIDToString(&client->dw_userID, xuidStr);
+            XUIDToString(&client->userID, xuidStr);
             I_strncpyz(filteredName, client->name, 32);
             for ( j = 0; filteredName[j] && j < 32; ++j )
             {
@@ -373,7 +371,7 @@ void __cdecl SV_Startup(int controllerIndex)
 
     if (IsDedicatedServer())
     {
-        SV_ResetDWState();
+        SV_ResetSessionState();
         Dvar_SetBoolByName("r_gfxopt_water_simulation", 0);
 
     }
@@ -1023,7 +1021,6 @@ void __cdecl SV_Init()
                                                          0,
                                                          "Special script mode for writing config string files");
     _Dvar_RegisterString("sv_keywords", (char *)"", 0, "Server keywords");
-    sv_dwlsgerror = _Dvar_RegisterBool("sv_dwlsgerror", 0, 0, "Demonware LSG error");
     sv_allowAnonymous = _Dvar_RegisterBool("sv_allowAnonymous", 0, 0, "Allow anonymous access");
     sv_disableClientConsole = _Dvar_RegisterBool(
                                                             "sv_disableClientConsole",

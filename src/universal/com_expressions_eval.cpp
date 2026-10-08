@@ -12,9 +12,6 @@
 #include <cgame/cg_compass.h>
 #include <client/client.h>
 #include <bgame/bg_unlockable_items.h>
-#include <live/live_fileshare.h>
-#include <live/live_fileshare_search.h>
-#include <live/live_counter.h>
 #include <ui/ui_utils.h>
 #include <client_mp/cl_ui_pc_mp.h>
 #include <cgame/cg_ammocounter.h>
@@ -28,11 +25,8 @@
 #include <demo/demo_playback.h>
 #include <demo/demo_ui.h>
 #include <ui_mp/ui_gametype_custom_mp.h>
-#include <live/live_groups_dw.h>
 #include <live/live_storage_win.h>
-#include <live/live_meetplayer.h>
 #include <live/live_contracts.h>
-#include "com_tasks.h"
 #include <live/live_clans.h>
 #include <live/live_pcache_profile.h>
 #include <client_mp/cl_main_pc_mp.h>
@@ -491,7 +485,7 @@ void(__cdecl *rpnFunctions[480])(const int, itemDef_s *, OperandStack *) =
   &CanRenderClip,
   &CanShowContentFromUser,
   &IsContentRatingAllowed,
-  &IsDemonwareFetchingDone,
+  &IsOnlineDataFetched,
   &GetIndexIntoMatchScoreboard,
   &GetWagerPlaceForMatchScoreboard,
   &GetWagerGametypeNameFromEnum,
@@ -3780,13 +3774,12 @@ void __cdecl GetWeaponOptionGroupIndex(int localClientNum, itemDef_s *item, Oper
 void __cdecl GetPooledFileDetails(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand result; // [esp+0h] [ebp-64h] BYREF
-    const char *field; // [esp+8h] [ebp-5Ch]
     OperandList list; // [esp+Ch] [ebp-58h] BYREF
 
     GetOperandList(dataStack, &list);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    field = list.operands[0].internals.string;
-    result.internals.intVal = (int)Live_FileShare_GetPooledFileInfo(list.operands[0].internals.string);
+    result.internals.intVal = (int)"";
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3818,22 +3811,11 @@ void __cdecl GetFileShareRating(int localClientNum, itemDef_s *item, OperandStac
 
 void __cdecl GetFileShareTotalVotes(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    unsigned __int64 v3; // rax
-    bdVoteRankStatsInfo *v4; // [esp-8h] [ebp-18h]
-    int v5; // [esp-4h] [ebp-14h]
-    int numRatings; // [esp+0h] [ebp-10h] BYREF
     Operand result; // [esp+4h] [ebp-Ch] BYREF
-    bdVoteRankStatsInfo *ratings; // [esp+Ch] [ebp-4h] BYREF
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    Live_FileShareSearch_GetRatings(&ratings, &numRatings);
-    v5 = numRatings;
-    v4 = ratings;
-    v3 = I_atoi64(fsSelectedFileID->current.string);
-    result.internals.intVal = (int)Live_FileShare_LookupTotalVotes(v3, v4, v5);
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetFileShareTotalVotes() = %d\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3850,84 +3832,33 @@ void __cdecl GetAutoJoinLobbyStatus(int localClientNum, itemDef_s *item, Operand
 
 void __cdecl GetCounterTotal(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *SourceString; // eax
-    __int64 v4; // rax
-    char *counterType; // [esp+8h] [ebp-68h]
-    int counterId; // [esp+Ch] [ebp-64h]
     Operand result; // [esp+10h] [ebp-60h] BYREF
     OperandList list; // [esp+18h] [ebp-58h] BYREF
 
     GetOperandList(dataStack, &list);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    if ( list.operandCount == 1 )
-    {
-        counterType = GetSourceString(list.operands[0]);
-        counterId = LiveCounter_CounterStringToID(counterType);
-        if ( counterId == -1 )
-        {
-            SourceString = GetSourceString(list.operands[0]);
-            Com_PrintError(16, "Invalid counter string id: %s\n", SourceString);
-        }
-        else
-        {
-            LODWORD(v4) = LiveCounter_GetCounterTotalValue(counterId);
-            if ( v4 != -1 )
-                result.internals.intVal = (int)va("%llu", v4);
-        }
-    }
-    else
-    {
-        Com_PrintError(16, "Invalid param count. usage: <string returned> getCounterTotal( <counter id> ).\n");
-    }
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetCounterTotal() = %s\n", result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetDownloadProgress(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    int ControllerIndex; // eax
-    int v4; // eax
     Operand result; // [esp+10h] [ebp-14h] BYREF
-    unsigned int bytes; // [esp+18h] [ebp-Ch] BYREF
-    float dataRate; // [esp+1Ch] [ebp-8h] BYREF
-    unsigned int totalSize; // [esp+20h] [ebp-4h]
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    totalSize = LiveStorage_FileShare_GetDownloadingFileTotalSize(ControllerIndex);
-    v4 = Com_LocalClient_GetControllerIndex(localClientNum);
-    LiveStorage_FileShare_GetDownloadProgress(v4, &bytes, &dataRate);
-    if ( totalSize && totalSize >= bytes )
-        result.internals.intVal = (int)((double)bytes / (double)totalSize * 100.0);
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetDownloadProgress() = %s\n", result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetUploadProgress(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    int ControllerIndex; // eax
-    int v4; // eax
     Operand result; // [esp+10h] [ebp-14h] BYREF
-    unsigned int bytes; // [esp+18h] [ebp-Ch] BYREF
-    float dataRate; // [esp+1Ch] [ebp-8h] BYREF
-    unsigned int totalSize; // [esp+20h] [ebp-4h]
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    totalSize = LiveStorage_FileShare_GetUploadingFileTotalSize(ControllerIndex);
-    v4 = Com_LocalClient_GetControllerIndex(localClientNum);
-    LiveStorage_FileShare_GetUploadProgress(v4, &bytes, &dataRate);
-    if ( totalSize < bytes )
-        totalSize = bytes;
-    if ( totalSize && totalSize >= bytes )
-        result.internals.intVal = (int)((double)bytes / (double)totalSize * 100.0);
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetUploadProgress() = %d\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -3945,33 +3876,11 @@ void __cdecl IsPremiumSubscriber(int localClientNum, itemDef_s *item, OperandSta
 
 void __cdecl GetUploadTimeRemaining(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    int ControllerIndex; // eax
-    int v4; // eax
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    unsigned int bytes; // [esp+10h] [ebp-Ch] BYREF
-    float dataRate; // [esp+14h] [ebp-8h] BYREF
-    unsigned int totalSize; // [esp+18h] [ebp-4h]
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = 0;
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    totalSize = LiveStorage_FileShare_GetUploadingFileTotalSize(ControllerIndex);
-    v4 = Com_LocalClient_GetControllerIndex(localClientNum);
-    LiveStorage_FileShare_GetUploadProgress(v4, &bytes, &dataRate);
-    if ( (int)(Sys_Milliseconds() - lastPoll) > 1000 )
-    {
-        if ( totalSize && totalSize >= bytes )
-            secondsRemaining = (int)((double)(totalSize - bytes) / dataRate);
-        else
-            secondsRemaining = 0;
-        lastPoll = Sys_Milliseconds();
-    }
-    if ( secondsRemaining >= 86400 )
-        result.internals.intVal = (int)"";
-    else
-        result.internals.intVal = (int)GetLocalizedTimeRemaining(secondsRemaining);
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetUploadProgress() = %s\n", result.internals.string);
+    result.internals.intVal = (int)"";
     AddOperandToStack(dataStack, &result);
 }
 
@@ -5973,13 +5882,7 @@ void __cdecl IsDemoClipPlaying(int localClientNum, itemDef_s *item, OperandStack
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
     if ( Demo_IsPlaying() )
-    {
         result.internals.intVal = Demo_IsClipPlaying();
-    }
-    else if ( Live_FileShare_Theater_GetType(&type) && type == 2 )
-    {
-        result.internals.intVal = 1;
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6031,13 +5934,8 @@ void __cdecl GetDemoTitleName(int localClientNum, itemDef_s *item, OperandStack 
 
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    if ( !Live_FileShare_Theater_GetName((char **)&result.internals) )
-    {
-        if ( Demo_IsPlaying() )
-            result.internals.intVal = (int)Demo_GetTitleName();
-        else
-            result.internals.intVal = (int)"";
-    }
+    if ( Demo_IsPlaying() )
+        result.internals.intVal = (int)Demo_GetTitleName();
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6047,13 +5945,8 @@ void __cdecl GetDemoTitleDescription(int localClientNum, itemDef_s *item, Operan
 
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    if ( !Live_FileShare_Theater_GetDescription((char **)&result.internals) )
-    {
-        if ( Demo_IsPlaying() )
-            result.internals.intVal = (int)Demo_GetTitleDescription();
-        else
-            result.internals.intVal = (int)"";
-    }
+    if ( Demo_IsPlaying() )
+        result.internals.intVal = (int)Demo_GetTitleDescription();
     AddOperandToStack(dataStack, &result);
 }
 
@@ -6999,46 +6892,25 @@ void __cdecl GetNumItemAttachmentsWithAttachPoint(int localClientNum, itemDef_s 
 
 void __cdecl PlaylistPlayerCount(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *v3; // eax
     Operand source; // [esp+0h] [ebp-18h] BYREF
     Operand result; // [esp+8h] [ebp-10h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-8h]
-    int playlistId; // [esp+14h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    playlistId = Playlist_GetPlaylistIdForNum(controllerIndex, source.internals.intVal);
-    v3 = va("playlist/%d", playlistId);
-    result.internals.intVal = LiveGroups_GetCount(v3);
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl CategoryPlayerCountForPlaylist(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    int CategoryIdForNum; // eax
-    char *v4; // eax
-    unsigned int Count; // eax
-    int index; // [esp+0h] [ebp-18h]
     Operand source; // [esp+4h] [ebp-14h] BYREF
     Operand result; // [esp+Ch] [ebp-Ch] BYREF
-    const char *category; // [esp+14h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    CategoryIdForNum = Playlist_GetCategoryIdForNum(source.internals.intVal);
-    category = Playlist_GetCategoryInternalName(CategoryIdForNum);
-    for ( index = 0; index < 64; ++index )
-    {
-        if ( Playlist_HasCategory(index, category) )
-        {
-            v4 = va("playlist/%d", index);
-            Count = LiveGroups_GetCount(v4);
-            result.internals.intVal += Count;
-        }
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7046,8 +6918,9 @@ void __cdecl TotalPlayersInPlaylists(int localClientNum, itemDef_s *item, Operan
 {
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
-    result.internals.intVal = LiveGroups_GetCount((char*)"playlist");
+    result.internals.intVal = 0;
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7055,24 +6928,21 @@ void __cdecl GetPlayersRegisteredOnline(int localClientNum, itemDef_s *item, Ope
 {
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
-    result.internals.intVal = LiveGroups_GetCount((char *)"online");
+    result.internals.intVal = 0;
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetUserTagFromIndex(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    operandInternalDataUnion v3; // eax
     Operand source; // [esp+0h] [ebp-10h] BYREF
     Operand result; // [esp+8h] [ebp-8h] BYREF
 
+    GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    GetOperand(dataStack, &source);
-    v3.intVal = GetSourceInt(&source).intVal;
-    result.internals.intVal = (int)Live_FileShare_GetLocalizedUserTagFromIndex(v3.intVal);
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetUserTagFromIndex() = %s\n", result.internals.string);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7091,23 +6961,13 @@ void __cdecl CanShowContentFromUser(int localClientNum, itemDef_s *item, Operand
 
 void __cdecl GetUserFileRating(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    char *SourceString; // eax
-    int ControllerIndex; // eax
-    unsigned __int64 v5; // [esp-Ch] [ebp-20h]
     Operand source; // [esp+0h] [ebp-14h] BYREF
     Operand result; // [esp+8h] [ebp-Ch] BYREF
-    unsigned __int8 rating; // [esp+13h] [ebp-1h] BYREF
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    SourceString = GetSourceString(source);
-    v5 = I_atoi64(SourceString);
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_IsRated(ControllerIndex, v5, &rating) )
-        result.internals.intVal = rating;
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetUserFileRating() = %d\n", result.internals.intVal);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7126,10 +6986,9 @@ void __cdecl GetFileShareFilterList(int localClientNum, itemDef_s *item, Operand
 {
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
-    result.internals.intVal = (int)Live_FileShare_GetFilterList();
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("GetFileShareFilterList() = %s\n", result.internals.string);
+    result.internals.intVal = (int)"";
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7137,13 +6996,11 @@ void __cdecl GetLiveGroupCount(int localClientNum, itemDef_s *item, OperandStack
 {
     Operand source; // [esp+0h] [ebp-14h] BYREF
     Operand result; // [esp+8h] [ebp-Ch] BYREF
-    const char *groupName; // [esp+10h] [ebp-4h]
 
+    GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    GetOperand(dataStack, &source);
-    groupName = GetSourceString(source);
-    result.internals.intVal = LiveGroups_GetCount((char *)groupName);
     AddOperandToStack(dataStack, &result);
 }
 
@@ -7825,16 +7682,13 @@ void __cdecl GetContractExpirationType(int localClientNum, itemDef_s *item, Oper
 
 void __cdecl IsTaskInProgress(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    int ControllerIndex; // eax
     Operand source; // [esp+0h] [ebp-14h] BYREF
     Operand result; // [esp+8h] [ebp-Ch] BYREF
-    const char *taskName; // [esp+10h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
-    taskName = GetSourceString(source);
-    ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    result.internals.intVal = TaskManger2_TaskGetInProgressForControllerByName(taskName, ControllerIndex) != 0;
+    result.internals.intVal = 0;
     AddOperandToStack(dataStack, &result);
 }
 
@@ -8297,8 +8151,7 @@ void __cdecl AreStatsFetched(int localClientNum, itemDef_s *item, OperandStack *
     int localControllerIndex; // [esp+8h] [ebp-4h]
 
     localControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    result.internals.intVal = Live_IsUserSignedInToDemonware(localControllerIndex)
-                                                 && LiveStorage_DoWeHaveAllStats(localControllerIndex);
+    result.internals.intVal = LiveStorage_DoWeHaveAllStats(localControllerIndex);
     result.dataType = VAL_INT;
     if ( uiscript_debug && uiscript_debug->current.integer )
         Expression_TraceInternal("AreStatsFetched() = %i\n", result.internals.intVal);
@@ -8338,68 +8191,13 @@ void __cdecl IsContentRatingAllowed(int localClientNum, itemDef_s *item, Operand
     AddOperandToStack(dataStack, &result);
 }
 
-void __cdecl IsDemonwareFetchingDone(int localClientNum, itemDef_s *item, OperandStack *dataStack)
+void __cdecl IsOnlineDataFetched(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand result; // [esp+20h] [ebp-18h] BYREF
-    bool isTimeSynced; // [esp+2Bh] [ebp-Dh]
-    int controllerIndex; // [esp+2Ch] [ebp-Ch]
-    bool weHaveContracts; // [esp+31h] [ebp-7h]
-    bool weHavePlaylist; // [esp+32h] [ebp-6h]
-    bool isUserSignedInToLive; // [esp+33h] [ebp-5h]
-    bool isUserSignedInToDemonware; // [esp+34h] [ebp-4h]
-    bool weHaveStats; // [esp+35h] [ebp-3h]
-    bool hasMultiplayerPrivileges; // [esp+36h] [ebp-2h]
-    bool isUserGuest; // [esp+37h] [ebp-1h]
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
-    result.internals.intVal = 1;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    isUserGuest = CG_IsShowingZombieMap();
-    isUserSignedInToLive = Live_IsUserSignedInToLive();
-    isUserSignedInToDemonware = Live_IsUserSignedInToDemonware(controllerIndex);
-    weHaveStats = LiveStorage_DoWeHaveAllStats(controllerIndex);
-    weHavePlaylist = LiveStorage_DoWeHavePlaylists();
-    hasMultiplayerPrivileges = Flame_GetLocalClientSourceRange();
-    if ( !isUserSignedInToDemonware || !weHaveStats || !weHavePlaylist || !hasMultiplayerPrivileges )
-        result.internals.intVal = 0;
-    isTimeSynced = LiveStorage_IsTimeSynced();
-    weHaveContracts = LiveStorage_DoWeHaveContracts();
-    if ( !isTimeSynced || !weHaveContracts )
-        result.internals.intVal = 0;
-    if ( !result.internals.intVal )
-    {
-        Com_Printf(16, "Can play online (controller: %d): %s\n", controllerIndex, "false");
-        if ( isUserGuest )
-            Com_Printf(16, "\t%s - Live_UserIsGuest( controller: %d )\n", "true", controllerIndex);
-        else
-            Com_Printf(16, "\t%s - Live_UserIsGuest( controller: %d )\n", "false", controllerIndex);
-        if ( isUserSignedInToLive )
-            Com_Printf(16, "\t%s - Live_IsUserSignedInToLive( controller: %d )\n", "true", controllerIndex);
-        else
-            Com_Printf(16, "\t%s - Live_IsUserSignedInToLive( controller: %d )\n", "false", controllerIndex);
-        if ( isUserSignedInToDemonware )
-            Com_Printf(16, "\t%s - Live_IsUserSignedInToDemonware( controller: %d )\n", "true", controllerIndex);
-        else
-            Com_Printf(16, "\t%s - Live_IsUserSignedInToDemonware( controller: %d )\n", "false", controllerIndex);
-        if ( weHavePlaylist )
-            Com_Printf(16, "\t%s - LiveStorage_DoWeHavePlaylists()\n", "true");
-        else
-            Com_Printf(16, "\t%s - LiveStorage_DoWeHavePlaylists()\n", "false");
-        if ( weHaveStats )
-            Com_Printf(16, "\t%s - LiveStorage_DoWeHaveAllStats( controller: %d )\n", "true", controllerIndex);
-        else
-            Com_Printf(16, "\t%s - LiveStorage_DoWeHaveAllStats( controller: %d )\n", "false", controllerIndex);
-        if ( isTimeSynced )
-            Com_Printf(16, "\t%s - LiveStorage_IsTimeSynced()\n", "true");
-        else
-            Com_Printf(16, "\t%s - LiveStorage_IsTimeSynced()\n", "false");
-        if ( weHaveContracts )
-            Com_Printf(16, "\t%s - LiveStorage_DoWeHaveContracts()\n", "true");
-        else
-            Com_Printf(16, "\t%s - LiveStorage_DoWeHaveContracts()\n", "false");
-    }
-    if ( uiscript_debug && uiscript_debug->current.integer )
-        Expression_TraceInternal("IsDemonwareFetchingDone() = %i\n", result.internals.intVal);
+    result.internals.intVal = 0;
     AddOperandToStack(dataStack, &result);
 }
 
@@ -10594,8 +10392,9 @@ void __cdecl GetGameInvitesCount(int localClientNum, itemDef_s *item, OperandSta
 {
     Operand result; // [esp+0h] [ebp-8h] BYREF
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
-    result.internals.intVal = Live_GetInvitesCount();
+    result.internals.intVal = 0;
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11280,43 +11079,21 @@ void __cdecl IsFileshareDataSummaryValid(int localClientNum, itemDef_s *item, Op
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    float isValid; // [esp+14h] [ebp-8h] BYREF
-    int index; // [esp+18h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_HASSUMMARY,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 0,
-                 &isValid)
-        && isValid > 0.0 )
-    {
-        result.internals.intVal = 1;
-    }
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetFileshareRecentGamesCount(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
-    int v3; // eax
     Operand result; // [esp+0h] [ebp-Ch] BYREF
-    int controllerIndex; // [esp+8h] [ebp-4h]
 
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_INT;
     result.internals.intVal = 0;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    v3 = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( TaskManger2_TaskGetInProgressForControllerByName("LiveFileShareSearch", v3) )
-        result.internals.intVal = 0;
-    else
-        result.internals.intVal = Live_FileShare_GetSearchResultsCount();
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11324,25 +11101,11 @@ void __cdecl GetFileshareGameType(int localClientNum, itemDef_s *item, OperandSt
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    int index; // [esp+14h] [ebp-8h]
-    const char *gameType; // [esp+18h] [ebp-4h] BYREF
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_GAMETYPE,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &gameType,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(gameType);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11350,25 +11113,11 @@ void __cdecl GetFileshareGameTypeName(int localClientNum, itemDef_s *item, Opera
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    const char *gameTypeName; // [esp+14h] [ebp-8h] BYREF
-    int index; // [esp+18h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_GAMETYPENAME,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &gameTypeName,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(gameTypeName);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11376,25 +11125,11 @@ void __cdecl GetFileshareGameMap(int localClientNum, itemDef_s *item, OperandSta
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    const char *map; // [esp+14h] [ebp-8h] BYREF
-    int index; // [esp+18h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_MAP,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &map,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(map);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11402,25 +11137,11 @@ void __cdecl GetFileshareGameMapName(int localClientNum, itemDef_s *item, Operan
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    const char *mapName; // [esp+14h] [ebp-8h] BYREF
-    int index; // [esp+18h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_MAPNAME,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &mapName,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(mapName);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11428,51 +11149,23 @@ void __cdecl GetFileshareGameDate(int localClientNum, itemDef_s *item, OperandSt
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    int index; // [esp+14h] [ebp-8h]
-    const char *gameDate; // [esp+18h] [ebp-4h] BYREF
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_DATETIME,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &gameDate,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(gameDate);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetFileshareFileName(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
-    const char *fileName; // [esp+8h] [ebp-14h] BYREF
     Operand result; // [esp+Ch] [ebp-10h] BYREF
-    int controllerIndex; // [esp+14h] [ebp-8h]
-    int index; // [esp+18h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_FILENAME,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &fileName,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(fileName);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11509,25 +11202,11 @@ void __cdecl GetFileshareFileSize(int localClientNum, itemDef_s *item, OperandSt
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    const char *fileSize; // [esp+14h] [ebp-8h] BYREF
-    int index; // [esp+18h] [ebp-4h]
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_FILESIZE,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &fileSize,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(fileSize);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
@@ -11535,46 +11214,23 @@ void __cdecl GetFileshareFileId(int localClientNum, itemDef_s *item, OperandStac
 {
     Operand source; // [esp+0h] [ebp-1Ch] BYREF
     Operand result; // [esp+8h] [ebp-14h] BYREF
-    int controllerIndex; // [esp+10h] [ebp-Ch]
-    int index; // [esp+14h] [ebp-8h]
-    const char *fileId; // [esp+18h] [ebp-4h] BYREF
 
     GetOperand(dataStack, &source);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    index = GetSourceInt(&source).intVal;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetItemInfo(
-                 controllerIndex,
-                 FILESHARE_KEY_FILEID,
-                 index,
-                 FILESHARE_INFOLOCATION_SEARCHRESULTS,
-                 &fileId,
-                 0) )
-    {
-        result.internals.intVal = (int)CopyTempString(fileId);
-    }
     AddOperandToStack(dataStack, &result);
 }
 
 void __cdecl GetMySlotInfo(int localClientNum, itemDef_s *item, OperandStack *dataStack)
 {
     Operand result; // [esp+0h] [ebp-78h] BYREF
-    const char *field; // [esp+8h] [ebp-70h]
-    int controllerIndex; // [esp+Ch] [ebp-6Ch]
-    const char *stringResult; // [esp+10h] [ebp-68h] BYREF
-    float floatResult; // [esp+14h] [ebp-64h] BYREF
     OperandList list; // [esp+18h] [ebp-60h] BYREF
-    int slotNum; // [esp+74h] [ebp-4h]
 
     GetOperandList(dataStack, &list);
+    // Backed by the online service, which no longer exists.
     result.dataType = VAL_STRING;
     result.internals.intVal = (int)"";
-    slotNum = GetOperandValueInt(list.operands).intVal;
-    field = list.operands[1].internals.string;
-    controllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    if ( Live_FileShare_GetMySlotInfo(controllerIndex, slotNum, field, &stringResult, &floatResult) )
-        result.internals.intVal = (int)CopyTempString(stringResult);
     AddOperandToStack(dataStack, &result);
 }
 

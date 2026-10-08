@@ -7,7 +7,6 @@
 #include <server_mp/sv_init_mp.h>
 #include <stringed/stringed_hooks.h>
 #include <win32/win_shared.h>
-#include <DW/dwUtils_pc.h>
 #include <live/live_win.h>
 #include <cgame_mp/cg_main_mp.h>
 #include <client/splitscreen.h>

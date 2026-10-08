@@ -9,7 +9,6 @@
 #include <client/cl_keys.h>
 #include <live/live_win.h>
 #include <live/live_pcache_profile.h>
-#include <live/live_counter.h>
 #include <gfx_d3d/r_rendercmds.h>
 
 CompositeEmblemLayer s_emblem[12];
@@ -1052,7 +1051,6 @@ void __cdecl UI_EmblemEndEdit_f()
 
 void __cdecl UI_EmblemSetProfile_f()
 {
-    LiveCounter_IncrementCounterValueByName("global_emblem_created", 1u);
     PCache_SetProfileEmblem(0, s_emblem, 12, s_backgroundID);
 }
 

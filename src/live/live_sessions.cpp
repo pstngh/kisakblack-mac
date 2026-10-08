@@ -1,10 +1,10 @@
+#include "live_sessions_win.h"
 #include "live_sessions.h"
 #include <cstring>
 #include <qcommon/msg_mp.h>
 #include <client/cl_main.h>
 #include "live_win.h"
 #include <client/client.h>
-#include "live_sessions_win.h"
 
 unsigned __int8 s_qosPayload[8];
 
