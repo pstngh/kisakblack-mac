@@ -136,6 +136,7 @@ extern int cg_fakeEntitiesInuseCountFromLoadScript;
 extern const dvar_s *cg_loadScripts;
 extern const dvar_s *cg_usingClientScripts;
 extern const dvar_s *cg_drawGun;
+extern const dvar_s *cg_drawArms;
 extern const dvar_s *cg_cursorHints;
 extern const dvar_s *cg_retrieveHintTime;
 extern const dvar_s *cg_retrieveHintTimeStuck;

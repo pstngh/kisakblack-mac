@@ -96,7 +96,8 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 - **Launcher** (session 9): `Black Ops Launcher.app` in the game folder
   (tools/launcher, a SwiftUI app; make_portable.sh builds it in) picks map, mode,
   time and score limit, and bots (enemy and friendly counts, or a free-for-all
-  count; Recruit/Regular/Hardened/Veteran), then starts the game on that match,
+  count; Recruit/Regular/Hardened/Veteran) and whether to show the first-person
+  arms (`cg_drawArms`), then starts the game on that match,
   or plainly at the main menu, without a Terminal window. The menu's PLAY can't
   start anything: it needs the removed online service (`IsSignedInToLive` is 0,
   so it shows "No network connection detected"). Tested from the app into the
@@ -127,23 +128,30 @@ after each build).
    `r_monitor` takes effect at the next start (a reset keeps the window's
    display). A fresh profile starts at 1024x768 with 4x AA: `configure_mp.csv`'s
    row for unknown GPUs, as on Windows (1024x768 used to be missing from the list).
-2. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
+2. **No sound** (the user's report, session 9): nothing is heard, in menus or in
+   matches. OpenAL opens its device (no `[al] OpenAL device init failed`) and its
+   CoreAudio mixer runs (thread samples show `DeviceBase::renderSamples` with HRTF
+   mixing), so the gap is likely between the engine's sound code and
+   src/audio_openal/al_audio.cpp: voices never submitted, a zero volume or gain,
+   or the output format. The console hides its `sound` channel ("Hiding channel:
+   sound" at startup).
+3. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
    on the server thread after the demo client was freed twice). Soak match ends
    with `KB_CMDS` and `scr_tdm_timelimit 1` to reproduce it.
-3. The main menu's PLAY (Find Match, Private Match, Combat Training) depends on
+4. The main menu's PLAY (Find Match, Private Match, Combat Training) depends on
    the removed online service; the launcher starts matches against bots instead.
    Combat Training proper (`xblive_basictraining`, its own rank) is not wired.
-4. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
+5. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
    `KB_MENU_CMDS` reached (`cac_main`, `cac_weapon`, killstreaks): attachment/
    camo/reticle pickers, emblem editor, clan tag, barracks, combat record,
    after-action report; combat training (`xblive_basictraining`, its own buffer
    and rank, not maxed) is untested. To show a prestige other than 15,
    `LiveStorage_SetTopRank` is the place (a dvar would do).
-5. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
+6. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
    client, at the main menu too; each fix of this kind so far came from a run.
-6. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+7. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
-7. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
+8. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
    double-clickable app; today `codbo/blackops` opens in Terminal), controller
    support.
 
@@ -338,6 +346,13 @@ Pre-existing (wrong on every build):
   menu is that on every map). The bot AI doesn't play objectives: in Domination,
   CTF, S&D and the like the bots only fight. 16 bots at most (18 slots: the host
   and the demo recorder take two).
+- **`cg_drawArms`** (the user's request; archived, default 1): 0 hides the view
+  model's arms and keeps the weapon. The arms are the view model DObj's first model,
+  the one the weapon hangs from (`ChangeViewmodelDobj`), so the model stays and its
+  bones are hidden on top of the weapon's own hidden parts
+  (`CG_UpdateViewModelHidePartBits`, every frame from `CG_AddViewWeapon`, so a change
+  applies at once). The weapon still animates (reload, weapon switch checked). The
+  launcher's "Show arms" checkbox passes it on every start.
 - A fresh profile's resolution comes from `configure_mp.csv` (1024x768, 4x AA for
   an unknown GPU such as the M4), as on Windows; the engine's own `r_mode`
   default (the smallest mode) is unchanged.

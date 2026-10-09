@@ -286,6 +286,7 @@ bool __cdecl UpdateViewmodelAttachments(
                 unsigned __int8 weaponModel,
                 weaponInfo_s *weapInfo);
 bool __cdecl ViewmodelRocketShouldBeAttached(int localClientNum, unsigned int weaponIndex);
+void __cdecl CG_UpdateViewModelHidePartBits(int localClientNum);
 void __cdecl CG_AddViewWeapon(int localClientNum);
 void __cdecl CalculateWeaponPostion_PositionToADS(cg_s *cgameGlob, playerState_s *ps);
 void __cdecl CG_CalculateWeaponMovement_ClientSpecific(cg_s *cgameGlob, GfxScaledPlacement *placement, float *angles);

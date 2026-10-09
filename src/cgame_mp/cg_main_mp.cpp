@@ -132,6 +132,7 @@ int cg_fakeEntitiesInuseCountFromLoadScript;
 const dvar_s *cg_loadScripts;
 const dvar_s *cg_usingClientScripts;
 const dvar_s *cg_drawGun;
+const dvar_s *cg_drawArms;
 const dvar_s *cg_cursorHints;
 const dvar_s *cg_retrieveHintTime;
 const dvar_s *cg_retrieveHintTimeStuck;
@@ -451,6 +452,7 @@ void __cdecl CG_RegisterDvars()
     cg_loadScripts = _Dvar_RegisterBool("g_loadScripts", !v0, 0, "Disable scripts from loading");
     cg_usingClientScripts = _Dvar_RegisterBool("cg_usingClientScripts", 1, 0x80u, "True, if client scripts are enabled.");
     cg_drawGun = _Dvar_RegisterBool("cg_drawGun", 1, 0x80u, "Draw the view model");
+    cg_drawArms = _Dvar_RegisterBool("cg_drawArms", 1, 1u, "Draw the arms of the view model; 0 shows the weapon alone");
     cg_cursorHints = _Dvar_RegisterInt(
                                          "cg_cursorHints",
                                          4,

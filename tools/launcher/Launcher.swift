@@ -87,6 +87,7 @@ struct LauncherView: View {
     @AppStorage("ffaBots") private var ffaBots = 7
     @AppStorage("timeLimit") private var timeLimit = -1    // minutes; -1 the mode's default, 0 none
     @AppStorage("noScoreLimit") private var noScoreLimit = false
+    @AppStorage("showArms") private var showArms = true     // cg_drawArms
     @State private var error: String?
 
     private var selectedMode: GameMode { gameModes.first { $0.id == mode } ?? gameModes[0] }
@@ -129,6 +130,9 @@ struct LauncherView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Section("View") {
+                    Toggle("Show arms", isOn: $showArms)
+                }
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
@@ -143,7 +147,7 @@ struct LauncherView: View {
             .padding([.horizontal, .bottom], 20)
             .padding(.top, 4)
         }
-        .frame(width: 440, height: 530)
+        .frame(width: 440, height: 600)
         .alert("Can't start the game", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK") { error = nil }
         } message: {
@@ -209,8 +213,10 @@ struct LauncherView: View {
         process.executableURL = game
         process.currentDirectoryURL = folder
         var environment = ProcessInfo.processInfo.environment
+        // First-person arms (cg_drawArms 0: the weapon alone); the game saves it.
+        process.arguments = ["+set", "cg_drawArms", showArms ? "1" : "0"]
         if match {
-            process.arguments = matchArguments()
+            process.arguments! += matchArguments()
             // Join the team the friendly bots are on (allies); free-for-all has one.
             let team = selectedMode.teams ? "allies" : "autoassign"
             environment["KB_CMDS"] = "3:openscriptmenu team_marinesopfor \(team)"

@@ -11,6 +11,7 @@
 #include <client/splitscreen.h>
 #include <client_mp/cl_cgame_mp.h>
 #include <xanim/dobj_utils.h>
+#include <xanim/xmodel_utils.h>
 #include <clientscript/cscr_stringlist.h>
 #include <qcommon/dobj_management.h>
 #include <client_mp/cl_scrn_mp.h>
@@ -3689,6 +3690,30 @@ bool __cdecl ViewmodelRocketShouldBeAttached(int localClientNum, unsigned int we
             && weapVariantDef->iReloadTime - cgameGlob->predictedPlayerState.weaponTime > weapDef->reloadShowRocketTime;
 }
 
+// cg_drawArms 0 hides the view model's arms and keeps the weapon. The arms are the
+// DObj's first model, which the weapon hangs from (ChangeViewmodelDobj), so it stays
+// and its bones are hidden, on top of the weapon's own hidden parts; every frame, so
+// a change applies at once.
+void __cdecl CG_UpdateViewModelHidePartBits(int localClientNum)
+{
+    ViewModelInfo *viewModelInfo;
+    unsigned int partBits[5];
+    int boneCount;
+    int boneIndex;
+
+    viewModelInfo = CG_GetLocalClientViewModelInfo(localClientNum);
+    if ( !viewModelInfo->viewModelDObj )
+        return;
+    memcpy(partBits, viewModelInfo->partBits, sizeof(partBits));
+    if ( !cg_drawArms->current.enabled )
+    {
+        boneCount = XModelNumBones(DObjGetModel(viewModelInfo->viewModelDObj, 0));
+        for ( boneIndex = 0; boneIndex < boneCount && boneIndex < 160; ++boneIndex )
+            partBits[boneIndex >> 5] |= 0x80000000 >> (boneIndex & 0x1F);
+    }
+    DObjSetHidePartBits(viewModelInfo->viewModelDObj, partBits);
+}
+
 void __cdecl CG_AddViewWeapon(int localClientNum)
 {
     weaponState_t ws; // [esp+0h] [ebp-D0h] BYREF
@@ -3732,6 +3757,7 @@ void __cdecl CG_AddViewWeapon(int localClientNum)
             BG_CalculateWeaponMovement(&ws, placement.base.origin, angles);
             CG_CalculateWeaponMovement_ClientSpecific(cgameGlob, &placement, angles);
             CG_SaveWeaponState(&ws, cgameGlob);
+            CG_UpdateViewModelHidePartBits(localClientNum);
             CG_AddPlayerWeapon(localClientNum, &placement, ps, &cgameGlob->predictedPlayerEntity, drawgun);
         }
     }
