@@ -359,7 +359,11 @@ void __cdecl SV_Map_f()
 
     cheat = isDevmap || cheat;
 
-    Dvar_SetBool((dvar_s*)sv_cheats, cheat);
+    // Cheats stay on (sv_cheats defaults to 1): the original turned them off for
+    // every map but a devmap. disableCheats still turns them off, until a devmap
+    // or "sv_cheats 1".
+    if (cheat)
+        Dvar_SetBool((dvar_s*)sv_cheats, cheat);
 
     // The PC game keeps stats, custom classes and unlocks only in online games
     // (the menus set onlinegame); a host with local stats plays one.

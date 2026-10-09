@@ -115,6 +115,38 @@ static void KB_RunScriptedCommands() {
     }
 }
 
+// KB_MENU_CMDS: the same "<seconds>:<command>|..." list, timed from the first frame
+// after Com_Init and run once, connected or not (the main menu has no map).
+static void KB_RunMenuCommands() {
+    struct Entry { int ms; const char *cmd; };
+    static Entry entries[64];
+    static int count = -1, next, startMs;
+    if (count < 0) {
+        count = 0;
+        const char *env = getenv("KB_MENU_CMDS");
+        if (env) {
+            static char buf[4096];
+            snprintf(buf, sizeof(buf), "%s", env);
+            for (char *tok = strtok(buf, "|"); tok && count < 64; tok = strtok(nullptr, "|")) {
+                char *colon = strchr(tok, ':');
+                if (!colon) continue;
+                *colon = 0;
+                entries[count].ms = (int)(atof(tok) * 1000.0);
+                entries[count].cmd = colon + 1;
+                ++count;
+            }
+        }
+        startMs = Sys_Milliseconds();
+    }
+    int now = Sys_Milliseconds();
+    while (next < count && now - startMs >= entries[next].ms) {
+        fprintf(stderr, "[kbmenucmds] %.1f s: %s\n", (now - startMs) / 1000.0, entries[next].cmd);
+        Cbuf_AddText(0, entries[next].cmd);
+        Cbuf_AddText(0, "\n");
+        ++next;
+    }
+}
+
 // ---- Entry point -----------------------------------------------------------
 int main(int argc, char **argv) {
     char cmdline[2048] = {0};
@@ -141,6 +173,7 @@ int main(int argc, char **argv) {
     for (;;) {
         Com_Frame();
         KB_RunScriptedCommands();
+        KB_RunMenuCommands();
     }
     return 0;
 }

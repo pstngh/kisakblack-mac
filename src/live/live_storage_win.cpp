@@ -570,6 +570,43 @@ static void LiveStorage_CopyPlayerStatsList(unsigned __int8 *cacBuffer, unsigned
     }
 }
 
+static void LiveStorage_SetPlayerStatIfChanged(unsigned __int8 *buffer, const char *statName, int value)
+{
+    int oldValue; // [esp+0h] [ebp-4h] BYREF
+
+    oldValue = 0;
+    if ( !LiveStats_GetIntPlayerStatFromBase(&oldValue, statName, (char *)buffer) || oldValue != value )
+        LiveStats_SetPlayerStat("PlayerStatsList", statName, (char *)buffer, value);
+}
+
+// With everything unlocked (allItemsUnlocked, the default) the player has the top
+// rank and prestige whatever they earned, so prestige mode, which resets the
+// custom classes, never comes up. Their classes use the pro perks they own, as
+// buying one does. The stats file then only needs what the player set up (classes,
+// attachments, camos, emblem, class names).
+static void LiveStorage_SetTopRank(int controllerIndex)
+{
+    unsigned __int8 *globalBuffer; // [esp+0h] [ebp-8h]
+    int maxXP; // [esp+4h] [ebp-4h]
+
+    if ( !BG_UnlockablesAllItemsUnlocked() )
+        return;
+    globalBuffer = LiveStorage_GetOfflineStatsBuffer(controllerIndex, OFFLINE_STATS_GLOBAL);
+    maxXP = CL_GetMaxXP();
+    LiveStorage_SetPlayerStatIfChanged(globalBuffer, "RANKXP", maxXP);
+    LiveStorage_SetPlayerStatIfChanged(globalBuffer, "RANK", CL_GetRankForXp(maxXP));
+    LiveStorage_SetPlayerStatIfChanged(globalBuffer, "PLEVEL", CL_GetMaxPrestige());
+    LiveStorage_CopyPlayerStatsList(LiveStorage_GetOfflineStatsBuffer(controllerIndex, OFFLINE_STATS_CAC), globalBuffer);
+    BG_ReplaceItemsWithPurchasedProItem(controllerIndex);
+}
+
+// CL_CACValidateRequest_f didn't ask for a validation while either was set: the
+// classes hold items the stats never recorded as bought.
+static bool LiveStorage_ShouldValidateCAC()
+{
+    return !Dvar_GetBool("allItemsUnlocked") && !Dvar_GetBool("allItemsPurchased");
+}
+
 void __cdecl LiveStorage_ReadStats(int __formal, bool validate, bool silent)
 {
     char ospath[256]; // [esp+0h] [ebp-208h] BYREF
@@ -620,6 +657,7 @@ void __cdecl LiveStorage_ReadStats(int __formal, bool validate, bool silent)
         LiveStorage_SetStatsDDLValidated(0, STATS_LOCATION_BASICTRAINING, 0);
         LiveStats_ResetBasicTrainingStats(0);
     }
+    LiveStorage_SetTopRank(0);
     LiveStats_MakeStableStatsBuffer(0);
     LiveStats_MakeStableGlobalStatsBuffer(0);
     memcpy(s_validatedCAC, LiveStorage_GetOfflineStatsBuffer(0, OFFLINE_STATS_CAC), STATS_BUFFER_SIZE);
@@ -724,7 +762,8 @@ static void LiveStorage_CommitOfflineStats(int controllerIndex, bool matchOver)
     {
         // CL_CACValidateRequest_f: a ranked server validated the custom classes and
         // charged the purchases to the global stats, or rejected them.
-        if ( !SV_ValidateClientCAC(
+        if ( LiveStorage_ShouldValidateCAC()
+            && !SV_ValidateClientCAC(
                   s_validatedCAC,
                   STATS_BUFFER_SIZE,
                   cacBuffer,
@@ -739,6 +778,11 @@ static void LiveStorage_CommitOfflineStats(int controllerIndex, bool matchOver)
         }
         LiveStorage_CopyPlayerStatsList(cacBuffer, globalBuffer);
         LiveContracts_CLMergeBuffers(cacBuffer, globalBuffer);
+        memcpy(s_validatedCAC, cacBuffer, STATS_BUFFER_SIZE);
+    }
+    else if ( !LiveStorage_ShouldValidateCAC() )
+    {
+        // Nothing to charge: the classes are valid as they are, even mid-match.
         memcpy(s_validatedCAC, cacBuffer, STATS_BUFFER_SIZE);
     }
     else
@@ -867,10 +911,11 @@ void __cdecl CL_GetXP_f()
     // The global stats are the server's, updated during a match (the N command).
     Com_Printf(
         14,
-        "clientside xp is %i, global xp %i (rank %i), codpoints %i\n",
+        "clientside xp is %i, global xp %i (rank %i, prestige %i), codpoints %i\n",
         xp,
         LiveStats_GetXp(0),
         LiveStats_GetRank(0) + 1,
+        LiveStats_GetPrestige(0),
         LiveStats_GetCurrency(0));
 }
 

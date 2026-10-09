@@ -354,6 +354,11 @@ itemInfo_t *__cdecl BG_UnlockablesGetItemInfo(int itemIndex)
 
 char __cdecl BG_UnlockablesAllItemsUnlocked()
 {
+    // On by default offline (BG_UnlockableItemsInit), and in every game mode: the
+    // original honoured it in public online games and basic training only, and the
+    // menus outside a match run in neither.
+    if ( Dvar_GetInt(allItemsUnlocked) > 0 )
+        return 1;
     if ( Com_GameMode_IsPublicOnlineGame() || Com_GameMode_IsGameMode(GAMEMODE_BASIC_TRAINING) )
         return Dvar_GetInt(allItemsUnlocked) > 0;
     if ( Com_GameMode_IsGameMode(GAMEMODE_LOCAL_SPLITSCREEN) || Com_GameMode_IsGameMode(GAMEMODE_SYSTEMLINK) )
@@ -487,6 +492,9 @@ bool __cdecl BG_UnlockablesIsClanTagFeaturePurchased(int controllerIndex, unsign
 
 char __cdecl BG_UnlockablesAllItemsFree()
 {
+    // As allItemsUnlocked (BG_UnlockablesAllItemsUnlocked).
+    if ( Dvar_GetInt(allItemsPurchased) > 0 )
+        return 1;
     if ( Com_GameMode_IsPublicOnlineGame() || Com_GameMode_IsGameMode(GAMEMODE_BASIC_TRAINING) )
         return Dvar_GetInt(allItemsPurchased) > 0;
     if ( Com_GameMode_IsGameMode(GAMEMODE_LOCAL_SPLITSCREEN) || Com_GameMode_IsGameMode(GAMEMODE_SYSTEMLINK) )
@@ -3887,14 +3895,16 @@ void __cdecl BG_UnlockableItemsInit()
                                                             255,
                                                             0,
                                                             "Max attachments allowed for a weapon");
+    // Offline the player has everything (and the top rank, LiveStorage_ReadStats)
+    // unless these are turned off; the original defaulted them to 0.
     allItemsUnlocked = _Dvar_RegisterBool(
                                              "allItemsUnlocked",
-                                             0,
+                                             1,
                                              0x80u,
                                              "Allows all items to be purchased in the Black Market");
     allItemsPurchased = _Dvar_RegisterBool(
                                                 "allItemsPurchased",
-                                                0,
+                                                1,
                                                 0x80u,
                                                 "Allows all items to be equiped in Create-a-Class");
     itemSellFactor = _Dvar_RegisterFloat(

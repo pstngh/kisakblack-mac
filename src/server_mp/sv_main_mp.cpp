@@ -1375,16 +1375,11 @@ void __cdecl SV_PreFrame()
         SV_UpdateBots();
     }
     
-    if ( (dvar_modifiedFlags & 8) != 0
-        && !Assert_MyHandler(
-                    "C:\\projects_pc\\cod\\codsrc\\src\\server_mp\\sv_main_mp.cpp",
-                    2903,
-                    0,
-                    "%s",
-                    "!(dvar_modifiedFlags & DVAR_SYSTEMINFO)") )
-    {
-        __debugbreak();
-    }
+    // A systeminfo dvar changed during a match (sv_cheats from the console): the
+    // original asserted here every frame. Each gamestate carries the systeminfo
+    // (SV_SendClientGameState), so clients get it at the next map, as they did.
+    if ( (dvar_modifiedFlags & 8) != 0 )
+        SV_SetSystemInfoConfig();
     if ( (dvar_modifiedFlags & 4) != 0 )
     {
         v0 = Dvar_InfoString(0, 4);

@@ -1015,10 +1015,11 @@ void __cdecl BG_EmblemsInit()
 
         s_emblemSet = DB_FindXAssetHeader(ASSET_TYPE_EMBLEMSET, (char*)"emblemset", 1, -1).emblemSet;
         memset(s_resultCache, 0, sizeof(s_resultCache));
-        allEmblemsUnlocked = _Dvar_RegisterBool("allEmblemsUnlocked", 0, 0x80u, "Unlock all emblem icons and layers");
+        // On by default, as allItemsUnlocked/allItemsPurchased (BG_UnlockableItemsInit).
+        allEmblemsUnlocked = _Dvar_RegisterBool("allEmblemsUnlocked", 1, 0x80u, "Unlock all emblem icons and layers");
         allEmblemsPurchased = _Dvar_RegisterBool(
                                                         "allEmblemsPurchased",
-                                                        0,
+                                                        1,
                                                         0x80u,
                                                         "Allows all emblem icons and layers to be purchased");
         for ( i = 0; i < s_emblemSet->iconCount; ++i )

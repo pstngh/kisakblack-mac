@@ -52,6 +52,12 @@ Without Steam any client is accepted (stubs_online.cpp). The engine keeps at mos
 Offline stats (rank, unlocks, custom classes) live in `<home>/players/mpstats.dat`;
 the home path dvar is `fs_h` (defaults to the base path, i.e. the user's real
 profile). Test runs that touch stats should pass `+set fs_h <scratch dir>`.
+Everything is unlocked and owned, rank 50/prestige 15, by default (HANDOFF,
+session 8); to test the progression underneath, pass `+set allItemsUnlocked 0
++set allItemsPurchased 0 +set allEmblemsUnlocked 0 +set allEmblemsPurchased 0`.
+Item indices are the rows of mp/statsTable.csv (e.g. 43 L96A1, 150/151
+Lightweight/Pro, 209 Attack Dogs); `statReadDDL cacLoadouts customclass1 primary`
+prints a loadout slot.
 
 Playing without a keyboard: `KB_CMDS` runs console commands at times (seconds) after
 the client becomes active in a map (again after each map change), `|`-separated;
@@ -61,6 +67,10 @@ match after a minute, to test the end of a match and map rotation. This joins, p
 ```sh
 KB_CMDS='8:openscriptmenu team_marinesopfor autoassign|11:openscriptmenu changeclass assault_mp,0|loop@14/10|0:+forward|1:+attack|2.5:-attack|3:+right|3.6:-right|4:+gostand|4.2:-gostand|5:+usereload|5.2:-usereload|6:weapnext|7:+frag|7.3:-frag|9.5:-forward'
 ```
+
+`changeclass custom1,0` (to `custom5`, then `prestige1`-`prestige5`) picks a
+custom class. `KB_MENU_CMDS` takes the same list but times it from startup and runs it once,
+in a map or not: the main menu (`12:openmenu cac_main|30:quit`).
 
 Seeing the client: `screencapture` lacks Screen Recording permission and the
 console is unreachable, so `KB_SCREENSHOT=<dir> KB_SCREENSHOT_EVERY=<n>` writes the

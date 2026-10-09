@@ -10,7 +10,7 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-09, session 7)
+## Status (2026-10-09, session 8)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
   `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ files: only
@@ -43,6 +43,26 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   `getxp` prints NORMAL/global XP, rank, CP) and the ASan client (3 maps).
   Screens checked: in-game "choose class" lists Custom 1-5 with "new" badges.
   Not exercised: the main-menu Create-a-Class/barracks/AAR menus by hand.
+- **Everything maxed out** (session 8, the default): every weapon, attachment,
+  perk and pro perk, camo/reticle/lens/tag, killstreak, emblem part, clan tag
+  feature, face paint and feature (Custom 6-10) is unlocked and owned, and the
+  player is rank 50, prestige 15. The stats file only matters for what the player
+  sets up. `sv_cheats` stays on for `map` games. Tested on a listen server
+  (mp_nuked, 4 bots, scratch `fs_h`): `getxp` shows rank 50/prestige 15 on a
+  fresh and on an old profile; `equipClassItem` of L96A1 (43), G11 (32, a
+  "classified" one), Tomahawk (65), Warlord (168), Ninja (172), Hacker Pro (177) and
+  `statWriteDDL cacLoadouts killstreak3 209` (Attack Dogs) take, `purchaseItem`
+  answers "already purchased", the player spawns with the L96A1 or G11, and the
+  setup (read back with `statReadDDL`) survives restarts and a match end with map
+  rotation, perks upgraded to their pro versions. In-game "choose class" lists
+  Custom 1-10 without "new" badges; the main-menu Create-a-Class (`cac_main`,
+  `cac_weapon`) and Killstreaks screens show no locks or prices (with the dvars
+  off, a fresh profile's Killstreaks screen says "Unlocked at level 10"). `god`,
+  `noclip`, `give m60_mp` work on a `map` game; after `disableCheats` they answer
+  "Cheats are not enabled on this server" and `sv_cheats 1` brings them back. A
+  dedicated `map` server keeps `sv_cheats 1`. ASan client: a fresh profile through
+  two match ends (mp_nuked, mp_array, mp_cracked) with the scripted player, and the
+  main-menu screens above, no report.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters;
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
@@ -53,50 +73,21 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-1. **"Everything maxed out" mode (the user's request at the end of session 7).**
-   The user would rather not grind: everything unlocked and owned at all times,
-   and the stats file only remembering what they set up (custom classes, chosen
-   attachments/camo/reticles, emblem, class names...). Session 7's progression
-   (below) stays underneath. Pieces that already exist:
-   - `allItemsUnlocked` / `allItemsPurchased` (bg_unlockable_items.cpp ~3890) and
-     `allEmblemsPurchased` (bg_emblems.cpp): `BG_UnlockablesAllItemsUnlocked/Free`
-     honour them in public online games (what the local listen server is now).
-     Default them on (or force them while `SV_IsLocalStatsServer`).
-   - Rank/prestige display and rank-gated features (`FEATURE_*` rows, killstreak
-     and perk unlocks read rank from `LiveStats_GetRank`, i.e. the global RANKXP):
-     probably set RANKXP to the max (1262500 per the cfg comments) and a chosen
-     PLEVEL in the global buffer at load, or make the lock checks honour the dvar.
-     Check what the scripts gate on rank themselves (`_rank.gsc`, killstreaks,
-     `isItemLocked`, `level.rankedMatch` paths) - they read `getdstat`.
-   - The original skipped CAC validation when `allItemsUnlocked`/`allItemsPurchased`
-     was set (`CL_CACValidateRequest_f`); `LiveStorage_CommitOfflineStats` must
-     skip `SV_ValidateClientCAC` then too, or it rejects classes holding items
-     that are "locked for rank"/not bought and reverts them.
-   - Pro perks (`isProVersionUnlocked`, challenge-based) and attachment
-     "purchasedAttachments" bits: decide whether the dvars cover them
-     (`BG_UnlockablesIsItemAttachmentPurchased` returns early when AllItemsFree).
-   **Also: `sv_cheats` on at all times by default** (the user's request, same
-   session). Today it is registered as 1 (sv_init_mp.cpp, g_main_mp.cpp, dvar.cpp)
-   but `SV_Map_f` overwrites it with `isDevmap || (developer 2 && thereisacow 1960)`,
-   so `map` turns cheats off (only `devmap` keeps them); `G_InitGame` then calls
-   `Dvar_SetCheatState` (resets cheat-protected dvars) and clients take the value
-   from the server's systeminfo (cl_parse_mp.cpp). The custom-game menus run
-   `disableCheats` (`UI_Gametype_DisableCheats_f`). Make `SV_Map_f` keep it on
-   (at least for a local listen server) and decide whether `disableCheats` should
-   still work. The scripts don't look at sv_cheats, so stats/ranked are unaffected.
-   Watch the open item below: `sv_main_mp.cpp (2903) !(dvar_modifiedFlags &
-   DVAR_SYSTEMINFO)` fired after `sv_cheats 1` in a listen server's console.
-2. **Offline progression: done in session 7** (see Decisions). Left over: drive the
-   main-menu Create-a-Class, barracks, combat record and after-action-report
-   menus by hand (keyboard/mouse) and fix what surfaces; combat training
-   (`xblive_basictraining`, its own buffer) is saved but untested.
-3. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
+1. **Everything maxed out and `sv_cheats` on: done in session 8** (see Decisions),
+   on top of session 7's offline progression. Left over: drive the main-menu menus
+   by hand (keyboard/mouse) beyond the screens `KB_MENU_CMDS` reached (`cac_main`,
+   `cac_weapon`, killstreaks): the attachment/camo/reticle pickers, emblem editor,
+   clan tag, barracks, combat record and after-action report; combat training
+   (`xblive_basictraining`, its own buffer and rank, not maxed) is saved but
+   untested. To show a prestige other than 15, `LiveStorage_SetTopRank` is the
+   place (a dvar would do).
+2. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
    gametypes) and the ASan client; each fix of this kind so far came from a run.
    Start the ASan client at the main menu too (session 6's report was in a main
    menu script that runs only without `+map`).
-4. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+3. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
-5. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
+4. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
    (SDL_WINDOW_ALLOW_HIGHDPI), controller support.
 
 ## Open items found but not fixed
@@ -120,8 +111,6 @@ Seen in session 3:
 Seen in session 4:
 - `live_pcache` asserts `xuid != PCACHE_INVALID_XUID` at map load: gone since
   session 7 signs the local player in with an XUID.
-- `sv_main_mp.cpp (2903) !(dvar_modifiedFlags & DVAR_SYSTEMINFO)` after `sv_cheats 1`
-  in the console of a listen server.
 - 50 decompiled structs whose i386 layout no longer matches IDA's `sizeof` comment
   (e.g. cgs_t 12712 vs 12708, trace_t 64 vs 56, pmove_t, actor_s, client_t,
   sharedUiInfo_t): any raw offset into them is wrong on every build. The
@@ -175,6 +164,50 @@ Pre-existing (wrong on every build):
   string copies through a struct pointer.
 - `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
   sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 8)
+
+- **Everything maxed out = the original's own switches, on by default.**
+  `allItemsUnlocked`, `allItemsPurchased` (bg_unlockable_items.cpp) and
+  `allEmblemsUnlocked`, `allEmblemsPurchased` (bg_emblems.cpp) default to 1 (on
+  every build). `BG_UnlockablesAllItemsUnlocked/Free` check them first, in every
+  game mode: the original honoured them only in public online games and basic
+  training, and the main menu at startup is neither (a client's `onlinegame` is 0
+  until it hosts a map). Everything that asks whether an item, attachment, weapon
+  option, pro perk, clan tag feature or emblem part is locked or bought goes
+  through these, as do the server's `purchasedItems` bits (`isItemPurchased` in
+  the scripts: challenges, pro perk tracking) and "classified" weapons (declassify
+  after enough purchases). They keep the cheat flag (`Dvar_SetCheatState` resets
+  them to their default, 1). Turning the mode off: `+set allItemsUnlocked 0 +set
+  allItemsPurchased 0 +set allEmblemsUnlocked 0 +set allEmblemsPurchased 0`
+  (session 7's progression; the rank stays at what was last saved).
+- **Rank** (`LiveStorage_SetTopRank`, at sign-in, while allItemsUnlocked): RANKXP
+  = `CL_GetMaxXP()` (1262500), RANK = its rank (49, shown as 50), PLEVEL =
+  `CL_GetMaxPrestige()` (15) in the global buffer, copied into the CAC copy; a
+  listen server takes them with the host's stats, and the scripts cap XP at the
+  top rank. Max prestige also hides prestige mode, whose `prestige_reset.cfg`
+  resets every custom class. CP is left alone (nothing costs anything; matches
+  still add to it).
+- **Pro perks**: `BG_ReplaceItemsWithPurchasedProItem` at sign-in, as buying a pro
+  perk did, so saved classes upgrade; the menus list the pro versions in place of
+  the base ones. A base perk equipped from the console stays base until the next
+  start.
+- **No CAC validation** while `allItemsUnlocked` or `allItemsPurchased` is set,
+  as `CL_CACValidateRequest_f` did (git history before the Demonware removal):
+  `SV_ValidateClientCAC` would reject classes holding items the stats never
+  recorded as bought. Mid-match class edits are then valid at once. As in the
+  original, a prestige request made with only allItemsPurchased set would be lost.
+- **`sv_cheats`**: `SV_Map_f` only turns it on (devmap, or developer 2 with
+  thereisacow 1960), so every server, listen or dedicated, keeps the default 1.
+  sv_cheats is write-protected and read-only (0x10|0x40 from two registrations),
+  which lets the console set it only to its default: `sv_cheats 1` works, `0`
+  doesn't; `disableCheats` (a UI command, nothing in the MP menus runs it) turns
+  cheats off until a devmap or `sv_cheats 1`. Systeminfo goes out only in
+  gamestates (configstring 1 is rebuilt for each), so `SV_PreFrame` clears the
+  modified flag after a mid-match change instead of asserting every frame; the
+  release build ignored it.
+- `KB_MENU_CMDS` (linux_main.cpp): KB_CMDS's syntax, timed from startup and run
+  once, connected or not, for the main menu (`openmenu cac_main`, ...).
 
 ## Decisions (session 7)
 
