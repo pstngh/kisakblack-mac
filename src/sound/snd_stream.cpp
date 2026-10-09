@@ -73,7 +73,7 @@ void __cdecl Snd_StreamInit()
             "C:\\projects_pc\\cod\\codsrc\\src\\sound\\snd_stream.cpp",
             247);
         g_snd_streams = (snd_stream *)_PMem_Alloc(
-            0xFA0u,
+            10 * sizeof(snd_stream),
             0x80u,
             4u,
             1u,
@@ -81,7 +81,7 @@ void __cdecl Snd_StreamInit()
             "C:\\projects_pc\\cod\\codsrc\\src\\sound\\snd_stream.cpp",
             254);
         g_snd_buffers = (snd_buffer *)_PMem_Alloc(
-            0x15E0u,
+            20 * sizeof(snd_buffer),
             0x80u,
             4u,
             1u,

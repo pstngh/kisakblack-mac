@@ -73,7 +73,7 @@ void __cdecl SND_RvDelayInit(snd_rv_state *state, unsigned int values);
 void __cdecl SND_RvFrame(
                 snd_rv_params *params,
                 snd_rv_state *state,
-                const float *count,
+                unsigned int count,
                 const float *inLF,
                 const float *inRF,
                 const float *inLS,

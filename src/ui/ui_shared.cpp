@@ -6309,9 +6309,9 @@ void __cdecl Scroll_ListBox_ThumbFunc(int localClientNum, UiContext *dc, scrollI
     }
 }
 
-void __cdecl Scroll_Slider_ThumbFunc(int localClientNum, UiContext *dc, itemDef_s **p)
+void __cdecl Scroll_Slider_ThumbFunc(int localClientNum, UiContext *dc, scrollInfo_s *p)
 {
-    Scroll_Slider_SetThumbPos(dc, p[6]);
+    Scroll_Slider_SetThumbPos(dc, p->item);
 }
 
 void __cdecl Scroll_Slider_SetThumbPos(UiContext *dc, itemDef_s *item)

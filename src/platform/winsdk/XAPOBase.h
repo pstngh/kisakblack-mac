@@ -83,6 +83,10 @@ struct IXAPOParameters : public IUnknown {
     virtual void WINAPI GetParameters(void *pParameters, UINT32 ParameterByteSize) = 0;
 };
 
+// XAudio2 2.7's IID_IXAPOParameters, {A90BC001-E897-E897-55E4-9E4700000001} (the
+// engine's effects answer it as HACK_IID_IXAPOParameters).
+static const GUID IID_IXAPOParameters = { 0xA90BC001, 0xE897, 0xE897, { 0x55, 0xE4, 0x9E, 0x47, 0x00, 0x00, 0x00, 0x01 } };
+
 // ---- CXAPOBase: the SDK helper base the effects derive from -----------------
 // Provides COM ref-counting and default IXAPO behaviour; the engine's effects
 // override Reset/LockForProcess/UnlockForProcess/Process. The format-negotiation

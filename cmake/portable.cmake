@@ -14,6 +14,8 @@ file(GLOB_RECURSE KISAK_PORTABLE_CPP CONFIGURE_DEPENDS
 )
 list(FILTER KISAK_PORTABLE_CPP EXCLUDE REGEX "/src/(libs|tracy|steam|nvapi|binklib|win32)/")
 list(FILTER KISAK_PORTABLE_CPP EXCLUDE REGEX "/(gfx_gl|audio_openal)/tests/")
+# The stream thread (streamed sounds, high texture mips) is the Windows one.
+list(APPEND KISAK_PORTABLE_CPP "${SRC_DIR}/win32/win_stream.cpp")
 
 file(GLOB KISAK_ZLIB_C CONFIGURE_DEPENDS "${SRC_DIR}/zlib/*.c")
 file(GLOB KISAK_JPEG_C CONFIGURE_DEPENDS "${SRC_DIR}/jpeg/*.c")

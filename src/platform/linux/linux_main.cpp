@@ -44,10 +44,10 @@ bool   GPad_IsStickPressed(int, GamePadStick, GamePadStickDir) { return false; }
 bool   GPad_IsStickReleased(int, GamePadStick, GamePadStickDir) { return false; }
 
 
-// ---- Streaming (worker threads now in linux_workercmds.cpp) ------------------
+// ---- Streaming -------------------------------------------------------------------
 // R_InitWorkerThreads, IW_task_manager_*, and the nuge_physics job module are the
-// real job-queue bring-up, ported to src/platform/linux/linux_workercmds.cpp.
-char Stream_Init() { return 1; }
+// real job-queue bring-up, ported to src/platform/linux/linux_workercmds.cpp; the
+// stream thread (Stream_Init) is src/win32/win_stream.cpp's.
 bool PC_StartWithNoSounds() { return false; }
 
 // ---- vtable/typeinfo anchor for a decompiled polymorphic struct -------------

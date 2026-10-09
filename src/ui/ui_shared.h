@@ -1179,7 +1179,7 @@ double __cdecl Item_ListBox_ScrollHeight(int localClientNum, int contextIndex, i
 double __cdecl Item_ListBox_ThumbPosition(int localClientNum, int contextIndex, itemDef_s *item);
 void __cdecl Scroll_ListBox_AutoFunc(int localClientNum, UiContext *dc, void *p);
 void __cdecl Scroll_ListBox_ThumbFunc(int localClientNum, UiContext *dc, scrollInfo_s *p);
-void __cdecl Scroll_Slider_ThumbFunc(int localClientNum, UiContext *dc, itemDef_s **p);
+void __cdecl Scroll_Slider_ThumbFunc(int localClientNum, UiContext *dc, scrollInfo_s *p);
 void __cdecl Scroll_Slider_SetThumbPos(UiContext *dc, itemDef_s *item);
 int __cdecl Item_Slider_HandleKey(UiContext *dc, itemDef_s *item, int key);
 void __cdecl Item_Action(int localClientNum, UiContext *dc, itemDef_s *item);

@@ -244,7 +244,7 @@ void __cdecl SND_RvDelayInit(snd_rv_state *state, unsigned int values)
 void __cdecl SND_RvFrame(
                 snd_rv_params *params,
                 snd_rv_state *state,
-                const float *count,
+                unsigned int count,
                 const float *inLF,
                 const float *inRF,
                 const float *inLS,
@@ -279,20 +279,14 @@ void __cdecl SND_RvFrame(
     float v34; // xmm0_4
     float v35; // xmm0_4
     float v36; // xmm2_4
-    int v37; // [esp+10h] [ebp-10h]
-    int v38; // [esp+14h] [ebp-Ch]
-    int v39; // [esp+18h] [ebp-8h]
-    int v40; // [esp+1Ch] [ebp-4h]
     unsigned int counta; // [esp+30h] [ebp+10h]
     unsigned int countb; // [esp+30h] [ebp+10h]
-    const float *inRFa; // [esp+38h] [ebp+18h]
+    unsigned int inRFa; // [esp+38h] [ebp+18h]
     int inLSa; // [esp+3Ch] [ebp+1Ch]
-    const float *inRSa; // [esp+40h] [ebp+20h]
-    float *outRFa; // [esp+48h] [ebp+28h]
     float *outLSa; // [esp+4Ch] [ebp+2Ch]
-    float *outRSa; // [esp+50h] [ebp+30h]
+    unsigned int frame;
 
-    SND_RvFrameParam(params, state, (unsigned int)Ptr32_Encode(count));
+    SND_RvFrameParam(params, state, count);
     earlyLpfState = state->earlyLpfState;
     counta = 4;
     do
@@ -343,14 +337,11 @@ void __cdecl SND_RvFrame(
     while ( counta );
     if ( count )
     {
+        // The decompile addressed the other seven channels as 32-bit byte offsets from
+        // outLS (some through Ptr32_Encode); the input and the output buffers can be
+        // further apart than that on 64-bit, so they are indexed by frame.
         v13 = outLS;
-        v39 = (char *)inLS - (char *)outLS;
-        v38 = (char *)inRF - (char *)outLS;
-        v40 = (char *)outRF - (char *)outLS;
-        v37 = (char *)inRS - (char *)outLS;
-        inRSa = (const float *)((char *)outRS - (char *)outLS);
-        outRSa = (float *)((char *)inLF - (char *)outLS);
-        outRFa = (float *)((char *)outLF - (char *)outLS);
+        frame = 0;
         inRFa = count;
         do
         {
@@ -405,11 +396,11 @@ void __cdecl SND_RvFrame(
                 ++outLSa;
             }
             while ( !v22 );
-            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa)) = (float)(state->dampLpfState[1] + state->dampLpfState[0]) * 0.70710677;
-            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa)) = (float)(state->dampLpfState[0] - state->dampLpfState[1]) * 0.70710677;
-            *(float *)((char *)v13 + v40) = (float)(state->dampLpfState[3] - state->dampLpfState[2]) * 0.70710677;
+            outLF[frame] = (float)(state->dampLpfState[1] + state->dampLpfState[0]) * 0.70710677;
+            outRS[frame] = (float)(state->dampLpfState[0] - state->dampLpfState[1]) * 0.70710677;
+            outRF[frame] = (float)(state->dampLpfState[3] - state->dampLpfState[2]) * 0.70710677;
             *v13 = (float)(state->dampLpfState[3] + state->dampLpfState[2]) * 0.70710677;
-            v24 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + v39))
+            v24 = (float)((float)(1.0 - state->params.inputLpf) * inLS[frame])
                     + (float)(state->params.inputLpf * state->inputLpfState[0]);
             state->inputLpfState[0] = v24;
             state->delayLine[state->delayIndex] = v24 + *v13;
@@ -420,39 +411,39 @@ void __cdecl SND_RvFrame(
             *v13 = (float)((float)((float)(v26 * state->params.dryGain) + (float)(v25 * state->params.lateGainProx[0]))
                                      + (float)(state->params.earlyGain * state->earlyLpfState[0]))
                      * state->params.returnGain;
-            v27 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + v38))
+            v27 = (float)((float)(1.0 - state->params.inputLpf) * inRF[frame])
                     + (float)(state->params.inputLpf * state->inputLpfState[1]);
             state->inputLpfState[1] = v27;
-            state->delayLine[state->delayIndex + 0x8000] = v27 + *(float *)((char *)v13 + v40);
-            v28 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + v40))
+            state->delayLine[state->delayIndex + 0x8000] = v27 + outRF[frame];
+            v28 = (float)((float)(1.0 - state->params.lateLpf) * outRF[frame])
                     + (float)(state->params.lateLpf * state->lateLpfState[1]);
             v29 = state->params.lateGainProx[1] * v28;
             state->lateLpfState[1] = v28;
-            *(float *)((char *)v13 + v40) = (float)((float)(v29 + (float)(state->inputLpfState[1] * state->params.dryGain))
+            outRF[frame] = (float)((float)(v29 + (float)(state->inputLpfState[1] * state->params.dryGain))
                                                                                         + (float)(state->params.earlyGain * state->earlyLpfState[1]))
                                                                         * state->params.returnGain;
-            v30 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + v37))
+            v30 = (float)((float)(1.0 - state->params.inputLpf) * inRS[frame])
                     + (float)(state->params.inputLpf * state->inputLpfState[2]);
             state->inputLpfState[2] = v30;
-            state->delayLine[state->delayIndex + 0x10000] = v30 + *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa));
+            state->delayLine[state->delayIndex + 0x10000] = v30 + outRS[frame];
             v31 = state->earlyLpfState[2];
-            v32 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa)))
+            v32 = (float)((float)(1.0 - state->params.lateLpf) * outRS[frame])
                     + (float)(state->params.lateLpf * state->lateLpfState[2]);
             v33 = state->inputLpfState[2];
             state->lateLpfState[2] = v32;
-            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(inRSa)) = (float)((float)((float)(v33 * state->params.dryGain)
+            outRS[frame] = (float)((float)((float)(v33 * state->params.dryGain)
                                                                                                                             + (float)(v31 * state->params.earlyGain))
                                                                                                             + (float)(v32 * state->params.lateGainProx[2]))
                                                                                             * state->params.returnGain;
-            v34 = (float)((float)(1.0 - state->params.inputLpf) * *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRSa)))
+            v34 = (float)((float)(1.0 - state->params.inputLpf) * inLF[frame])
                     + (float)(state->params.inputLpf * state->inputLpfState[3]);
             state->inputLpfState[3] = v34;
-            state->delayLine[state->delayIndex + 98304] = v34 + *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa));
-            v35 = (float)((float)(1.0 - state->params.lateLpf) * *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa)))
+            state->delayLine[state->delayIndex + 98304] = v34 + outLF[frame];
+            v35 = (float)((float)(1.0 - state->params.lateLpf) * outLF[frame])
                     + (float)(state->params.lateLpf * state->lateLpfState[3]);
             v36 = state->params.lateGainProx[3];
             state->lateLpfState[3] = v35;
-            *(float *)((char *)v13 + (unsigned int)Ptr32_Encode(outRFa)) = (float)((float)((float)(v36 * v35)
+            outLF[frame] = (float)((float)((float)(v36 * v35)
                                                                                                                              + (float)(state->params.earlyGain
                                                                                                                                              * state->earlyLpfState[3]))
                                                                                                              + (float)(state->inputLpfState[3] * state->params.dryGain))
@@ -460,7 +451,8 @@ void __cdecl SND_RvFrame(
             if ( ++state->delayIndex >= 0x8000 )
                 state->delayIndex = 0;
             ++v13;
-            inRFa = (const float *)((char *)inRFa - 1);
+            ++frame;
+            --inRFa;
         }
         while ( inRFa );
     }

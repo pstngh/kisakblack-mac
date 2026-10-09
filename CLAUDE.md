@@ -104,13 +104,27 @@ back buffer as `<dir>/present_N.tga` every n presents (with draw counters on std
 `KB_TRACEFRAME=n1,n2` logs those frames' render-target/viewport/clear/blit/draw
 calls and, with KB_SCREENSHOT, dumps the back buffer at the first resolves.
 
+Hearing the client: OpenAL Soft's wave writer records the game's final mix in
+place of the device, in real time: `ALSOFT_CONF=<file>` holding `[general]`
+`drivers=wave` and `[wave]` `file=<out.wav>`. `tools/wavstat.py <out.wav> [s]`
+prints its peak/RMS per s-second window (no sound: -120 dBFS). `KB_SND_STATS=<s>`
+prints the voices (new ones by codec), buffers, output peak and mixing time every s
+seconds; `KB_SND_QUEUE=1` forces the mixer-thread output that OpenAL Soft < 1.22
+gets. xWMA sounds (UI navigation, many weapon sounds) have no decoder and play
+silent. The sound console channel is hidden: `+con_showchannel sound`.
+
 AddressSanitizer: configure `build_asan` with `-DCMAKE_CXX_FLAGS="-fsanitize=address
 -fno-omit-frame-pointer"` (same for C and the linker). ASan's dlopen interceptor
 makes sdl2-compat look for libSDL3 next to the ASan runtime, so copy
 `libclang_rt.asan_osx_dynamic.dylib` into `build_asan/asanrt/`, symlink
 `/opt/homebrew/lib/libSDL3.dylib` there, and run with
 `DYLD_LIBRARY_PATH=build_asan/asanrt`. SIP strips `DYLD_*` when it runs
-/usr/bin/perl or /bin/bash, so don't launch through those wrappers.
+/usr/bin/perl or /bin/bash, so don't launch through those wrappers (Homebrew's
+`/opt/homebrew/bin/python3` keeps them: `subprocess` with a timeout works).
+perl's `exec @ARGV` with a single argument splits it at spaces (`Black Ops
+Launcher.app`): use `exec { $ARGV[0] } @ARGV`. The launcher writes its window frame
+into its defaults domain whenever it runs; test it from a copy with another
+`CFBundleIdentifier` (PlistBuddy, then `codesign --force -s -`).
 
 The agent shell's `grep` is a function that skips Latin-1 files (19 sources,
 g_main_mp.cpp among them); search with `command grep -a`.

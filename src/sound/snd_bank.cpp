@@ -441,7 +441,10 @@ void __cdecl SND_PatchValue(unsigned int table, char *asset, unsigned int field,
         switch ( meta->type )
         {
             case SND_CSV_FLOAT:
-                *(float*)ptr = (float)value / 65535.0;
+                // The patch holds the value scaled over the field's range (the master
+                // presets' compressor and limiter fields came out 1/16 and 1/4 of
+                // themselves without it).
+                *(float*)ptr = meta->minimum + (meta->maximum - meta->minimum) * ((float)value / 65535.0);
                 break;
             case SND_CSV_INT:
                 *(uint *)ptr = value;

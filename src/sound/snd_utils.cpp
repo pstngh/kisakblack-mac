@@ -505,7 +505,8 @@ float __cdecl SND_LinearToDbSpl(float linear)
 
 float __cdecl SND_dBSPLToLinear(float value)
 {
-    return SND_dBToLinear(value);
+    // dB SPL is dB + 100 (SND_LinearToDbSpl): 100 is full volume.
+    return SND_dBToLinear(value - 100.0f);
 }
 
 int __cdecl SND_HashName(const char *name)

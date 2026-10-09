@@ -10,7 +10,7 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-09, session 9)
+## Status (2026-10-09, session 10)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
   `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ and
@@ -103,6 +103,27 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   so it shows "No network connection detected"). Tested from the app into the
   real game (scratch folder): TDM on mp_nuked, the player on allies, 3 friendly
   and 4 enemy bots, class menu up; bots fight (300-500 after a minute).
+- **Sound** (session 10): menus and matches have sound, but the user hears only
+  voices in a match, no weapons or footsteps (Next steps 2, first). The main menu's
+  streamed music plays, through the engine's panning, the maps' reverb, the
+  mastering EQ/compressor/limiter and the options' volume. src/audio_openal is a
+  software XAudio2 now (Decisions). Session 10's claim of weapons and footsteps came
+  from voice counts and output levels, not from checking which aliases are heard.
+  Checked with OpenAL Soft's wave writer
+  (CLAUDE.md, "Hearing the client"), against -120 dBFS (silence) before: main-menu
+  music at -24..-30 dBFS RMS; a match: up to 68 voices, peaks -2..-7 dBFS; a
+  6.5-minute soak over 4 maps and 3 match ends; `snd_restart`, `vid_restart`,
+  `map_restart`, `quit` from the menu and from a match; the mixer-thread output
+  path; the real device (External Headphones: 100 passes/s, no underruns); the
+  ASan client (5 minutes, 3 maps, 2 match ends; 2 minutes at the main menu): no
+  report; the launcher's portable copy into a match against its managed bots. The
+  MS-ADPCM decoder matches CoreAudio's bit for bit over a 108-second track. Not
+  decoded: xWMA, about a sixth of a match's voices (the menus' navigation sounds,
+  many weapon and UI sounds): silent, the user's choice for now (Next steps).
+- **Texture streaming** (session 10): the stream thread never ran on macOS/Linux
+  (`Stream_Init` was a stub), so no high texture mip ever loaded (world and models
+  drew their small in-fastfile mips) and no streamed sound played. It runs now;
+  same view on mp_nuked against session 9's build: full-resolution textures.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters
   (`KB_SCREENSHOT_WINDOW=1` adds `window_N.tga`, what the window shows after
@@ -115,11 +136,10 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-Done in session 9 (see Status and Decisions): antialiasing (MSAA and
-transparency AA), the display's resolution list, fullscreen at any resolution
-filling the display, one adapter per display (`r_monitor`), Retina windows and
-fullscreen. The user's `codbo/` has the build (`tools/make_portable.sh`: rerun
-after each build).
+Done in session 10 (see Status and Decisions): sound output (a software XAudio2
+over OpenAL, the stream thread, five engine bugs on the way), though in a match the
+user hears only voices (step 2), and with it texture streaming. The user's `codbo/` has the build (`tools/make_portable.sh`: rerun after
+each build).
 
 1. **Graphics leftovers**: try the menu cursor by hand in fullscreen at a smaller
    resolution and in a window on the Retina display (the mapping is computed:
@@ -128,13 +148,32 @@ after each build).
    `r_monitor` takes effect at the next start (a reset keeps the window's
    display). A fresh profile starts at 1024x768 with 4x AA: `configure_mp.csv`'s
    row for unknown GPUs, as on Windows (1024x768 used to be missing from the list).
-2. **No sound** (the user's report, session 9): nothing is heard, in menus or in
-   matches. OpenAL opens its device (no `[al] OpenAL device init failed`) and its
-   CoreAudio mixer runs (thread samples show `DeviceBase::renderSamples` with HRTF
-   mixing), so the gap is likely between the engine's sound code and
-   src/audio_openal/al_audio.cpp: voices never submitted, a zero volume or gain,
-   or the output format. The console hides its `sound` channel ("Hiding channel:
-   sound" at startup).
+2. **Sound: only voices are heard in a match, no weapons or footsteps** (the user,
+   after session 10, playing from the launcher). Find out per alias what plays: log
+   each started alias with its format and stream flag (a temporary print in
+   `SD_StartAlias`, snd_driver_xaudio2.cpp, gave `[snd-tmp] start <alias> voice N
+   stream S fmt F` in session 10: the menus' `uin_navigation_*` are xWMA, fmt 7) and,
+   in the mixer, each source voice's post-effect peak and send matrices (session 10
+   saw 3D mono ADPCM voices with dry levels 0.04-0.16 and 0.008). Suspects, in order:
+   the weapon and footstep aliases are xWMA (silent by the user's choice; then the
+   WMA decision below is the fix); 3D voices' levels come out too low (distance
+   curves, `Snd_SpeakerMapGetVolume`, the patched group attenuations of session 10's
+   dB SPL fix, the per-voice LPF in `SND_DspFxSourceMono`); the player's own sounds
+   (2D, stereo, often `_plr` aliases) take another path. Listen-check with the wave
+   writer around a scripted `+attack` (CLAUDE.md, "Hearing the client").
+   Other leftovers: (a) xWMA (format 0x161) has no decoder; those voices run
+   silent for their length. Asked on 2026-10-09, the user chose to skip it for now
+   (and asked whether the sounds could be converted): either way FFmpeg's WMA v2
+   decoder is needed once, vendored (wmadec.c and friends, LGPL-2.1+) into
+   src/audio_openal, or as Homebrew ffmpeg converting the fastfiles' loaded sounds
+   offline into a side pack. `ALSourceVoice` already knows the decoded length (the
+   packet table); a decoder goes into `DecodeFrame`. (b) `SND_PatchValue` ignores
+   patches of types NORM_BYTE (`occlusion_level`, ~350 a map, coded as value/65535
+   of the byte), CENTS (pitch) and ENUM_BITS: the decompiled switch has no case, so
+   the original may not have applied them either. (c) One output device, the
+   system default (OpenAL Soft follows it); `sd_xa2_device_name` could list
+   OpenAL's devices. (d) Stereo only: the engine handles 6 and 8 speakers, the
+   mastering voice is 2 channels. (e) Bink video sound (stubbed).
 3. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
    on the server thread after the demo client was freed twice). Soak match ends
    with `KB_CMDS` and `scr_tdm_timelimit 1` to reproduce it.
@@ -150,7 +189,8 @@ after each build).
 6. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
    client, at the main menu too; each fix of this kind so far came from a run.
 7. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
-   gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
+   gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now; textures
+   stream their high mips since session 10.
 8. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
    double-clickable app; today `codbo/blackops` opens in Terminal), controller
    support.
@@ -162,6 +202,13 @@ StringTable assets; table strings shared with earlier assets are references
 that weren't resolved). Item indices are listed in CLAUDE.md.
 
 ## Open items found but not fixed
+
+Seen in session 10:
+- SIGTERM doesn't stop the game (session 9's build neither): SDL turns it into a
+  quit event that nothing handles. `quit` exits; test scripts kill with SIGALRM
+  (`perl -e 'alarm ...'`) or SIGKILL.
+- "R_Cinematic_Init: Unable to initialize sound" at startup (Bink is stubbed).
+- Sound patches of three field types are dropped (Next steps 2b).
 
 Seen in session 2, unverified against a Windows run:
 - "Could not load xanim pb_huey_*", "xmodel t5_veh_civ_tiara", "weapon X not found
@@ -273,6 +320,59 @@ Pre-existing (wrong on every build):
   string copies through a struct pointer.
 - `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
   sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 10)
+
+- **A software XAudio2** (src/audio_openal/al_audio.*): the old backend played raw
+  PCM only, one AL source per voice with the largest matrix entry as its gain, no
+  effects or routing; the game's sounds are MS-ADPCM (streams, most loaded sounds)
+  and xWMA, so nothing played. The backend now runs the graph the engine builds, in
+  480-frame passes at 48 kHz: each started source voice decodes (PCM 8/16, float,
+  MS-ADPCM; xWMA silent), resamples (Catmull-Rom; source rate x frequency ratio, at
+  most 2), runs its effect chain (the engine's per-voice LPF/futz XAPO) and mixes
+  through its output matrices into the reverb bus (4 channels) and the master or
+  "novoice" bus; the buses run their XAPOs (reverb, compressor, EQ/limiter) in
+  processing-stage order into the stereo mastering voice. XAudio2 behaviour kept:
+  matrix changes ramp over a pass (set at once before a voice is first heard);
+  effects are AddRef'd and LockForProcess'd while their voice exists (the engine
+  picks free per-voice DSPs by reference count); IXAPOParameters by its real IID;
+  buffer queue with loop regions; OnBufferStart/End, OnLoopEnd, OnStreamEnd on the
+  mixing thread; GetState's BuffersQueued/SamplesPlayed; Stop keeps the position.
+  One recursive lock covers every voice call and each pass (0.1-0.3 ms per 10 ms
+  pass in a match, 3.6 ms at most under ASan). Output: one stereo float32 AL source
+  with AL_DIRECT_CHANNELS_SOFT (the engine pans; no HRTF on the mix), pulled by an
+  AL_SOFT_callback_buffer callback, or (OpenAL Soft < 1.22, `KB_SND_QUEUE=1`) fed by
+  a mixer thread that keeps four passes queued. The device (the system default)
+  opens at CreateMasteringVoice: `[al] output: <device>, ...` in the log.
+- **MS-ADPCM rounding**: the predictor is `>> 8`, as Microsoft's reference decoder
+  and CoreAudio (bit-identical over the menu music); `/ 256` (Wine, FFmpeg)
+  differed in 14% of the samples, by up to 284.
+- **Stream thread** (every portable build): linux_main.cpp stubbed `Stream_Init`, so
+  `Stream_Thread` (stream reads for sound, `R_StreamUpdate_ReadTextures`) never ran;
+  src/win32/win_stream.cpp is compiled in now (portable.cmake).
+- Engine bugs met on the way:
+  - `Snd_StreamInit` sized the stream and stream-buffer tables with i386 byte counts
+    (0xFA0, 0x15E0); the structs are 440/288 bytes on 64-bit (400/280), so loading
+    buffer 19 wiped stream 0's filename and the stream starved. `sizeof` now (the
+    same numbers on i386).
+  - `SND_RvFrame` (reverb) took its frame count as `Ptr32_Decode(480)` (the image
+    base + 480) and counted it down as its loop counter: ~4 billion frames written
+    over the globals (job queue, console font) as soon as the reverb ran. The count
+    is an unsigned int, and the decompile's 32-bit byte offsets between the eight
+    channel arrays (two through `Ptr32_Encode`) are frame indices: the bus buffer
+    and the effect's own can be far apart on 64-bit.
+  - `SND_PatchValue` (every build): a float patch value is a 16-bit code over the
+    field's [minimum, maximum]; the decompile divided by 65535 only, so every map's
+    patch set the master presets' compressor makeup gain to 1/16 (-28 dB: the mix
+    ~20 dB too quiet) and their attack/release times, EQ gains and limiter
+    thresholds wrong. dB SPL values (group attenuations, alias volumes) go through
+    `SND_dBSPLToLinear`, which had lost its -100 (`SND_LinearToDbSpl` adds it): every
+    patched attenuation and volume became full. Both checked against the unpatched
+    values that the patches re-apply (equal within the 16-bit code).
+  - `Scroll_Slider_ThumbFunc` read the captured item as `((itemDef_s **)p)[6]`, byte
+    48 on 64-bit instead of `scrollInfo_s::item` at 24: dragging a slider (the
+    volume sliders) crashed in `Scroll_Slider_SetThumbPos`.
+- `tools/wavstat.py`: peak/RMS per window of a WAV (the wave writer's float32 too).
 
 ## Decisions (session 9)
 
