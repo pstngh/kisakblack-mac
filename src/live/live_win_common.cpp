@@ -20,7 +20,7 @@ void __cdecl Live_ShowPlayerProfile(int localClientNum, unsigned __int64 playerX
     menuDef_t *menu; // [esp+Ch] [ebp-4h]
 
     ControllerIndex = Com_LocalClient_GetControllerIndex(localClientNum);
-    LODWORD(v4) = Live_GetXuid(ControllerIndex);
+    v4 = Live_GetXuid(ControllerIndex);
     if ( playerXUID && playerXUID != v4 )
     {
         v5 = va("%11d", (unsigned int)playerXUID);

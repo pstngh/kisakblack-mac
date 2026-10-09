@@ -11228,7 +11228,7 @@ void Scr_IsGlobalStatsServer()
     int LicenseType; // eax
 
     LicenseType = SV_GetLicenseType();
-    if ( SV_IsServerRanked(LicenseType) )
+    if ( SV_IsServerRanked(LicenseType) || SV_IsLocalStatsServer() )
         Scr_AddInt(1, SCRIPTINSTANCE_SERVER);
     else
         Scr_AddInt(0, SCRIPTINSTANCE_SERVER);
@@ -11522,8 +11522,100 @@ void __cdecl GScr_GetLoadoutItemFromProfile(scr_entref_t entref)
 
 void __cdecl GScr_GetDStat(scr_entref_t entref)
 {
-    Scr_Error("Stats not implemented in Kisak Black.", 0);
-    Scr_AddInt(0, SCRIPTINSTANCE_SERVER);
+    char *String; // eax
+    char *v2; // eax
+    const char *v3; // eax
+    VariableUnion v4; // eax
+    unsigned int ClientDIntStat; // eax
+    char *ClientDStringStat; // eax
+    unsigned __int64 v7; // rax
+    char *v8; // eax
+    int Type; // [esp+4h] [ebp-20h]
+    signed int i; // [esp+8h] [ebp-1Ch]
+    gentity_s *playerEnt; // [esp+Ch] [ebp-18h]
+    ddlState_t searchState; // [esp+10h] [ebp-14h] BYREF
+    int argc; // [esp+20h] [ebp-4h]
+
+    searchState = *LiveStats_GetRootDDLState();
+    playerEnt = GetEntity(entref);
+    if ( !playerEnt->client )
+        Scr_Error("getdstat: entity must be a player entity", 0);
+    argc = Scr_GetNumParam(SCRIPTINSTANCE_SERVER);
+    if ( argc > 8 )
+        Scr_Error("getdstat: path is too deep.", 0);
+    for ( i = 0; i < argc; ++i )
+    {
+        Type = Scr_GetType(i, SCRIPTINSTANCE_SERVER);
+        if ( Type == 2 )
+        {
+            if ( searchState.member
+                && searchState.member->arraySize > 1
+                && searchState.member->enumIndex == -1
+                && searchState.arrayIndex == -1 )
+            {
+                Scr_Error("getdstat: array index (integer) expected. Received a string instead.", 0);
+            }
+            String = Scr_GetString(i, SCRIPTINSTANCE_SERVER);
+            if ( !DDL_MoveToName(&searchState, &searchState, String) )
+            {
+                v2 = Scr_GetString(i, SCRIPTINSTANCE_SERVER);
+                v3 = va("getdstat: Could not find member name %s.", v2);
+                Scr_Error(v3, 0);
+            }
+        }
+        else if ( Type == 6 )
+        {
+            if ( !searchState.member
+                && !Assert_MyHandler(
+                            "C:\\projects_pc\\cod\\codsrc\\src\\game_mp\\g_scr_main_mp.cpp",
+                            12957,
+                            0,
+                            "%s",
+                            "searchState.member") )
+            {
+                __debugbreak();
+            }
+            if ( searchState.member->arraySize == 1 )
+                Scr_Error("getdstat: member name (string) expected. Received an integer instead.", 0);
+            v4.intValue = Scr_GetInt(i, SCRIPTINSTANCE_SERVER);
+            if ( !DDL_MoveToIndex(&searchState, &searchState, v4.intValue, 1) )
+                Scr_Error("getdstat: Could not find member array index number.", 0);
+        }
+        else
+        {
+            Scr_Error("getdstat: Expected strings or integers only.", 0);
+        }
+    }
+    if ( searchState.member )
+    {
+        switch ( searchState.member->type )
+        {
+            case 0:
+            case 1:
+            case 2:
+                ClientDIntStat = SV_GetClientDIntStat(playerEnt->s.number, &searchState);
+                Scr_AddInt(ClientDIntStat, SCRIPTINSTANCE_SERVER);
+                break;
+            case 3:
+                v7 = SV_GetClientDInt64Stat(playerEnt->s.number, &searchState);
+                v8 = va("%llu", v7);
+                Scr_AddString(v8, SCRIPTINSTANCE_SERVER);
+                break;
+            case 5:
+                ClientDStringStat = SV_GetClientDStringStat(playerEnt->s.number, &searchState);
+                Scr_AddString(ClientDStringStat, SCRIPTINSTANCE_SERVER);
+                break;
+            default:
+                Scr_Error("getdstat: stat type undefined", 0);
+                Scr_AddInt(0, SCRIPTINSTANCE_SERVER);
+                break;
+        }
+    }
+    else
+    {
+        Scr_Error("getdstat: could not find ddl member.", 0);
+        Scr_AddInt(0, SCRIPTINSTANCE_SERVER);
+    }
 }
 
 void GScr_GetMaxActiveContracts()

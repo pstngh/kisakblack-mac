@@ -298,7 +298,7 @@ unsigned int __cdecl LiveStats_GetDIntStatFromBase(
     return DDL_GetInt(searchState, (char *)buffer);
 }
 
-unsigned int __cdecl LiveStats_GetDInt64Stat(int controllerIndex, ddlState_t *searchState)
+unsigned __int64 __cdecl LiveStats_GetDInt64Stat(int controllerIndex, ddlState_t *searchState)
 {
     bool v3; // [esp+3h] [ebp-9h]
     persistentStats *buffer; // [esp+8h] [ebp-4h]
@@ -456,7 +456,7 @@ unsigned int __cdecl LiveStats_GetDIntStatFromForcedBase(int controllerIndex, dd
         return 0;
 }
 
-unsigned int __cdecl LiveStats_GetDInt64StatFromForcedBase(int controllerIndex, ddlState_t *searchState, char *buffer)
+unsigned __int64 __cdecl LiveStats_GetDInt64StatFromForcedBase(int controllerIndex, ddlState_t *searchState, char *buffer)
 {
     if ( controllerIndex
         && !Assert_MyHandler(
@@ -801,9 +801,14 @@ void __cdecl LiveStats_SetStatChanged(int controllerIndex, const char *hexMsg)
     {
         __debugbreak();
     }
+    // Offline only the local server keeps our global stats (live_storage_win.cpp);
+    // another server's changes are to its own copy.
+    if ( !com_sv_running->current.enabled )
+        return;
     if ( LiveStats_CanPerformStatOperation(controllerIndex) )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_GLOBAL, 1);
+        LiveStorage_BeginGlobalStatsChange(controllerIndex);
         offsetFound = 0;
         sizeFound = 0;
         size = 0;
@@ -841,6 +846,7 @@ void __cdecl LiveStats_SetStatChanged(int controllerIndex, const char *hexMsg)
             }
             ++i;
         }
+        LiveStorage_EndGlobalStatsChange(controllerIndex);
     }
 }
 
@@ -1568,10 +1574,9 @@ char __cdecl LiveStats_MoveToProItemVersion(ddlState_t *searchState, int itemInd
     const ddlState_t *RootDDLState; // eax
     char *v5; // [esp-Ch] [ebp-Ch]
 
-    va("%d", challengeIndex);
     v5 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, searchState, 4, "itemStats", v5) )
+    if ( DDL_MoveTo(RootDDLState, searchState, 4, "itemStats", v5, "isProVersionUnlocked", va("%d", challengeIndex)) )
         return 1;
     DDL_PrintError("DDL: Error could not find item version unlocked %d challenge %d\n", itemIndex, challengeIndex);
     return 0;
@@ -1666,7 +1671,7 @@ void __cdecl LiveStats_CompareStatsVsStableBuffer(int controllerIndex)
                 BG_UnlockablesSetItemNew(controllerIndex, itemNumber);
             }
             v1 = va("%d", itemNumber);
-            if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v1)
+            if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v1, "stats")
                 && DDL_IterateFirst(&searchStateStats, &searchStateStats) )
             {
                 do
@@ -2508,6 +2513,11 @@ void __cdecl LiveStats_CompareStatsVsStableBufferCmd()
 
 void __cdecl LiveStats_SortPercentageCompleted(int type)
 {
+    if ( !s_statsalreadycompared )
+    {
+        s_statsalreadycompared = 1;
+        LiveStats_CompareStatsVsStableBuffer(0);
+    }
     switch ( type )
     {
         case 1:
@@ -2758,7 +2768,7 @@ void __cdecl LiveStats_AddChallenge(
     ddlState_t searchStateStats; // [esp+0h] [ebp-10h] BYREF
 
     v4 = va("%d", itemNumber);
-    if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v4)
+    if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v4, "stats")
         && DDL_IterateFirst(&searchStateStats, &searchStateStats) )
     {
         do
@@ -3291,7 +3301,7 @@ void __cdecl LiveStats_BuildKillstreakChallengeList(
             if ( !I_stricmp(killstreakType, ItemName) && BG_UnlockablesGetItemCost(itemNumber) != -1 )
             {
                 v4 = va("%d", itemNumber);
-                if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v4) )
+                if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v4, "stats") )
                 {
                     if ( DDL_IterateFirst(&searchStateStats, &searchStateStats) )
                     {
@@ -3656,7 +3666,7 @@ void __cdecl LiveStats_AddUnderBarrelAttachments(int controllerIndex, char *live
              || BG_UnlockablesGetItemGroupEnum(itemNumber) == 13) )
         {
             v2 = va("%d", itemNumber);
-            if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v2)
+            if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v2, "stats")
                 && DDL_IterateFirst(&searchStateStats, &searchStateStats) )
             {
                 do
@@ -4113,7 +4123,23 @@ char __cdecl LiveStats_SpendCurrency(
                 pointsSpent_t reasonType,
                 int reasonIndex)
 {
-    return 0;
+    int currentCodPoints; // [esp+0h] [ebp-4h]
+
+    // The online counter (global_moneyspent) and match recording are gone; the
+    // purchase is charged to the global stats when the custom classes are
+    // validated (LiveStorage_UploadStats).
+    currentCodPoints = LiveStats_GetCurrency(controllerIndex);
+    if ( currentCodPoints >= currencyAmount )
+    {
+        LiveStats_SetStatByKey(controllerIndex, MP_PLAYERSTATSKEY_CODPOINTS, currentCodPoints - currencyAmount);
+        LiveStats_TrackSpending(controllerIndex, currencyAmount);
+        return 1;
+    }
+    else
+    {
+        Com_PrintError(15, "Item costs %d and you only have %d\n", currencyAmount, currentCodPoints);
+        return 0;
+    }
 }
 
 void __cdecl LiveStats_TrackSpending(int controllerIndex, int currencyAmount)
@@ -4134,7 +4160,7 @@ char __cdecl LiveStats_WriteXUIDToStats(int controllerIndex)
     ddlState_t searchState; // [esp+4h] [ebp-18h] BYREF
     unsigned __int64 myXuid; // [esp+14h] [ebp-8h]
 
-    LODWORD(v1) = Live_GetXuid(controllerIndex);
+    v1 = Live_GetXuid(controllerIndex);
     myXuid = v1;
     if ( !v1 && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_stats.cpp", 4478, 0, "%s", "myXuid") )
         __debugbreak();
@@ -4167,7 +4193,7 @@ unsigned __int64 __cdecl LiveStats_ReadXUIDFromStats()
     if ( DDL_MoveTo(&g_statsRootState, &searchState, 1, "PlayerXUID") )
     {
         buff = LiveStorage_GetStatsBuffer(0, STATS_LOCATION_NORMAL, 1);
-        LODWORD(v0) = DDL_GetInt64(&searchState, (char *)buff);
+        v0 = DDL_GetInt64(&searchState, (char *)buff);
         return v0;
     }
     else if ( !Assert_MyHandler(
@@ -4537,7 +4563,7 @@ void __cdecl LiveStats_PresetigeStatsResetCmd()
         if ( BG_UnlockablesIsItemValidNotNull(itemNumber) )
         {
             v0 = va("%d", itemNumber);
-            if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v0)
+            if ( DDL_MoveTo(&g_statsRootState, &searchStateStats, 3, "ItemStats", v0, "stats")
                 && DDL_IterateFirst(&searchStateStats, &searchStateStats) )
             {
                 do

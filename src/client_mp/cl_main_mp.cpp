@@ -1286,6 +1286,13 @@ void __cdecl CL_ClearState(int localClientNum)
 
 void __cdecl CL_UploadStatsForController(int localControllerIndex)
 {
+    if ( !Demo_IsPlaying() && !Demo_IsShutdownInProgress() )
+    {
+        // The leaderboard upload is gone. Offline the match is over for the stats
+        // now: they are validated and saved (live_storage_win.cpp).
+        LiveStats_CompareStatsVsStableBuffer(localControllerIndex);
+        LiveStorage_UploadStatsAfterMatch(localControllerIndex);
+    }
 }
 
 void __cdecl CL_Disconnect(unsigned int localClientNum, bool deactivateClient)

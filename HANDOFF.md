@@ -10,7 +10,7 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-09, session 6)
+## Status (2026-10-09, session 7)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
   `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ files: only
@@ -32,6 +32,17 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   21-minute soak (ASan client, scripted player, dedicated server rotating dm, dom,
   koth, ctf, sd, dem, sab, hq, tdm with 1-minute limits) played 12 maps with no
   report after the two fixes below.
+- **Offline progression** (session 7): the local player signs in at startup and
+  their stats live in `players/mpstats.dat` (under `fs_h`, the home path dvar;
+  `.bak` is the previous save). A `map`/`devmap` listen server plays as a ranked
+  online game for the host: XP, rank-ups, CP, unlocks by rank, purchases,
+  custom classes (spawned with an equipped bought weapon), prestige, and they
+  persist across restarts, map rotations, `quit` and hard kills (since the last
+  save). Tested with `KB_CMDS` (`set scr_givexp N`, `purchaseItem <idx>`,
+  `equipClassItem customclass1 <idx>`, `uploadstats`, `prestigerequest`,
+  `getxp` prints NORMAL/global XP, rank, CP) and the ASan client (3 maps).
+  Screens checked: in-game "choose class" lists Custom 1-5 with "new" badges.
+  Not exercised: the main-menu Create-a-Class/barracks/AAR menus by hand.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters;
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
@@ -42,41 +53,50 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-1. **Offline progression (decided, session 6): the user plays only offline against
-   local bots (a listen server) and wants rank, unlocks, attachments, perks and
-   custom classes to progress and persist.** No build ever had working stats:
-   upstream never defined `KISAK_LIVE_SERVICE`, so `LiveStorage_ReadStats` was always
-   empty; `Live_Frame` (the original's sign-in poll) is empty and nothing calls
-   `Live_UserSignedInLocally`/`ToLive`, so no XUID is ever set (`XUserGetXUID` returns
-   success without writing it: the `live_pcache` asserts); the client's
-   `CA_SENDINGSTATS` branch in `CL_CheckForResend` was never decompiled, and
-   `SV_SendClientGameState` zeroes `client->stats` and marks every stat packet received.
-   The server->client half exists: stat changes go out as the `N` server command
-   (`SV_AddModifiedStats`), the client applies them in `CG_DeployServerCommand`
-   (`LiveStats_SetStatChanged`), and `Q` calls `LiveStorage_UploadStats`.
-   Plan (no network upload needed, since host and server share the process):
-   1. Local sign-in at startup: a nonzero XUID (the stub SteamID), gamertag from
-      `name`, `xblive_loggedin`; check `Live_UserSignedIn`'s side effects (it sets
-      `name` from the gamertag, calls `GamerProfile_LogInProfile`).
-   2. `LiveStorage_ReadStats`: load a stats file from `players/` into the normal
-      (and basic-training) buffers, validate checksum and DDL as the removed
-      `LiveStorage_ReadPlayerStatsSuccessful` did (`git show baseline-pre-dw-strip`),
-      else `LiveStats_ResetStats`; set the fetched flags.
-   3. `LiveStorage_UploadStats`: write the file when `statsWriteNeeded`.
-   4. `SV_SendClientGameState`: for a loopback client, copy the local stats buffers
-      into `client->stats`/`globalStats` instead of zeroing them.
-   5. Test with `KB_CMDS`: the CAC menu, XP after a match (the `N` commands), rank
-      up, unlocks, the after-action report, restart and reload. Expect dormant code
-      (DDL, contracts, AAR menus) to surface new bugs; the stats.ddl/exe version gap
-      (STATS_BUFFER_SIZE in live_storage.h) matters here.
-   A remote client's stats (the network upload/receive) stay out of scope.
-2. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
+1. **"Everything maxed out" mode (the user's request at the end of session 7).**
+   The user would rather not grind: everything unlocked and owned at all times,
+   and the stats file only remembering what they set up (custom classes, chosen
+   attachments/camo/reticles, emblem, class names...). Session 7's progression
+   (below) stays underneath. Pieces that already exist:
+   - `allItemsUnlocked` / `allItemsPurchased` (bg_unlockable_items.cpp ~3890) and
+     `allEmblemsPurchased` (bg_emblems.cpp): `BG_UnlockablesAllItemsUnlocked/Free`
+     honour them in public online games (what the local listen server is now).
+     Default them on (or force them while `SV_IsLocalStatsServer`).
+   - Rank/prestige display and rank-gated features (`FEATURE_*` rows, killstreak
+     and perk unlocks read rank from `LiveStats_GetRank`, i.e. the global RANKXP):
+     probably set RANKXP to the max (1262500 per the cfg comments) and a chosen
+     PLEVEL in the global buffer at load, or make the lock checks honour the dvar.
+     Check what the scripts gate on rank themselves (`_rank.gsc`, killstreaks,
+     `isItemLocked`, `level.rankedMatch` paths) - they read `getdstat`.
+   - The original skipped CAC validation when `allItemsUnlocked`/`allItemsPurchased`
+     was set (`CL_CACValidateRequest_f`); `LiveStorage_CommitOfflineStats` must
+     skip `SV_ValidateClientCAC` then too, or it rejects classes holding items
+     that are "locked for rank"/not bought and reverts them.
+   - Pro perks (`isProVersionUnlocked`, challenge-based) and attachment
+     "purchasedAttachments" bits: decide whether the dvars cover them
+     (`BG_UnlockablesIsItemAttachmentPurchased` returns early when AllItemsFree).
+   **Also: `sv_cheats` on at all times by default** (the user's request, same
+   session). Today it is registered as 1 (sv_init_mp.cpp, g_main_mp.cpp, dvar.cpp)
+   but `SV_Map_f` overwrites it with `isDevmap || (developer 2 && thereisacow 1960)`,
+   so `map` turns cheats off (only `devmap` keeps them); `G_InitGame` then calls
+   `Dvar_SetCheatState` (resets cheat-protected dvars) and clients take the value
+   from the server's systeminfo (cl_parse_mp.cpp). The custom-game menus run
+   `disableCheats` (`UI_Gametype_DisableCheats_f`). Make `SV_Map_f` keep it on
+   (at least for a local listen server) and decide whether `disableCheats` should
+   still work. The scripts don't look at sv_cheats, so stats/ranked are unaffected.
+   Watch the open item below: `sv_main_mp.cpp (2903) !(dvar_modifiedFlags &
+   DVAR_SYSTEMINFO)` fired after `sv_cheats 1` in a listen server's console.
+2. **Offline progression: done in session 7** (see Decisions). Left over: drive the
+   main-menu Create-a-Class, barracks, combat record and after-action-report
+   menus by hand (keyboard/mouse) and fix what surfaces; combat training
+   (`xblive_basictraining`, its own buffer) is saved but untested.
+3. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
    gametypes) and the ASan client; each fix of this kind so far came from a run.
    Start the ASan client at the main menu too (session 6's report was in a main
    menu script that runs only without `+map`).
-3. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+4. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
-4. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
+5. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
    (SDL_WINDOW_ALLOW_HIGHDPI), controller support.
 
 ## Open items found but not fixed
@@ -98,14 +118,23 @@ Seen in session 3:
   `keynames_localized` in the original binary and is missing from the decompile.
 
 Seen in session 4:
-- `live_pcache` asserts `xuid != PCACHE_INVALID_XUID` at map load: with Demonware
-  removed the local player has no XUID (not 64-bit related).
+- `live_pcache` asserts `xuid != PCACHE_INVALID_XUID` at map load: gone since
+  session 7 signs the local player in with an XUID.
 - `sv_main_mp.cpp (2903) !(dvar_modifiedFlags & DVAR_SYSTEMINFO)` after `sv_cheats 1`
   in the console of a listen server.
 - 50 decompiled structs whose i386 layout no longer matches IDA's `sizeof` comment
   (e.g. cgs_t 12712 vs 12708, trace_t 64 vs 56, pmove_t, actor_s, client_t,
   sharedUiInfo_t): any raw offset into them is wrong on every build. The
   cg_ents_mp.cpp corpse lookup was one (fixed).
+
+Seen in session 7:
+- Contracts have no data offline (`LiveStorage_DoWeHaveContracts` is 0) though
+  `level.contractsEnabled` follows `IsGlobalStatsServer`; nothing broke in tests.
+- A fresh profile's first `ResetStats` runs `stats_init.cfg` with basic training
+  on; `LiveStorage_ReadStats` sets `onlinegame` around it (else ValidateGameModes
+  asserts hundreds of times).
+- `SV_UpdatePersonalBestsForClient` stays stubbed (server-side "new item" flags
+  and personal bests for remote clients); the client computes its own on disconnect.
 
 Seen in session 6:
 - `CL_Connect_f` connects only to LAN addresses (`Sys_IsLANAddress`: 10/8, 127/8,
@@ -146,6 +175,52 @@ Pre-existing (wrong on every build):
   string copies through a struct pointer.
 - `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
   sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 7)
+
+- **Offline stats storage** (live_storage_win.cpp): one file `players/mpstats.dat`
+  (header + the CAC, global and basic-training buffers, each with its checksum;
+  written to `.tmp`, previous save kept as `.bak`, an unreadable file renamed
+  `.bad`). `PC_InitSigninState` signs the local player in on a client (XUID = the
+  Steam/stub SteamID, now 64-bit; gamertag = `name`), which reads the file or
+  creates fresh stats (`mp/stats_init.cfg` gives the default custom classes).
+- **Buffers**: DDL permission 1 = client (CAC loadouts, weapon attachment bits),
+  2 = server (PlayerStatsList: RANKXP/CODPOINTS/PLEVEL, challenges, item
+  `purchased`/`new` flags - but the client keeps those in its CAC buffer), 3 =
+  both. The client reads currency/prestige from the CAC copy of PlayerStatsList;
+  the global buffer is authoritative and copied over it at every commit.
+- **Listen server**: the host's stats are copied into `client_t` once per
+  connection (`SV_SendClientGameState`, `statPacketsReceived`); from then on the
+  server's copy is newer (kept across map changes) and reaches the client as the
+  `N` command. The host's custom classes are read live from the client buffer
+  (`SV_GetClientCACStats`). Bots and remote clients get zeroed stats; a client
+  ignores `N` from any server but its own (`com_sv_running`), so a dedicated or
+  someone else's server can't overwrite it. `SV_IsLocalStatsServer` makes
+  `IsGlobalStatsServer()` true (scripts: `level.rankedMatch`) and `SV_Map_f` sets
+  `onlinegame 1` plus the XP/CP rates `default_xboxlive.cfg` would (scr_xpscale 1,
+  scr_codpoints*scale 0.1) when unset. Without onlinegame the scripts read custom
+  classes from the gamer profile (a stub returning 0).
+- **Commit** (`LiveStorage_UploadStats`: the menus' `uploadstats`, the join+1 s `Q`,
+  map loading; `CL_UploadStatsForController` on disconnect/quit): ports the ranked
+  server's `SV_ValidateClientCAC`, charging new purchases/prestige to the global
+  stats against the last validated classes. While a local match holds the stats
+  it only previews (purchases charged when the host leaves; class edits that
+  charge nothing are accepted at once). `N` changes to PlayerStatsList are
+  mirrored into the CAC copy as deltas, so CP earned mid-match is spendable.
+- Restored from the strip/decompile: `GScr_GetDStat`, `LiveStats_SpendCurrency`,
+  the AAR comparison (`LiveStats_CompareStatsVsStableBuffer` on disconnect and
+  in challenge sorting), `CL_PrestigeRequest`'s commit. Removed `iassert(0)` from
+  `SV_GetClientDIntStat/DInt64Stat`; the 64-bit getters return 64 bits.
+- Decompile bugs found on the way (every build): ~50 `DDL_MoveTo` calls whose last
+  path names were dropped (count > args, varargs read garbage: item
+  purchased/new flags, weapon attachment/option bits, emblems, item stat
+  iteration, combat record; one combat-record name, `"used"`, is a guess);
+  `LODWORD(v) = Live_GetXuid()/DDL_GetInt64()` kept only the low half (18 sites);
+  `Dvar_SetFromLocalizedStr_f` (`setFromLocString`) had its buffer split into
+  `char combined; char pszInputBuffer[4099]` (ASan stack overflow).
+- 64-bit: `expressionEntry` is 24 bytes, allocated as 16 (`Expression_Alloc`):
+  runtime `if ( ... )` commands (cfgs, menu `execNow if`) crashed in `MakeRPN`.
+  Sizes use `sizeof` now and the command buffers scale with it.
 
 ## Decisions (session 6)
 

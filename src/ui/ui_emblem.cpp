@@ -664,7 +664,7 @@ bool __cdecl UI_EmblemIsModified(int controllerIndex)
     __int16 backgroundID; // [esp+198h] [ebp-4h] BYREF
 
     PCache_Lock();
-    LODWORD(v1) = Live_GetXuid(controllerIndex);
+    v1 = Live_GetXuid(controllerIndex);
     profile = (PCachePublicProfile *)PCache_GetComponent(controllerIndex, v1, 0);
     PCache_GetProfileEmblem(profile, layers, 12, &backgroundID);
     v3 = memcmp(layers, s_emblem, 0x180u) || backgroundID != s_backgroundID;
@@ -1060,7 +1060,7 @@ void __cdecl UI_EmblemGetProfile_f()
     PCachePublicProfile *profile; // [esp+4h] [ebp-4h]
 
     PCache_Lock();
-    LODWORD(v0) = Live_GetXuid(0);
+    v0 = Live_GetXuid(0);
     profile = (PCachePublicProfile *)PCache_GetComponent(0, v0, 0);
     PCache_GetProfileEmblem(profile, s_emblem, 12, &s_backgroundID);
     PCache_Unlock();

@@ -241,6 +241,15 @@ void __cdecl SV_AddOperatorCommands()
     }
 }
 
+// The online menus exec default_xboxlive.cfg, which sets the XP and currency
+// rates the rank script reads (unset, they are 0); a game started with `map`
+// gets the same ones unless they were set.
+static void SV_SetOnlineGameDefault(const char *dvarName, const char *value)
+{
+    if (!Dvar_FindVar(dvarName))
+        Dvar_SetFromStringByName(dvarName, (char *)value);
+}
+
 void __cdecl SV_Map_f()
 {
     bool v2; // [esp+0h] [ebp-60h]
@@ -351,6 +360,18 @@ void __cdecl SV_Map_f()
     cheat = isDevmap || cheat;
 
     Dvar_SetBool((dvar_s*)sv_cheats, cheat);
+
+    // The PC game keeps stats, custom classes and unlocks only in online games
+    // (the menus set onlinegame); a host with local stats plays one.
+    if (SV_IsLocalStatsServer())
+    {
+        if (!onlinegame->current.enabled)
+            Dvar_SetBool((dvar_s*)onlinegame, 1);
+        SV_SetOnlineGameDefault("scr_xpscale", "1");
+        SV_SetOnlineGameDefault("scr_codpointsxpscale", "0.1");
+        SV_SetOnlineGameDefault("scr_codpointsmatchscale", "0.1");
+        SV_SetOnlineGameDefault("scr_codpointsperchallenge", "0.1");
+    }
 
     FS_ConvertPath(mapname);
     SV_SpawnServer(0, mapname, mapIsPreloaded, sv_migrate);

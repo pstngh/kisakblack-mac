@@ -102,7 +102,7 @@ unsigned __int64 __cdecl LiveSteam_GetClientIDAsXUID()
         //}
         //v2 = SteamUser();
         //return v2->GetSteamID(v2, v4)->m_steamid;
-        return SteamUser()->GetSteamID().GetAccountID(); // KISAKTODO: prob wrong
+        return SteamUser()->GetSteamID().ConvertToUint64();
     }
     else
     {

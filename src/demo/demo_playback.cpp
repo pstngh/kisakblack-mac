@@ -2646,7 +2646,7 @@ void __cdecl Demo_SetDefaultClient(int localClientNum, int defaultClient)
     {
         if ( Live_IsSignedIn(controllerIndex) )
         {
-            LODWORD(v2) = Live_GetXuid(controllerIndex);
+            v2 = Live_GetXuid(controllerIndex);
             for ( i = 0; i < demo.info.numConnectedPlayersInfoCount; ++i )
             {
                 if ( !firstclient && v2 )

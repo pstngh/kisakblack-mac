@@ -371,7 +371,7 @@ void __cdecl LiveNews_GetOwnNews(int controllerIndex)
     I_strncpyz(gamerTag, ClientName, 32);
     convArgs.args[convArgs.argCount++] = gamerTag;
     PCache_Lock();
-    LODWORD(v2) = Live_GetXuid(0);
+    v2 = Live_GetXuid(0);
     profile = (PCachePublicProfile *)PCache_GetComponent(0, v2, 0);
     playerDDL = PCache_GetPublicProfileDDL();
     DDL_Reset(&g_tickerMessage, playerDDL);
@@ -584,7 +584,7 @@ void __cdecl LiveNews_PublishNews(int controllerIndex, CmdArgs *cmd_args)
     unsigned int newsTypeHash; // [esp+18Ch] [ebp-4h]
 
     PCache_Lock();
-    LODWORD(v2) = Live_GetXuid(controllerIndex);
+    v2 = Live_GetXuid(controllerIndex);
     xuid = v2;
     profile = (PCachePublicProfile *)PCache_GetComponent(controllerIndex, v2, 0);
     if ( (profile->c.state & 2) != 0 )
@@ -730,7 +730,7 @@ void __cdecl formatStringWithCommas(char *outputString, int stringLength, unsign
 bool __cdecl LiveNews_EvaluateExpression(const char *expr, char *outputString, int stringLength)
 {
     float v4; // [esp+8h] [ebp-42Ch]
-    char compileBuffer[1024]; // [esp+Ch] [ebp-428h] BYREF
+    char compileBuffer[1024 * sizeof(expressionEntry) / 16]; // [esp+Ch] [ebp-428h] BYREF
     ExpressionStatement statement; // [esp+410h] [ebp-24h] BYREF
     float floatValue; // [esp+420h] [ebp-14h]
     bool validNumber; // [esp+427h] [ebp-Dh]
@@ -757,7 +757,7 @@ bool __cdecl LiveNews_EvaluateExpression(const char *expr, char *outputString, i
         return 0;
     validNumber = 0;
     floatValue = 0.0f;
-    Expression_Parse(&expr, &statement, compileBuffer, 1024);
+    Expression_Parse(&expr, &statement, compileBuffer, sizeof(compileBuffer));
     expressionResult = GetExpressionResultString(0, 0, &statement);
     value = I_atoi64(expressionResult);
     if ( value < 0xA )

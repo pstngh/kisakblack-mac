@@ -214,6 +214,15 @@ bool __cdecl SV_IsServerRanked(int licensetype)
     return licensetype == 4 || licensetype == 2;
 }
 
+// A listen server whose host plays with local stats (live_storage_win.cpp): the
+// host's matches count, as they did on a ranked server.
+bool __cdecl SV_IsLocalStatsServer()
+{
+    if ( Dvar_GetBool("sv_forceunranked") )
+        return 0;
+    return !IsDedicatedServer() && LiveStorage_DoWeHaveAllStats(0);
+}
+
 void __cdecl SV_MasterHeartbeat(int controllerIndex)
 {
 }

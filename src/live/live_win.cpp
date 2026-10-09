@@ -342,11 +342,21 @@ bool __cdecl Live_IsInLiveGame()
 unsigned __int64 g_fakeXUID; // KISAKTODO: value?
 char __cdecl XUserGetXUID(int controllerIndex, unsigned __int64 *xuid)
 {
+    // The online service gave the XUID; without it the player is the Steam user
+    // (the offline stub's when Steam isn't there).
+    *xuid = LiveSteam_GetClientIDAsXUID();
+    if ( !*xuid )
+        *xuid = g_fakeXUID << controllerIndex;
     return 1;
 }
 
 char __cdecl Live_UserGetName(int controllerIndex, char *buf, int bufsize)
 {
+    // Offline the player keeps the name they chose (the `name` dvar).
+    if ( name && *name->current.string )
+        I_strncpyz(buf, name->current.string, bufsize);
+    else
+        I_strncpyz(buf, UI_SafeTranslateString("EXE_DEFAULT_PLAYER"), bufsize);
     return 1;
 }
 
@@ -522,6 +532,15 @@ char __cdecl Live_ShowMarketplaceUI()
 
 void __cdecl PC_InitSigninState()
 {
+    char *disconnectMessage; // [esp+0h] [ebp-4h] BYREF
+
+    // The original logged on to the online service here and signed the player in
+    // when it answered. Offline, the local player signs in at once, which reads
+    // their stats from players/ (live_storage_win.cpp).
+    if ( IsDedicatedServer() || G_ExitAfterToolComplete() || !live_service->current.enabled )
+        return;
+    disconnectMessage = 0;
+    Live_UserSignedInToLive(0, &disconnectMessage);
 }
 
 bool __cdecl Live_UserSignedOut(int controllerIndex)

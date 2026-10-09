@@ -30,7 +30,7 @@ void __cdecl DDL_Converter_CopyStates(
                     DDL_PrintError("DDL: Found member '%s' but could not write value.\n", (const char *)stateFrom->member->name);
                 break;
             case 3:
-                LODWORD(v5) = DDL_GetInt64(stateFrom, bufferFrom);
+                v5 = DDL_GetInt64(stateFrom, bufferFrom);
                 if ( !DDL_SetInt64(stateTo, v5, bufferTo) )
                     DDL_PrintError("DDL: Found member '%s' but could not write value.\n", (const char *)stateFrom->member->name);
                 break;

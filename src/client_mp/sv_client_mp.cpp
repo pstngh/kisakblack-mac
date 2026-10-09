@@ -38,6 +38,7 @@
 #include <universal/com_shared.h>
 #include <server/sv_game.h>
 #include <bgame/bg_weapons.h>
+#include <bgame/bg_unlockable_items.h>
 #include <game_mp/g_active_mp.h>
 #include <universal/base64.h>
 #include <win32/win_steam.h>
@@ -170,6 +171,26 @@ void __cdecl SV_GetChallenge(netadr_t from)
         memset(challenge, 0, sizeof(challenge_t));
         return;
     }
+}
+
+// The local player of a listen server plays with the stats they signed in with
+// (live_storage_win.cpp); every other client's stats came from the online
+// service, and start empty now.
+static bool SV_ClientUsesHostStats(const client_t *cl)
+{
+    return !IsDedicatedServer()
+        && cl->header.netchan.remoteAddress.type == NA_LOOPBACK
+        && !cl->bIsTestClient
+        && !cl->bIsDemoClient;
+}
+
+// The host's custom classes (client-owned stats) are read where the host edits
+// them, so a class changed during a match is used at the next spawn.
+static char *SV_GetClientCACStats(unsigned int clientNum)
+{
+    if ( !xblive_basictraining->current.enabled && SV_ClientUsesHostStats(&svs.clients[clientNum]) )
+        return (char *)LiveStorage_GetHostCACBuffer();
+    return (char *)svs.clients[clientNum].stats;
 }
 
 void __cdecl SV_CacheClientStatChange(unsigned int clientNum, ddlState_t *searchState)
@@ -357,8 +378,6 @@ unsigned int __cdecl SV_GetClientDIntStat(unsigned int clientNum, ddlState_t *se
         __debugbreak();
     }
 
-    iassert(0);
-
     if (svs.clients[clientNum].statPacketsReceived != ALL_STATS_PACKETS_RECEIVED)
     {
         return 0;
@@ -367,7 +386,7 @@ unsigned int __cdecl SV_GetClientDIntStat(unsigned int clientNum, ddlState_t *se
     if ( svs.clients[clientNum].header.state < CS_RECONNECTING)
         return 0;
     if ( xblive_basictraining->current.enabled || searchState->member->permission != 2 )
-        buffer = (char *)svs.clients[clientNum].stats;
+        buffer = SV_GetClientCACStats(clientNum);
     else
         buffer = (char *)svs.clients[clientNum].globalStats;
     if ( !svs.clients[clientNum].statsValidated )
@@ -404,7 +423,7 @@ char *__cdecl SV_GetClientDStringStat(unsigned int clientNum, ddlState_t *search
     iassert(svs.clients[clientNum].header.state >= CS_RECONNECTING);
 
     if ( xblive_basictraining->current.enabled || searchState->member->permission != 2 )
-        buffer = (char *)svs.clients[clientNum].stats;
+        buffer = SV_GetClientCACStats(clientNum);
     else
         buffer = (char *)svs.clients[clientNum].globalStats;
     if ( !svs.clients[clientNum].statsValidated )
@@ -420,7 +439,7 @@ char *__cdecl SV_GetClientDStringStat(unsigned int clientNum, ddlState_t *search
     return DDL_GetString(searchState, buffer);
 }
 
-unsigned int __cdecl SV_GetClientDInt64Stat(unsigned int clientNum, ddlState_t *searchState)
+unsigned __int64 __cdecl SV_GetClientDInt64Stat(unsigned int clientNum, ddlState_t *searchState)
 {
     ddlDef_t *StatsDDL; // eax
     char *buffer; // [esp+8h] [ebp-4Ch]
@@ -437,13 +456,11 @@ unsigned int __cdecl SV_GetClientDInt64Stat(unsigned int clientNum, ddlState_t *
         __debugbreak();
     }
 
-    iassert(0);
-
     iassert(svs.clients[clientNum].statPacketsReceived == ALL_STATS_PACKETS_RECEIVED);
     iassert(svs.clients[clientNum].header.state >= CS_RECONNECTING);
 
     if ( xblive_basictraining->current.enabled || searchState->member->permission != 2 )
-        buffer = (char *)svs.clients[clientNum].stats;
+        buffer = SV_GetClientCACStats(clientNum);
     else
         buffer = (char *)svs.clients[clientNum].globalStats;
     if ( !svs.clients[clientNum].statsValidated )
@@ -1349,8 +1366,29 @@ void __cdecl SV_SendClientGameState(client_t *client)
         }
     }
 
-    memset(client->stats, 0, sizeof(client->stats));
-    client->statPacketsReceived = ALL_STATS_PACKETS_RECEIVED;
+    // The stats arrive once per connection (the online service sent them,
+    // SV_DWReadClientCAC/SV_DWReadClientStats); from then on the server's copy is
+    // the newer one, kept across map changes.
+    if ( client->statPacketsReceived != ALL_STATS_PACKETS_RECEIVED )
+    {
+        if ( SV_ClientUsesHostStats(client) && LiveStorage_GetHostStats(client->stats, client->globalStats) )
+        {
+            Com_Printf(15, "Using the local stats of %s\n", client->name);
+        }
+        else
+        {
+            memset(client->stats, 0, sizeof(client->stats));
+            memset(client->globalStats, 0, sizeof(client->globalStats));
+        }
+        memcpy(client->globalStatsStable, client->globalStats, sizeof(client->globalStatsStable));
+        client->statsValidated = 0;
+        client->statPacketsReceived = ALL_STATS_PACKETS_RECEIVED;
+    }
+    if ( SV_ClientUsesHostStats(client) )
+    {
+        memset(client->purchasedItems, 0, sizeof(client->purchasedItems));
+        BG_UnlockablesSetPurchasedBits((unsigned __int8 *)SV_GetClientCACStats(client - svs.clients), client->purchasedItems);
+    }
 
     memset(&snapInfo, 0, sizeof(snapInfo));
     SV_SetServerStaticHeader();

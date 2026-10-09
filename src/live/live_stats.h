@@ -144,13 +144,13 @@ unsigned int __cdecl LiveStats_GetDIntStatFromBase(
                 int controllerIndex,
                 ddlState_t *searchState,
                 persistentStats *buffer);
-unsigned int __cdecl LiveStats_GetDInt64Stat(int controllerIndex, ddlState_t *searchState);
+unsigned __int64 __cdecl LiveStats_GetDInt64Stat(int controllerIndex, ddlState_t *searchState);
 char *__cdecl LiveStats_GetDStringStat(int controllerIndex, ddlState_t *searchState);
 char __cdecl LiveStats_GetIntPlayerStatInternal(int *outInt, int pathDepth, const char **statName, char *buffer);
 char __cdecl LiveStats_GetIntPlayerStatFromBase(int *outInt, const char *statName, char *base);
 char __cdecl LiveStats_GetIntPlayerStatFromForcedBase(int *outInt, const char *statName, char *base);
 unsigned int __cdecl LiveStats_GetDIntStatFromForcedBase(int controllerIndex, ddlState_t *searchState, char *buffer);
-unsigned int __cdecl LiveStats_GetDInt64StatFromForcedBase(int controllerIndex, ddlState_t *searchState, char *buffer);
+unsigned __int64 __cdecl LiveStats_GetDInt64StatFromForcedBase(int controllerIndex, ddlState_t *searchState, char *buffer);
 char *__cdecl LiveStats_GetDStringStatFromForcedBase(int controllerIndex, ddlState_t *searchState, char *buffer);
 char __cdecl LiveStats_GetIntPlayerStat(int controllerIndex, int *outInt, const char *statName);
 char __cdecl LiveStats_GetIntPlayerStatByGameMode(

@@ -331,7 +331,7 @@ void __cdecl PCache_SetProfileEmblem(
         __debugbreak();
     }
     PCache_Lock();
-    LODWORD(v4) = Live_GetXuid(controllerIndex);
+    v4 = Live_GetXuid(controllerIndex);
     xuid = v4;
     profile = (PCachePublicProfile *)PCache_GetComponent(controllerIndex, v4, 0);
     if ( (profile->c.state & 2) == 0

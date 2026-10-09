@@ -1325,7 +1325,7 @@ void __cdecl LiveContracts_ActivateContract(int controllerIndex, int index, unsi
     {
         LiveContracts_DeactivateContract(controllerIndex, activeContractIndex);
         Live_UserGetName(controllerIndex, gamertag, 32);
-        LODWORD(v3) = Live_GetXuid(controllerIndex);
+        v3 = Live_GetXuid(controllerIndex);
         xuid = v3;
         XUIDToString(&xuid, xuidString);
         ContractCost = LiveContracts_GetContractCost(index);

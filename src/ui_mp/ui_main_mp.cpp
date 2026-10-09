@@ -482,7 +482,7 @@ void __cdecl UI_GenerateHeatMapTexture(int controllerIndex)
         }
         else
         {
-            LODWORD(v2) = Live_GetXuid(controllerIndex);
+            v2 = Live_GetXuid(controllerIndex);
             xuid = v2;
         }
         MatchRecord_GenerateHeatMapData((unsigned __int8 *)heatmap, 0x10000, img->width, img->height, xuid);

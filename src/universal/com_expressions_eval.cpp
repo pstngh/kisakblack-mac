@@ -8439,7 +8439,7 @@ void __cdecl GetStatForFriendOrSelf(int localClientNum, itemDef_s *item, Operand
         else if ( searchState.member->type == 3 )
         {
             result.dataType = VAL_STRING;
-            LODWORD(v3) = LiveStats_GetDInt64StatFromForcedBase(controllerIndex, &searchState, (char *)buffer);
+            v3 = LiveStats_GetDInt64StatFromForcedBase(controllerIndex, &searchState, (char *)buffer);
             result.internals.intVal = (int)Ptr32_Encode(va("%llu", v3));
         }
         else

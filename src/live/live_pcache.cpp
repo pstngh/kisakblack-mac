@@ -456,7 +456,7 @@ void __cdecl PCache_BatchUpdatePlayerEmblems(int controllerIndex, PCachePlayerEm
     PCache_Lock();
     if ( bg_overridePlayerEmblemColor->modified || bg_overridePlayerEmblemIcon->modified )
     {
-        LODWORD(v4) = Live_GetXuid(controllerIndex);
+        v4 = Live_GetXuid(controllerIndex);
         emblem = (PCachePlayerEmblem *)PCache_GetComponent(controllerIndex, v4, 1u);
         if ( !emblem
             && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\live\\live_pcache.cpp", 471, 0, "%s", "emblem") )

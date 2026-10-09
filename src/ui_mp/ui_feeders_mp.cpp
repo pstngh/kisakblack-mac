@@ -1746,7 +1746,7 @@ const char *__cdecl UI_FeederItemText_AARScoreboard(
                 }
                 else
                 {
-                    LODWORD(v9) = Live_GetXuid(controllerIndex);
+                    v9 = Live_GetXuid(controllerIndex);
                     if ( currClientXuid == v9 )
                         *handle = Material_RegisterHandle("menu_mp_lobby_bar_party", 7);
                     else
@@ -2846,7 +2846,7 @@ bool __cdecl UI_FeederItemColor_InGamePlayers(
         result = 1;
         break;
     case 5:
-        LODWORD(v9) = Live_GetXuid(controllerIndex);
+        v9 = Live_GetXuid(controllerIndex);
         if (v9 == currClientXUID)
         {
             *color = playerColor[0];
@@ -3048,7 +3048,7 @@ bool __cdecl UI_FeederItemColor_AARScoreboard(
             MatchScoreboardInfo = CG_GetMatchScoreboardInfo(localClientNum, 0, index, TEAM_NUM_TEAMS);
             currClientXuid = I_atoi64(MatchScoreboardInfo);
             if (nemesisXuid && nemesisXuid == currClientXuid
-                || (LODWORD(v10) = Live_GetXuid(controllerIndex), currClientXuid == v10))
+                || (v10 = Live_GetXuid(controllerIndex), currClientXuid == v10))
             {
                 *color = item->window.foreColor[0];
                 color[1] = item->window.foreColor[1];

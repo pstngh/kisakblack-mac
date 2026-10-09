@@ -811,7 +811,7 @@ char __cdecl Expression_Parse(
                     i = atoi(token->token);
                     if ( fl == (float)i )
                     {
-                        v6 = Expression_Alloc(allocState, 16);
+                        v6 = Expression_Alloc(allocState, sizeof(expressionEntry));
                         v6->next = 0;
                         v6->type = 1;
                         v6->data.op = OP_NOOP;
@@ -820,7 +820,7 @@ char __cdecl Expression_Parse(
                     }
                     else
                     {
-                        v7 = Expression_Alloc(allocState, 16);
+                        v7 = Expression_Alloc(allocState, sizeof(expressionEntry));
                         v7->next = 0;
                         v7->type = 1;
                         v7->data.op = OP_RIGHTPAREN;
@@ -892,7 +892,7 @@ LABEL_39:
                     break;
             }
 LABEL_31:
-            v8 = Expression_Alloc(allocState, 16);
+            v8 = Expression_Alloc(allocState, sizeof(expressionEntry));
             v8->next = 0;
             v8->type = 0;
             v8->data.op = op;
@@ -945,7 +945,8 @@ expressionEntry *__cdecl Expression_Alloc(ExpressionAllocState *allocState, int 
 
     if ( allocState )
     {
-        sizea = (size + 3) & 0xFFFFFFFC;
+        // Entries hold a native pointer: keep them pointer-aligned (4 on i386, as before).
+        sizea = (size + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
         if ( allocState->size < sizea
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\universal\\com_expressions.cpp",
@@ -1007,7 +1008,7 @@ expressionEntry *__cdecl Expression_HashOperand(const char *str, ExpressionAlloc
 {
     expressionEntry *entry; // [esp+Ch] [ebp-4h]
 
-    entry = Expression_Alloc(alloc, 16);
+    entry = Expression_Alloc(alloc, sizeof(expressionEntry));
     entry->next = 0;
     entry->type = 1;
     entry->data.op = OP_NOOP;
@@ -1022,7 +1023,7 @@ expressionEntry *__cdecl Expression_StringOperand(const char *str, ExpressionAll
     const char *v5; // [esp+Ch] [ebp-18h]
     expressionEntry *entry; // [esp+20h] [ebp-4h]
 
-    entry = Expression_Alloc(alloc, strlen(str) + 17);
+    entry = Expression_Alloc(alloc, sizeof(expressionEntry) + strlen(str) + 1);
     entry->next = 0;
     entry->type = 1;
     entry->data.op = OP_MULTIPLY;

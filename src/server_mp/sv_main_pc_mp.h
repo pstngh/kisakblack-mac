@@ -24,6 +24,7 @@ const char *__cdecl SV_GetHostName();
 unsigned int __cdecl SV_GetClientCount();
 bool __cdecl SV_HasInfoChanged();
 bool __cdecl SV_IsServerRanked(int licensetype);
+bool __cdecl SV_IsLocalStatsServer();
 void __cdecl SV_MasterHeartbeat(int controllerIndex);
 void SV_ReadWhiteListfile();
 int SV_QuitIfNeeded();

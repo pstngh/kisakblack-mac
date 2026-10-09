@@ -1638,7 +1638,7 @@ void __cdecl BG_UnlockablesSetItemNew(int controllerIndex, int itemIndex)
     {
         v3 = va("%d", itemIndex);
         RootDDLState = LiveStats_GetRootDDLState();
-        if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v3) )
+        if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v3, "new") )
         {
             buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
             DDL_SetInt(&searchState, 1u, (char *)buffer);
@@ -1670,7 +1670,7 @@ void __cdecl SV_SetItemNewForClient(char *clientBuffer, int itemIndex, int clien
     {
         v5 = va("%d", itemIndex);
         RootDDLState = LiveStats_GetRootDDLState();
-        if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v5) )
+        if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v5, "new") )
             DDL_SetInt(&searchState, 1u, clientBuffer);
         else
             DDL_PrintError("DDL: Error could not find item %d\n", itemIndex);
@@ -1692,7 +1692,7 @@ bool __cdecl BG_UnlockablesIsItemNew(int controllerIndex, int itemIndex)
         return 0;
     v4 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4, "new") )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         return DDL_GetInt(&searchState, (char *)buffer) != 0;
@@ -1793,7 +1793,7 @@ char __cdecl BG_UnlockablesSetItemPurchased(int controllerIndex, int itemIndex, 
 
     v5 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v5) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v5, "purchased") )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         if ( DDL_SetInt(&searchState, isPurchased, (char *)buffer) )
@@ -1841,7 +1841,7 @@ void __cdecl BG_UnlockablesSellItem(int controllerIndex, int itemIndex)
                 buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
                 v4 = va("%d", itemIndex);
                 RootDDLState = LiveStats_GetRootDDLState();
-                if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4) )
+                if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4, "purchased") )
                 {
                     if ( DDL_SetInt(&searchState, 0, (char *)buffer) )
                     {
@@ -1914,7 +1914,7 @@ bool __cdecl BG_UnlockablesIsItemPurchasedFromBuffer(unsigned __int8 *statsBuffe
         return 1;
     v4 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4, "purchased") )
         return DDL_GetInt(&searchState, (char *)statsBuffer) != 0;
     DDL_PrintError("DDL: Error could not find item %d\n", itemIndex);
     return 0;
@@ -1953,7 +1953,7 @@ bool __cdecl BG_UnlockablesIsItemDualWieldPurchased(int controllerIndex, int ite
         return 1;
     v4 = va("%d", itemInfo->dwIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v4, "purchased") )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         return DDL_GetInt(&searchState, (char *)buffer) != 0;
@@ -2073,7 +2073,7 @@ void __cdecl BG_UnlockablesPurchaseItemAttachmentPoint(int controllerIndex, int 
                         currentCodPoints -= attachmentPointInfo->values.cost;
                         v4 = va("%d", itemIndex);
                         RootDDLState = LiveStats_GetRootDDLState();
-                        if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v4) )
+                        if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v4, "purchasedAttachPoints", attachmentPoint) )
                         {
                             buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
                             if ( DDL_SetInt(&searchState, 1u, (char *)buffer) )
@@ -2203,10 +2203,9 @@ char __cdecl BG_UnlockablesSetItemAttachmentPurchased(
     persistentStats *buffer; // [esp+0h] [ebp-18h]
     ddlState_t searchState; // [esp+8h] [ebp-10h] BYREF
 
-    va("%d", attachmentNum);
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6, "purchasedAttachments", va("%d", attachmentNum)) )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         if ( DDL_SetInt(&searchState, isPurchased, (char *)buffer) )
@@ -2291,7 +2290,7 @@ bool __cdecl BG_UnlockablesIsItemAttachmentPointPurchased(
         return 1;
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6, "purchasedAttachPoints", attachmentPoint) )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         return DDL_GetInt(&searchState, (char *)buffer) != 0;
@@ -2327,10 +2326,9 @@ bool __cdecl BG_UnlockablesIsItemAttachmentPurchased(int controllerIndex, int it
     ItemAttachment = BG_UnlockablesGetItemAttachment(itemIndex, attachmentNum);
     if ( !BG_GetAttachmentCost(ItemAttachment) )
         return 1;
-    va("%d", attachmentNum);
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6, "purchasedAttachments", va("%d", attachmentNum)) )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         return DDL_GetInt(&searchState, (char *)buffer) != 0;
@@ -2379,10 +2377,9 @@ bool __cdecl BG_UnlockablesIsItemOptionPurchased(int controllerIndex, int itemIn
         return 0;
     if ( !BG_GetWeaponOptionCost(optionIndex) )
         return 1;
-    va("%d", optionIndex);
     v5 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v5) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v5, "purchasedOptions", va("%d", optionIndex)) )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         return DDL_GetInt(&searchState, (char *)buffer) != 0;
@@ -2568,7 +2565,7 @@ void __cdecl BG_UnlockablesClearItemNew(int controllerIndex, int itemIndex)
         {
             v3 = va("%d", itemIndex);
             RootDDLState = LiveStats_GetRootDDLState();
-            if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v3) )
+            if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v3, "new") )
             {
                 buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
                 if ( !DDL_SetInt(&searchState, 0, (char *)buffer) )
@@ -3176,10 +3173,9 @@ char __cdecl BG_UnlockablesSetItemOptionPurchased(
     persistentStats *buffer; // [esp+0h] [ebp-18h]
     ddlState_t searchState; // [esp+8h] [ebp-10h] BYREF
 
-    va("%d", optionIndex);
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6, "purchasedOptions", va("%d", optionIndex)) )
     {
         buffer = LiveStorage_GetStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 1);
         if ( DDL_SetInt(&searchState, isPurchased, (char *)buffer) )
@@ -3256,7 +3252,7 @@ bool __cdecl SV_CacValidate_IsItemPurchased(unsigned __int8 *cacBuffer, int item
     }
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v6, "purchased") )
         return DDL_GetInt(&searchState, (char *)cacBuffer) != 0;
     DDL_PrintError("DDL: Error could not find item %d\n", itemIndex);
     return 0;
@@ -3287,10 +3283,9 @@ bool __cdecl SV_CACValidate_IsItemAttachmentPurchased(
     ItemAttachment = BG_UnlockablesGetItemAttachment(itemIndex, attachmentNum);
     if ( !BG_GetAttachmentCost(ItemAttachment) )
         return 1;
-    va("%d", attachmentNum);
     v8 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v8) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v8, "purchasedAttachments", va("%d", attachmentNum)) )
         return DDL_GetInt(&searchState, (char *)cacbuffer) != 0;
     DDL_PrintError("DDL: Error could not find item %d attachment %d\n", itemIndex, attachmentNum);
     return 0;
@@ -3329,10 +3324,9 @@ bool __cdecl SV_CACValidate_IsItemOptionPurchased(
         return 0;
     if ( !BG_GetWeaponOptionCost(optionIndex) )
         return 1;
-    va("%d", optionIndex);
     v7 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v7) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v7, "purchasedOptions", va("%d", optionIndex)) )
         return DDL_GetInt(&searchState, (char *)cacbuffer) != 0;
     DDL_PrintError("DDL: Error could not find item %d camo %d\n", itemIndex, optionIndex);
     return 0;
@@ -3410,7 +3404,7 @@ char __cdecl SV_CACValidate_SetItemPurchased(char *buffer, int itemIndex, bool i
 
     v5 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v5) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 3, "itemStats", v5, "purchased") )
     {
         if ( DDL_SetInt(&searchState, isPurchased, buffer) )
         {
@@ -3439,10 +3433,9 @@ char __cdecl SV_CACValidate_SetItemAttachmentPurchased(
     char *v6; // [esp-Ch] [ebp-20h]
     ddlState_t searchState; // [esp+4h] [ebp-10h] BYREF
 
-    va("%d", attachmentNum);
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6, "purchasedAttachments", va("%d", attachmentNum)) )
     {
         if ( DDL_SetInt(&searchState, isPurchased, buffer) )
         {
@@ -3467,10 +3460,9 @@ char __cdecl SV_CACValidate_SetItemOptionPurchased(char *buffer, int itemIndex, 
     char *v6; // [esp-Ch] [ebp-20h]
     ddlState_t searchState; // [esp+4h] [ebp-10h] BYREF
 
-    va("%d", optionIndex);
     v6 = va("%d", itemIndex);
     RootDDLState = LiveStats_GetRootDDLState();
-    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6) )
+    if ( DDL_MoveTo(RootDDLState, &searchState, 4, "weaponStats", v6, "purchasedOptions", va("%d", optionIndex)) )
     {
         if ( DDL_SetInt(&searchState, isPurchased, buffer) )
         {

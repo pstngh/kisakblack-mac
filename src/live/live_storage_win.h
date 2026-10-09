@@ -9,6 +9,19 @@ void LiveStorage_InitCustomClassesNames();
 void __cdecl LiveStorage_ReadStatsIfDirChanged();
 void __cdecl LiveStorage_UploadStats();
 void __cdecl LiveStorage_UploadStatsForController();
+void __cdecl LiveStorage_UploadStatsAfterMatch(int controllerIndex);
+void __cdecl LiveStorage_BeginGlobalStatsChange(int controllerIndex);
+void __cdecl LiveStorage_EndGlobalStatsChange(int controllerIndex);
+bool __cdecl LiveStorage_GetHostStats(unsigned __int8 *cacBuffer, unsigned __int8 *globalBuffer);
+unsigned __int8 *__cdecl LiveStorage_GetHostCACBuffer();
+bool __cdecl SV_ValidateClientCAC(
+                unsigned __int8 *oldcacblob,
+                int oldcacblobsize,
+                unsigned __int8 *newcacblob,
+                int newcacblobsize,
+                unsigned __int8 *globalblob,
+                int globalblobsize,
+                unsigned __int64 clientUID);
 void __cdecl CL_GetXP_f();
 void __cdecl LiveStorage_Init_Platform();
 void __cdecl LiveStorage_FetchPlaylistsLocal(int controllerIndex);

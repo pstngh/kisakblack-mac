@@ -81,6 +81,8 @@ char __cdecl LiveStorage_Init();
 void __cdecl LiveStorage_RestoreStatsFromBackupCmd();
 
 
+extern playerNetworkData controllerNetworkData[1];
+
 extern const dvar_t *stat_version;
 extern const dvar_t *stats_version_check;
 extern const dvar_t *waitOnStatsTimeout;

@@ -711,7 +711,7 @@ char *__cdecl Dvar_InfoString(int localClientNum, int bit)
         if ( Live_IsSignedInToLive() )
         {
             PCache_Lock();
-            LODWORD(v3) = Live_GetXuid(index);
+            v3 = Live_GetXuid(index);
             profile = (PCachePublicProfile *)PCache_GetComponent(index, v3, 0);
             if ( PCache_TouchComponent(&profile->c) )
             {
@@ -979,8 +979,8 @@ void __cdecl Dvar_SetFromLocalizedStr_f()
 {
     const char *v0; // eax
     const char *v1; // eax
-    char combined; // [esp+24h] [ebp-1010h] BYREF
-    char pszInputBuffer[4099]; // [esp+25h] [ebp-100Fh] BYREF
+    // One buffer: the decompile split off its first character (the '@').
+    char combined[4100]; // [esp+24h] [ebp-1010h] BYREF
     char *dvarName; // [esp+102Ch] [ebp-8h]
     char *src; // [esp+1030h] [ebp-4h]
 
@@ -989,18 +989,18 @@ void __cdecl Dvar_SetFromLocalizedStr_f()
         dvarName = (char *)Cmd_Argv(1);
         if ( Dvar_IsValidName(dvarName) )
         {
-            Dvar_GetCombinedString(&combined, 2);
-            if ( combined == 64 )
+            Dvar_GetCombinedString(combined, 2);
+            if ( combined[0] == 64 )
             {
-                src = SEH_LocalizeTextMessage(pszInputBuffer, "dvar string", LOCMSG_NOERR);
+                src = SEH_LocalizeTextMessage(&combined[1], "dvar string", LOCMSG_NOERR);
                 if ( src )
                 {
                     if ( *src )
-                        I_strncpyz(&combined, src, 4096);
+                        I_strncpyz(combined, src, 4096);
                 }
             }
             v1 = Cmd_Argv(1);
-            Dvar_SetCommand(v1, &combined);
+            Dvar_SetCommand(v1, combined);
         }
         else
         {

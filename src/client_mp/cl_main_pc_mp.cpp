@@ -969,6 +969,9 @@ char __cdecl CL_PrestigeRequest()
     if ( LiveStats_WritePrestigeToStats(0) )
     {
         Com_DPrintf(14, "Prestige incremented!\n");
+        // CL_CACValidateRequest_f: validating the classes applies the prestige to the
+        // global stats (offline, live_storage_win.cpp).
+        LiveStorage_UploadStats();
         return 1;
     }
     else

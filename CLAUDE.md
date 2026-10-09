@@ -49,6 +49,10 @@ Without Steam any client is accepted (stubs_online.cpp). The engine keeps at mos
 32 `+` commands from the command line and silently drops the rest (`com_consoleLines`). Two processes need
 `perl -e 'alarm ...'` each, or kill them yourself; leftover servers keep the port.
 
+Offline stats (rank, unlocks, custom classes) live in `<home>/players/mpstats.dat`;
+the home path dvar is `fs_h` (defaults to the base path, i.e. the user's real
+profile). Test runs that touch stats should pass `+set fs_h <scratch dir>`.
+
 Playing without a keyboard: `KB_CMDS` runs console commands at times (seconds) after
 the client becomes active in a map (again after each map change), `|`-separated;
 entries after `loop@<start>/<period>` repeat. `+set scr_tdm_timelimit 1` ends a
