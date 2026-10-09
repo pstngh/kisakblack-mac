@@ -8,6 +8,8 @@
 #include <map>
 #include <mutex>
 #include <unordered_map>
+#include <algorithm>
+#include <vector>
 
 void *const *g_ptr32Handles;
 uint32_t g_ptr32HandleCount;
@@ -239,6 +241,25 @@ uint32_t Ptr32_EncodeSlow(const void *p)
 
     std::lock_guard<std::mutex> lock(HandleMutex());
     static std::unordered_map<const void *, uint32_t> s_handles;
+    // KB_PTR32STATS=1: count slow-path encodes per call site, print the top ones
+    // (symbolize with atos) every 1M calls.
+    static int s_stats = getenv("KB_PTR32STATS") ? 1 : 0;
+    if (s_stats)
+    {
+        static std::unordered_map<void *, uint64_t> s_sites;
+        static uint64_t s_calls;
+        ++s_sites[__builtin_return_address(0)];
+        if (!(++s_calls & 0x3FFF))
+        {
+            std::vector<std::pair<uint64_t, void *>> top;
+            for (auto &kv : s_sites)
+                top.push_back({kv.second, kv.first});
+            std::sort(top.rbegin(), top.rend());
+            fprintf(stderr, "ptr32: %llu slow encodes, %u handles; top sites:\n", (unsigned long long)s_calls, g_ptr32HandleCount);
+            for (size_t i = 0; i < top.size() && i < 12; ++i)
+                fprintf(stderr, "  %p %llu\n", top[i].second, (unsigned long long)top[i].first);
+        }
+    }
     auto it = s_handles.find(p);
     if (it != s_handles.end())
         return it->second;

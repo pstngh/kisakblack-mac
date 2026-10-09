@@ -77,7 +77,7 @@ devguiGlob_t *__cdecl DevGui_GetMenu(unsigned __int16 handle)
     {
         __debugbreak();
     }
-    return (devguiGlob_t *)((char *)&devguiGlob + 40 * handle - 40);
+    return (devguiGlob_t *)((char *)&devguiGlob + sizeof(DevMenuItem) * handle - sizeof(DevMenuItem));
 }
 
 unsigned __int16 __cdecl DevGui_ConstructPath_r(unsigned __int16 parent, const char *path)
@@ -182,8 +182,8 @@ unsigned __int16 __cdecl DevGui_GetMenuHandle(DevMenuItem *menu)
 {
     unsigned __int16 handle; // [esp+0h] [ebp-4h]
 
-    handle = ((char *)menu - (char *)&devguiGlob) / 40 + 1;
-    if ( ((unsigned __int16)(((char *)menu - (char *)&devguiGlob) / 40) == 0xFFFF || handle > 0x800u)
+    handle = ((char *)menu - (char *)&devguiGlob) / sizeof(DevMenuItem) + 1;
+    if ( ((unsigned __int16)(((char *)menu - (char *)&devguiGlob) / sizeof(DevMenuItem)) == 0xFFFF || handle > 0x800u)
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\devgui\\devgui.cpp",
                     233,
@@ -195,7 +195,7 @@ unsigned __int16 __cdecl DevGui_GetMenuHandle(DevMenuItem *menu)
     {
         __debugbreak();
     }
-    return ((char *)menu - (char *)&devguiGlob) / 40 + 1;
+    return ((char *)menu - (char *)&devguiGlob) / sizeof(DevMenuItem) + 1;
 }
 
 int __cdecl DevGui_CompareMenus(const DevMenuItem *menu0, const DevMenuItem *menu1)
@@ -616,9 +616,9 @@ bool __cdecl DevGui_EditableMenuItem(const DevMenuItem *menu)
         return 1;
     if ( menu->childType != 1 )
         return 0;
-    if ( *((unsigned int *)menu->child.command + 4) == 7 )
+    if ( menu->child.dvar->type == DVAR_TYPE_STRING )
         return 0;
-    return *((unsigned int *)menu->child.command + 4) != 6 || *((unsigned int *)menu->child.command + 22);
+    return menu->child.dvar->type != DVAR_TYPE_ENUM || menu->child.dvar->domain.enumeration.stringCount;
 }
 
 void __cdecl DevGui_Draw(int localClientNum)
@@ -1539,12 +1539,7 @@ void __cdecl DevGui_DrawGraph(const DevMenuItem *menu, int localClientNum)
     knot[0] = *v3;
     knot[1] = v3[1];
     if ( graph->textCallback )
-        ((void (__cdecl *)(DevGraph *, unsigned int, unsigned int, char *, int))graph->textCallback)(
-            graph,
-            LODWORD(knot[0]),
-            LODWORD(knot[1]),
-            text,
-            256);
+        graph->textCallback(graph, knot[0], knot[1], text, 256);
     else
         sprintf(text, "X: %.4f, Y: %.4f", knot[0], knot[1]);
     DevGui_DrawFont(x, y, (const unsigned __int8 *)&devgui_colorText->current, text, 1.0, 1.0);
@@ -2097,11 +2092,8 @@ void __cdecl DevGui_Accept(int localClientNum)
         case 3u:
             devguiGlob.editingMenuItem = !devguiGlob.editingMenuItem;
             devguiGlob.selRow = 0;
-            if ( menu->menus[0].child.command && *((unsigned int *)menu->menus[0].child.command + 4) )
-                (*((void (__cdecl **)(DevMenuChild, unsigned int, int))menu->menus[0].child.command + 4))(
-                    menu->menus[0].child,
-                    0,
-                    localClientNum);
+            if ( menu->menus[0].child.graph && menu->menus[0].child.graph->eventCallback )
+                menu->menus[0].child.graph->eventCallback(menu->menus[0].child.graph, EVENT_ACTIVATE, localClientNum);
             break;
         default:
             if ( !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\devgui\\devgui.cpp", 1850, 1, "unhandled case") )

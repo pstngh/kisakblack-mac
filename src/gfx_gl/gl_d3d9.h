@@ -175,12 +175,13 @@ public:
 private:
     bool applyTextures();         // bind stage-0 texture + sampler state; returns true if sampling
     void applyStageSampler(unsigned stage, unsigned target); // apply stage's filter/wrap to bound tex
-    GLSurface *backBufferSurface(); // lazily create the back-buffer surface (FBO 0 view)
+    GLSurface *backBufferSurface(); // lazily create the back-buffer surface (bbFbo_ view)
     // Attach a correctly-sized auto depth-stencil renderbuffer to the live FBO and
     // GUARANTEE completeness (color-only last resort). Used wherever a DS attach left
     // the FBO incomplete — a stale or broken depth attachment otherwise no-ops every
     // draw of the pass = the scene goes (and stays) black.
     void kbRestoreAutoDepth(int w, int h);
+    void resetViewportToTarget();   // D3D9 SetRenderTarget: full-target viewport and scissor
     // Guarantee the live custom FBO is COMPLETE by giving its colour texture renderable,
     // RT-sized storage (RGBA16F HDR, then RGBA8) — done once per (texture,size). Some RT
     // textures reach SetRenderTarget without renderable storage (wrong usage flag,
@@ -194,16 +195,30 @@ private:
     int  fbHeight_  = 0;
     int  bbWidth_   = 0;   // back-buffer dimensions (restored when RT is unset)
     int  bbHeight_  = 0;
+    int  vpWidth_   = 1;   // current viewport size (the half-pixel offset is relative to it)
+    int  vpHeight_  = 1;
     unsigned fbo_       = 0;  // reused FBO for render-to-texture
     unsigned fboDepth_  = 0;  // its depth-stencil renderbuffer
     int      fboDepthW_ = 0;
     int      fboDepthH_ = 0;
     bool inScene_   = false;
 
-    // Back buffer / swap chain — the window's default framebuffer (FBO 0),
-    // exposed to the renderer through GetBackBuffer()/GetSwapChain().
+    // Back buffer / swap chain, exposed to the renderer through
+    // GetBackBuffer()/GetSwapChain(). The back buffer is an offscreen FBO, not the
+    // window: every target is rendered with D3D's row order (row 0 = top), so render
+    // targets sample the right way up with D3D texture coordinates and blits between
+    // them need no flip. Present copies it to the window upside down.
     GLSurface   *backBuffer_ = nullptr;  // owned
     GLSwapChain *swapChain_  = nullptr;  // owned
+    unsigned bbFbo_     = 0;
+    unsigned bbColorRb_ = 0;
+    unsigned bbDepthRb_ = 0;
+    int      bbFboW_    = 0;
+    int      bbFboH_    = 0;
+public:
+    unsigned backbufferFbo();     // create or resize the back-buffer FBO; returns its name
+    unsigned curFbo() { return fboActive_ ? fbo_ : backbufferFbo(); }   // the live render target's FBO
+private:
 
     unsigned vao_                 = 0;
     unsigned builtinProg_         = 0;
@@ -328,6 +343,8 @@ private:
                            int lmLayerLoc = -1; float upLmLayer = -999.0f;
                            // ?matarray: location + last value of uMatLayer (per-draw bucket layer).
                            int matLayerLoc = -1; float upMatLayer = -999.0f;
+                           // kbPosFixup (the D3D9 half-pixel offset): location + last value.
+                           int posFixupLoc = -1; float upPosFixup[2] = { 0.0f, 0.0f };
                            // Versions of the constant arrays last uploaded to this
                            // program — constants change per material/pass, not per
                            // draw, so most of the per-draw glUniform4fv pairs (the

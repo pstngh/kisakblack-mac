@@ -263,6 +263,7 @@ bool GLDevice::finalizeProgram(LinkedProgram &lp) {
         }
         return 0;
     };
+    lp.posFixupLoc = KB_glGetUniformLocation(lp.prog, "kbPosFixup");
     lp.vscCount = arraySize(lp.vscLoc, "vsc");
     lp.pscCount = arraySize(lp.pscLoc, "psc");
 #ifdef KB_GL_MODERN_GLSL
@@ -437,6 +438,14 @@ bool GLDevice::useDrawProgram() {
         }
 #else
         glUseProgram(lp.prog); curProgram_ = lp.prog;
+        if (!lp.bindOk) {
+            // Sampler sN reads unit N. Left at the default 0, a cube or 3D sampler shares
+            // unit 0 with a 2D one and the draw fails with GL_INVALID_OPERATION (the lit
+            // world and model passes).
+            lp.bindOk = true;
+            for (int i = 0; i < kMaxStages; ++i)
+                if (lp.samplerLoc[i] >= 0) glUniform1i(lp.samplerLoc[i], i);
+        }
 #endif
     }
     if (lp.vscLoc >= 0 && lp.vscCount > 0 && lp.upVsVer != vsVer_) {
@@ -473,6 +482,14 @@ bool GLDevice::useDrawProgram() {
     if (lp.upVsVer == vsVer_) { vsDirtyMin_ = 256; vsDirtyMax_ = 0; vsDirtyBaseVer_ = vsVer_; }
     if (lp.upPsVer == psVer_) { psDirtyMin_ = 256; psDirtyMax_ = 0; psDirtyBaseVer_ = psVer_; }
 #endif
+
+    if (lp.posFixupLoc >= 0) {
+        float fx = 1.0f / (float)vpWidth_, fy = 1.0f / (float)vpHeight_;
+        if (lp.upPosFixup[0] != fx || lp.upPosFixup[1] != fy) {
+            glUniform4f(lp.posFixupLoc, fx, fy, 0.0f, 0.0f);
+            lp.upPosFixup[0] = fx; lp.upPosFixup[1] = fy;
+        }
+    }
 
 #ifdef KB_GL_MODERN_GLSL
     // Feed the in-shader alpha test. uAlphaTestFunc carries the D3DCMP_* value

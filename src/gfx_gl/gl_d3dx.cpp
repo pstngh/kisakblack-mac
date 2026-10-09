@@ -2,8 +2,8 @@
 // uses (declared in <d3dx9.h>). Screenshot save + a shader-bytecode buffer.
 //
 // D3DXSaveSurfaceToFileA reads a surface back via an FBO and writes it out; only
-// uncompressed TGA is produced today (the game's screenshot path), and TGA's BGRA
-// bottom-up layout matches GL readback. Shader reflection / HLSL compilation
+// uncompressed TGA is produced today (the game's screenshot path). Surfaces hold
+// D3D's row order (top row first), written as a top-down TGA. Shader reflection / HLSL compilation
 // (D3DXGetShaderConstantTable, D3DXCompileShader) are not implemented: the game
 // ships compiled bytecode, and the bytecode→GLSL translator already recovers the
 // constant model. They return E_NOTIMPL with a clear marker.
@@ -40,6 +40,8 @@ bool ReadSurfaceBGRA(GLSurface *s, int w, int h, std::vector<unsigned char> &out
         return true;
     }
     out.assign((size_t)w * h * 4, 0);
+    GLint prevRead = 0;
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevRead);
     GLuint fbo = 0;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
@@ -49,7 +51,7 @@ bool ReadSurfaceBGRA(GLSurface *s, int w, int h, std::vector<unsigned char> &out
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     ++g_kbReadbacks;
     glReadPixels(0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, out.data());
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)prevRead);
     glDeleteFramebuffers(1, &fbo);
     return true;
 }
@@ -80,7 +82,7 @@ HRESULT WINAPI D3DXSaveSurfaceToFileA(const char *pDestFile, D3DXIMAGE_FILEFORMA
     hdr[2]  = 2;
     hdr[12] = (unsigned char)(w & 0xFF); hdr[13] = (unsigned char)((w >> 8) & 0xFF);
     hdr[14] = (unsigned char)(h & 0xFF); hdr[15] = (unsigned char)((h >> 8) & 0xFF);
-    hdr[16] = 32; hdr[17] = 8;
+    hdr[16] = 32; hdr[17] = 8 | 0x20;   // 8 alpha bits, top-left origin
     fwrite(hdr, 1, 18, f);
     fwrite(bgra.data(), 1, bgra.size(), f);
     fclose(f);

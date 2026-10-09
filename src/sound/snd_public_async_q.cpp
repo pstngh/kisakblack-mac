@@ -1,5 +1,6 @@
 #include "snd_public_async_q.h"
 
+#include <atomic>
 #include <cstring>
 #include <win32/win_common.h>
 #include <qcommon/common.h>
@@ -63,6 +64,7 @@ snd_command *__cdecl SND_GetNewCommand()
     }
     else
     {
+        std::atomic_thread_fence(std::memory_order_acquire);   // pairs with SND_CommandPop's release
         cmd = &g_snd.commands[g_snd.command_free];
         g_snd.command_free = SND_NextCommandIndex(g_snd.command_free);
     }
@@ -130,7 +132,12 @@ unsigned int __cdecl SND_CommandPush(snd_command *cmd)
     {
         __debugbreak();
     }
+    // The queues are lock-free on the consumer side (SND_CommandPump runs on a job
+    // worker). x86 keeps stores in order; arm64 needs these fences so the consumer
+    // never sees a head before the slot and the command it publishes, and a slot is
+    // reused only after the consumer is done with it.
     id = g_snd.command_id++;
+    std::atomic_thread_fence(std::memory_order_acquire);   // the tail read below pairs with SND_CommandPop
     if ( SND_NextCommandIndex(g_snd.command_q_head) == g_snd.command_q_tail )
     {
         Com_PrintError(9, "Failed to push sound command: queue is full\n");
@@ -152,6 +159,7 @@ unsigned int __cdecl SND_CommandPush(snd_command *cmd)
         }
         cmd->timestamp = Sys_Milliseconds();
         g_snd.command_q[g_snd.command_q_head] = cmd;
+        std::atomic_thread_fence(std::memory_order_release);
         g_snd.command_q_head = SND_NextCommandIndex(g_snd.command_q_head);
         if ( g_snd.command_q_head < g_snd.command_q_tail )
             SND_LogCommandQHWM(g_snd.command_q_head + 1024 - g_snd.command_q_tail);
@@ -196,8 +204,8 @@ const snd_command *__cdecl SND_CommandPeek()
     }
     if ( g_snd.command_q_tail == g_snd.command_q_head )
         return 0;
-    else
-        return g_snd.command_q[g_snd.command_q_tail];
+    std::atomic_thread_fence(std::memory_order_acquire);   // pairs with SND_CommandPush's release
+    return g_snd.command_q[g_snd.command_q_tail];
 }
 
 void __cdecl SND_CommandPop()
@@ -252,8 +260,10 @@ void __cdecl SND_CommandPop()
     {
         __debugbreak();
     }
+    std::atomic_thread_fence(std::memory_order_release);   // done reading the command before freeing it
     g_snd.command_q[g_snd.command_q_tail]->type = SND_COMMAND_NOP;
     g_snd.command_q[g_snd.command_q_tail] = 0;
+    std::atomic_thread_fence(std::memory_order_release);
     g_snd.command_q_tail = SND_NextCommandIndex(g_snd.command_q_tail);
 }
 
@@ -566,6 +576,7 @@ snd_notify *__cdecl SND_GetNewNotify()
     }
     else
     {
+        std::atomic_thread_fence(std::memory_order_acquire);   // pairs with SND_NotifyPop's release
         cmd = &g_snd.notifies[g_snd.notify_free];
         g_snd.notify_free = SND_NextNotifyIndex(g_snd.notify_free);
     }
@@ -644,6 +655,7 @@ void __cdecl SND_NotifyPush(snd_notify *cmd)
     }
     if (SND_NextNotifyIndex(g_snd.notify_q_head) != g_snd.notify_q_tail)
     {
+        std::atomic_thread_fence(std::memory_order_acquire);   // same scheme as SND_CommandPush
         if (g_snd.notify_q[g_snd.notify_q_head]
             && !Assert_MyHandler(
                 "C:\\projects_pc\\cod\\codsrc\\src\\sound\\snd_public_async_q.cpp",
@@ -655,6 +667,7 @@ void __cdecl SND_NotifyPush(snd_notify *cmd)
             __debugbreak();
         }
         g_snd.notify_q[g_snd.notify_q_head] = cmd;
+        std::atomic_thread_fence(std::memory_order_release);
         g_snd.notify_q_head = SND_NextNotifyIndex(g_snd.notify_q_head);
         if (g_snd.notify_q_head < g_snd.notify_q_tail)
             SND_LogNotifyQHWM(g_snd.notify_q_head + 512 - g_snd.notify_q_tail);
@@ -700,8 +713,8 @@ const snd_notify *__cdecl SND_NotifyPeek()
     }
     if ( g_snd.notify_q_tail == g_snd.notify_q_head )
         return 0;
-    else
-        return g_snd.notify_q[g_snd.notify_q_tail];
+    std::atomic_thread_fence(std::memory_order_acquire);   // pairs with SND_NotifyPush's release
+    return g_snd.notify_q[g_snd.notify_q_tail];
 }
 
 void __cdecl SND_NotifyPop()
@@ -746,8 +759,10 @@ void __cdecl SND_NotifyPop()
     {
         __debugbreak();
     }
+    std::atomic_thread_fence(std::memory_order_release);   // done reading the notify before freeing it
     g_snd.notify_q[g_snd.notify_q_tail]->type = SND_NOTIFY_NOP;
     g_snd.notify_q[g_snd.notify_q_tail] = 0;
+    std::atomic_thread_fence(std::memory_order_release);
     g_snd.notify_q_tail = SND_NextNotifyIndex(g_snd.notify_q_tail);
 }
 

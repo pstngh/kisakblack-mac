@@ -101,7 +101,12 @@ static void FillDefaultCaps(D3DCAPS9 *c) {
 // GLDevice
 // ---------------------------------------------------------------------------
 GLDevice::GLDevice(GLContext *ctx, int width, int height)
-    : ctx_(ctx), fbWidth_(width), fbHeight_(height), bbWidth_(width), bbHeight_(height) {}
+    : ctx_(ctx), fbWidth_(width), fbHeight_(height), bbWidth_(width), bbHeight_(height) {
+    // The context is current here (GLD3D9::CreateDevice): start on the back buffer,
+    // as a D3D device does.
+    glBindFramebuffer(GL_FRAMEBUFFER, backbufferFbo());
+    glViewport(0, 0, width, height);
+}
 
 GLDevice::~GLDevice() {
     if (swapChain_)   swapChain_->Release();   // swap chain references the back buffer; drop it first
@@ -110,7 +115,37 @@ GLDevice::~GLDevice() {
     if (vao_)         glDeleteVertexArrays(1, &vao_);
     if (fbo_)         glDeleteFramebuffers(1, &fbo_);
     if (fboDepth_)    glDeleteRenderbuffers(1, &fboDepth_);
+    if (bbFbo_)       glDeleteFramebuffers(1, &bbFbo_);
+    if (bbColorRb_)   glDeleteRenderbuffers(1, &bbColorRb_);
+    if (bbDepthRb_)   glDeleteRenderbuffers(1, &bbDepthRb_);
     delete ctx_;
+}
+
+unsigned GLDevice::backbufferFbo() {
+    if (bbFbo_ && bbFboW_ == bbWidth_ && bbFboH_ == bbHeight_)
+        return bbFbo_;
+    GLint prevFbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFbo);
+    if (!bbFbo_) {
+        glGenFramebuffers(1, &bbFbo_);
+        glGenRenderbuffers(1, &bbColorRb_);
+        glGenRenderbuffers(1, &bbDepthRb_);
+    }
+    glBindRenderbuffer(GL_RENDERBUFFER, bbColorRb_);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, bbWidth_, bbHeight_);
+    glBindRenderbuffer(GL_RENDERBUFFER, bbDepthRb_);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, bbWidth_, bbHeight_);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, bbFbo_);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bbColorRb_);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, bbDepthRb_);
+    unsigned st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (st != GL_FRAMEBUFFER_COMPLETE)
+        fprintf(stderr, "[gl] back-buffer FBO %dx%d incomplete: 0x%x\n", bbWidth_, bbHeight_, st);
+    bbFboW_ = bbWidth_; bbFboH_ = bbHeight_;
+    // A resize while the back buffer is bound must leave it bound.
+    glBindFramebuffer(GL_FRAMEBUFFER, (unsigned)prevFbo == bbFbo_ || !fboActive_ ? bbFbo_ : (unsigned)prevFbo);
+    return bbFbo_;
 }
 
 void GLDevice::kbEnsureRTComplete(unsigned tex, int w, int h) {
@@ -182,6 +217,16 @@ void GLDevice::kbRestoreAutoDepth(int w, int h) {
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
 }
 
+// D3D9's SetRenderTarget(0, ..) sets the viewport to the whole new target (depth 0..1)
+// and resets the scissor rect to it; the renderer relies on that and does not
+// re-issue SetViewport for full-target post passes.
+void GLDevice::resetViewportToTarget() {
+    glViewport(0, 0, fbWidth_, fbHeight_);
+    vpWidth_ = fbWidth_; vpHeight_ = fbHeight_;
+    KB_glDepthRange(0.0, 1.0);
+    glScissor(0, 0, fbWidth_, fbHeight_);
+}
+
 HRESULT WINAPI GLDevice::SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurface9 *pRenderTarget) {
     KB_FlushTagged(11);
     KB_OpTag("setRT", (unsigned)(uintptr_t)pRenderTarget, 0, 0);
@@ -189,12 +234,13 @@ HRESULT WINAPI GLDevice::SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurfa
     GLSurface *s = static_cast<GLSurface *>(pRenderTarget);
     if (g_kbTrace) fprintf(stderr, "[trace] SetRT %p bb=%d %ux%u tex=%u ds=%p\n", (void *)s, s ? (int)s->isBackbuffer() : -1,
                            s ? s->width() : 0, s ? s->height() : 0, s ? s->texName() : 0, (void *)curDS_);
-    // A null target, or the back-buffer surface itself, means the default framebuffer.
+    // A null target, or the back-buffer surface itself, means the back buffer.
     if (!s || s->isBackbuffer()) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         fboActive_ = false;
+        glBindFramebuffer(GL_FRAMEBUFFER, backbufferFbo());
         dsLive_ = false;
         fbWidth_ = bbWidth_; fbHeight_ = bbHeight_;
+        resetViewportToTarget();
         return D3D_OK;
     }
     if (!fbo_) glGenFramebuffers(1, &fbo_);
@@ -246,7 +292,9 @@ HRESULT WINAPI GLDevice::SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurfa
         }
         if (dsAttached) {
             extern unsigned long g_kbShadowFbo; ++g_kbShadowFbo;
-            dsLive_ = true; fbWidth_ = w; fbHeight_ = h; return D3D_OK;
+            dsLive_ = true; fbWidth_ = w; fbHeight_ = h;
+            resetViewportToTarget();
+            return D3D_OK;
         }
     }
     dsLive_ = false;
@@ -263,6 +311,7 @@ HRESULT WINAPI GLDevice::SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurfa
     }
 
     fbWidth_ = w; fbHeight_ = h;
+    resetViewportToTarget();
 #if defined(__EMSCRIPTEN__)
     // Completeness check on EVERY custom RT bind (not just the shadow-DS path): an
     // incomplete scene FBO silently no-ops every draw of the pass = the scene goes
@@ -365,8 +414,13 @@ HRESULT WINAPI GLDevice::SetDepthStencilSurface(IDirect3DSurface9 *pNewZStencil)
 
 HRESULT WINAPI GLDevice::Reset(D3DPRESENT_PARAMETERS *pp) {
     if (pp && pp->BackBufferWidth && pp->BackBufferHeight) {
-        fbWidth_  = (int)pp->BackBufferWidth;
-        fbHeight_ = (int)pp->BackBufferHeight;
+        bbWidth_  = (int)pp->BackBufferWidth;
+        bbHeight_ = (int)pp->BackBufferHeight;
+        if (backBuffer_) backBuffer_->setSize((UINT)bbWidth_, (UINT)bbHeight_);
+        fboActive_ = false;
+        glBindFramebuffer(GL_FRAMEBUFFER, backbufferFbo());
+        fbWidth_ = bbWidth_; fbHeight_ = bbHeight_;
+        resetViewportToTarget();
         if (ctx_) ctx_->Resize(fbWidth_, fbHeight_);
     }
     return D3D_OK;
@@ -382,32 +436,30 @@ int g_kbTrace = 0;
 // needs the console, and `+wait` on the command line runs out during loading.
 // Write the default framebuffer's back buffer to <path> as a 32-bit TGA (alpha forced
 // opaque). Restores the read framebuffer and read buffer.
-void KB_WriteBackbufferTGA(const char *path, int w, int h) {
+void KB_WriteBackbufferTGA(unsigned fbo, const char *path, int w, int h) {
     std::vector<unsigned char> px((size_t)w * h * 4);
-    GLint oldFbo = 0, oldReadBuffer = 0;
+    GLint oldFbo = 0;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldFbo);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    glGetIntegerv(GL_READ_BUFFER, &oldReadBuffer);
-    glReadBuffer(GL_BACK);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px.data());
-    glReadBuffer(oldReadBuffer);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, oldFbo);
     for (size_t i = 3; i < px.size(); i += 4) px[i] = 0xFF;
 
     FILE *f = fopen(path, "wb");
     if (!f) return;
-    unsigned char hdr[18] = {0};   // uncompressed true-colour, 32bpp BGRA, bottom-up
+    unsigned char hdr[18] = {0};   // uncompressed true-colour, 32bpp BGRA, rows top-down
     hdr[2]  = 2;
     hdr[12] = (unsigned char)(w & 0xFF); hdr[13] = (unsigned char)((w >> 8) & 0xFF);
     hdr[14] = (unsigned char)(h & 0xFF); hdr[15] = (unsigned char)((h >> 8) & 0xFF);
-    hdr[16] = 32; hdr[17] = 8;
+    hdr[16] = 32; hdr[17] = 8 | 0x20;
     fwrite(hdr, 1, sizeof(hdr), f);
     fwrite(px.data(), 1, px.size(), f);
     fclose(f);
 }
 
-static void KB_MaybeScreenshot(int w, int h) {
+static void KB_MaybeScreenshot(unsigned fbo, int w, int h) {
     static const char *dir = getenv("KB_SCREENSHOT");
     if (!dir || w <= 0 || h <= 0) return;
     static int every = [] { const char *e = getenv("KB_SCREENSHOT_EVERY"); int n = e ? atoi(e) : 0; return n > 0 ? n : 300; }();
@@ -416,7 +468,7 @@ static void KB_MaybeScreenshot(int w, int h) {
 
     char path[1024];
     snprintf(path, sizeof(path), "%s/present_%06lu.tga", dir, presents);
-    KB_WriteBackbufferTGA(path, w, h);
+    KB_WriteBackbufferTGA(fbo, path, w, h);
     extern unsigned long g_kbDraws, g_kbBuiltinFall, g_kbSkipPending, g_kbProgLinks, g_kbBlits;
     static unsigned long lastDraws, lastFall, lastSkip;
     fprintf(stderr, "[gl] wrote %s (since last: draws=%lu builtinFall=%lu skipPending=%lu; links=%lu blits=%lu)\n", path,
@@ -427,8 +479,9 @@ static void KB_MaybeScreenshot(int w, int h) {
 
 HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA *) {
     KB_FlushTagged(11);
+    unsigned bb = backbufferFbo();
 #if !defined(__EMSCRIPTEN__)
-    KB_MaybeScreenshot(fbWidth_, fbHeight_);
+    KB_MaybeScreenshot(bb, bbWidth_, bbHeight_);
     {
         static const char *traceList = getenv("KB_TRACEFRAME");   // comma-separated present numbers
         static long presentNo;
@@ -443,7 +496,21 @@ HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA
         }
     }
 #endif
+    // The back buffer holds D3D row order (top row first); the window wants GL's.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, bb);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+#if defined(__EMSCRIPTEN__)
+    const GLenum back = GL_BACK;
+    glDrawBuffers(1, &back);
+#else
+    glDrawBuffer(GL_BACK);
+#endif
+    if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // blits are scissored
+    glBlitFramebuffer(0, 0, bbWidth_, bbHeight_, 0, bbHeight_, bbWidth_, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    if (scissorOn_) glEnable(GL_SCISSOR_TEST);
     if (ctx_) ctx_->SwapBuffers();
+    glBindFramebuffer(GL_FRAMEBUFFER, curFbo());
     return D3D_OK;
 }
 
@@ -488,21 +555,10 @@ HRESULT WINAPI GLDevice::SetViewport(const D3DVIEWPORT9 *vp) {
     if (!vp) return E_INVALIDARG;
     if (g_kbTrace) fprintf(stderr, "[trace] SetViewport %u %u %u %u z %g..%g fbo=%d\n", (unsigned)vp->X, (unsigned)vp->Y,
                            (unsigned)vp->Width, (unsigned)vp->Height, vp->MinZ, vp->MaxZ, (int)fboActive_);
-    // WINDOW target: D3D viewport origin is top-left, GL is bottom-left — flip Y.
-    // FBO target: keep D3D placement. The vertex path already flips clip-space Y, so
-    // CONTENT orientation matches D3D either way; the viewport flip only RELOCATES
-    // sub-rects, which broke every render target sampled with D3D-convention coords
-    // through a non-screen-space projection — the tiled sun-shadow atlas (its two
-    // vertical cascade tiles landed in swapped halves -> angle/distance-dependent
-    // black viewmodel + flapping world sun factors). Full-target viewports are
-    // unaffected (the flip is identity at vp.Y=0, Height=target height).
-    // D3D placement ONLY for the shadow-atlas build (live honored DS on a target that
-    // is not backbuffer-sized): its tiles are sampled later with D3D-convention coords.
-    // Everything else (scene incl. scissored sub-passes, postfx chains) keeps the
-    // legacy flip those paths were built against.
-    bool shadowBuild = fboActive_ && dsLive_ && (fbWidth_ != bbWidth_ || fbHeight_ != bbHeight_);
-    GLint y = shadowBuild ? (GLint)vp->Y : fbHeight_ - (GLint)(vp->Y + vp->Height);
-    glViewport((GLint)vp->X, y, (GLsizei)vp->Width, (GLsizei)vp->Height);
+    // Every target, the back buffer included, is stored with D3D's row order (the
+    // vertex shaders negate clip-space Y), so GL window y is D3D's y: no flip.
+    glViewport((GLint)vp->X, (GLint)vp->Y, (GLsizei)vp->Width, (GLsizei)vp->Height);
+    vpWidth_ = vp->Width ? (int)vp->Width : 1; vpHeight_ = vp->Height ? (int)vp->Height : 1;
     KB_glDepthRange(vp->MinZ, vp->MaxZ);
     return D3D_OK;
 }

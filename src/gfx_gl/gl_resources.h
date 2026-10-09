@@ -300,14 +300,14 @@ struct GLDepthStencilTag {};
 // a standalone render target (owns a GL texture, renderable + readable), a
 // system-memory surface (owns a CPU buffer, lockable — the target of
 // GetRenderTargetData and CreateOffscreenPlainSurface), or the back buffer
-// (a view onto the default framebuffer, bound as FBO 0).
+// (a view onto the device's back-buffer FBO).
 class GLSurface final : public GLObject<IDirect3DSurface9> {
 public:
     GLSurface(GLTexture *owner, UINT level);                                       // texture-level view
     GLSurface(GLCubeTexture *owner, D3DCUBEMAP_FACES face, UINT level);            // cube-face view
     GLSurface(IDirect3DDevice9 *device, UINT width, UINT height, D3DFORMAT format, // standalone
               bool sysmem);
-    GLSurface(IDirect3DDevice9 *device, UINT width, UINT height, D3DFORMAT format, // back buffer (FBO 0)
+    GLSurface(IDirect3DDevice9 *device, UINT width, UINT height, D3DFORMAT format, // back buffer
               GLBackbufferTag);
     GLSurface(IDirect3DDevice9 *device, UINT width, UINT height, D3DFORMAT format, // depth-stencil handle
               GLDepthStencilTag);
@@ -335,6 +335,7 @@ public:
     bool      texIsDepthStencil() const { return ownTexIsDepth_; }
     GLTexture *ownerTex() const { return owner_; }
     std::vector<unsigned char> &shadow() { return shadow_; }
+    void      setSize(UINT w, UINT h) { width_ = w; height_ = h; }   // back buffer after Reset
 
 private:
     IDirect3DDevice9 *device_ = nullptr;  // null for texture-level views (delegate to owner)
@@ -348,15 +349,14 @@ private:
     UINT              height_ = 0;
     D3DFORMAT         format_ = D3DFMT_UNKNOWN;
     bool              sysmem_ = false;
-    bool              backbuffer_ = false;   // view onto the default framebuffer (FBO 0)
+    bool              backbuffer_ = false;   // view onto the device's back-buffer FBO
     bool              depthStencil_ = false; // metadata-only depth-stencil handle
     std::vector<unsigned char> shadow_;   // sysmem backing for LockRect
 };
 
-// The window's swap chain. The GL backend renders directly into the default
-// framebuffer, so the swap chain is a thin shim: Present() forwards to the
-// device (which swaps the GL window), and GetBackBuffer() hands back the
-// device's back-buffer surface (FBO 0). Created on demand by GetSwapChain().
+// The window's swap chain, a thin shim: Present() forwards to the device (which
+// copies its back-buffer FBO to the window and swaps), and GetBackBuffer() hands
+// back the device's back-buffer surface. Created on demand by GetSwapChain().
 class GLSwapChain final : public GLObject<IDirect3DSwapChain9> {
 public:
     GLSwapChain(IDirect3DDevice9 *device, GLSurface *backbuffer)

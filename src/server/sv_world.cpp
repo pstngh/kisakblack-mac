@@ -89,7 +89,6 @@ void    SV_LinkEntity(gentity_s *gEnt)
     float v53; // [esp+2A4h] [ebp-38h]
     int v54; // [esp+2A8h] [ebp-34h]
     int v55; // [esp+2ACh] [ebp-30h]
-    float *angles; // [esp+2B0h] [ebp-2Ch]
     float *currentOrigin; // [esp+2B4h] [ebp-28h]
     float *currentAngles; // [esp+2B8h] [ebp-24h]
     int k; // [esp+2BCh] [ebp-20h]
@@ -138,8 +137,7 @@ void    SV_LinkEntity(gentity_s *gEnt)
     }
     currentAngles = gEnt->r.currentAngles;
     currentOrigin = gEnt->r.currentOrigin;
-    angles = (float *)Ptr32_Decode(LODWORD(gEnt->r.currentAngles[0]));
-    if (((unsigned int)Ptr32_Encode(angles) & 0x7F800000) == 0x7F800000
+    if ((LODWORD(gEnt->r.currentAngles[0]) & 0x7F800000) == 0x7F800000
         || (v55 = *((_DWORD *)currentAngles + 1), (v55 & 0x7F800000) == 0x7F800000)
         || (v54 = *((_DWORD *)currentAngles + 2), (v54 & 0x7F800000) == 0x7F800000))
     {

@@ -18,10 +18,10 @@ extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched
 
 // --- Back buffer / swap chain ----------------------------------------------
 //
-// The GL backend renders straight into the window's default framebuffer, so the
-// back buffer is a single GLSurface tagged as such (binding it as a render
-// target restores FBO 0), and the swap chain is a thin shim whose Present()
-// swaps the GL window. Both are created lazily and owned by the device.
+// The back buffer is a single GLSurface tagged as such (binding it as a render
+// target binds the device's back-buffer FBO), and the swap chain is a thin shim
+// whose Present() copies that FBO to the window. Both are created lazily and
+// owned by the device.
 GLSurface *GLDevice::backBufferSurface() {
     if (!backBuffer_)
         backBuffer_ = new GLSurface(this, (UINT)bbWidth_, (UINT)bbHeight_,
@@ -29,17 +29,6 @@ GLSurface *GLDevice::backBufferSurface() {
     return backBuffer_;
 }
 
-// "Back buffer" source/destination enums: on Emscripten the default framebuffer is the
-// EMULATED offscreen-backbuffer FBO (renderViaOffscreenBackBuffer), where GL_BACK is an
-// INVALID enum — readBuffer/drawBuffer must name GL_COLOR_ATTACHMENT0 (this was the
-// per-frame "readBuffer: invalid read buffer" console spam). Native GL keeps GL_BACK.
-#if defined(__EMSCRIPTEN__)
-static const GLenum kBackbufferReadEnum = GL_COLOR_ATTACHMENT0;
-static const GLenum kBackbufferDrawEnum = GL_COLOR_ATTACHMENT0;
-#else
-static const GLenum kBackbufferReadEnum = GL_BACK;
-static const GLenum kBackbufferDrawEnum = GL_BACK;
-#endif
 
 HRESULT WINAPI GLDevice::GetBackBuffer(UINT, UINT, D3DBACKBUFFER_TYPE, IDirect3DSurface9 **pp) {
     if (!pp) return E_INVALIDARG;
@@ -58,21 +47,23 @@ HRESULT WINAPI GLDevice::GetSwapChain(UINT, IDirect3DSwapChain9 **pp) {
     return D3D_OK;
 }
 
-// Read the just-rendered frame (default framebuffer, GL_BACK) into a system-memory
-// surface as BGRA8 — the screenshot path: R_TakeScreenshot creates an offscreen
-// A8R8G8B8 surface, calls this, then D3DXSaveSurfaceToFileA writes a TGA. glReadPixels
-// is bottom-up and so is the TGA we emit, so no vertical flip is needed.
+// Read the last presented frame (the back-buffer FBO keeps it after Present) into a
+// system-memory surface as BGRA8 — the screenshot path: R_TakeScreenshot creates an
+// offscreen A8R8G8B8 surface, calls this, then D3DXSaveSurfaceToFileA writes a TGA.
+// The FBO holds D3D row order, so the rows arrive top-down like a D3D surface's.
 HRESULT WINAPI GLSwapChain::GetFrontBufferData(IDirect3DSurface9 *pDestSurface) {
     GLSurface *dst = static_cast<GLSurface *>(pDestSurface);
     if (!dst) return E_FAIL;
     UINT w = dst->width(), h = dst->height();
     std::vector<unsigned char> &shadow = dst->shadow();
     if (shadow.size() < (size_t)w * h * 4) shadow.assign((size_t)w * h * 4, 0);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    glReadBuffer(kBackbufferReadEnum);
+    GLDevice *dev = static_cast<GLDevice *>(device_);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, dev->backbufferFbo());
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     extern unsigned long g_kbReadbacks; ++g_kbReadbacks;
     glReadPixels(0, 0, (GLsizei)w, (GLsizei)h, GL_BGRA, GL_UNSIGNED_BYTE, shadow.data());
+    glBindFramebuffer(GL_FRAMEBUFFER, dev->curFbo());
     return D3D_OK;
 }
 
@@ -124,7 +115,7 @@ HRESULT WINAPI GLDevice::GetRenderTargetData(IDirect3DSurface9 *pRenderTarget,
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     extern unsigned long g_kbReadbacks; ++g_kbReadbacks;
     glReadPixels(0, 0, w, h, fmt, type, dst->shadow().data());
-    glBindFramebuffer(GL_FRAMEBUFFER, fboActive_ ? fbo_ : 0);   // restore the active RT
+    glBindFramebuffer(GL_FRAMEBUFFER, curFbo());   // restore the active RT
     glDeleteFramebuffers(1, &fbo);
     return D3D_OK;
 }
@@ -159,19 +150,20 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
 #if !defined(__EMSCRIPTEN__)
             static int dumped;
             const char *dir = getenv("KB_SCREENSHOT");
-            if (src->isBackbuffer() && dir && dumped < 3) {
-                extern void KB_WriteBackbufferTGA(const char *path, int w, int h);
+            if (src->isBackbuffer() && dir && dumped < 16) {
+                extern void KB_WriteBackbufferTGA(unsigned fbo, const char *path, int w, int h);
                 char path[1024];
                 snprintf(path, sizeof(path), "%s/resolve_%d.tga", dir, dumped++);
-                KB_WriteBackbufferTGA(path, (int)src->width(), (int)src->height());
+                KB_WriteBackbufferTGA(backbufferFbo(), path, (int)src->width(), (int)src->height());
             }
 #endif
         }
     }
+    // Both sides hold D3D row order, so D3D rects map straight onto GL rows.
     GLuint fbos[2] = {0, 0};
     if (src->isBackbuffer()) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glReadBuffer(kBackbufferReadEnum);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, backbufferFbo());
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
     } else {
         glGenFramebuffers(1, &fbos[0]);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[0]);
@@ -179,21 +171,23 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
         glReadBuffer(GL_COLOR_ATTACHMENT0);
     }
     if (dst->isBackbuffer()) {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glDrawBuffer(kBackbufferDrawEnum);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, backbufferFbo());
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
     } else {
         glGenFramebuffers(1, &fbos[1]);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[1]);
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, dst->texName(), dst->level());
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
     }
+    if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // D3D's StretchRect ignores the scissor; GL blits don't
     glBlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT,
                       Filter == D3DTEXF_NONE ? GL_NEAREST : GL_LINEAR);
+    if (scissorOn_) glEnable(GL_SCISSOR_TEST);
     // RESTORE the device's ACTIVE render target (binds both READ and DRAW): leaving the
     // draw framebuffer at 0 sent every draw between a mid-pass resolve and the next
     // SetRenderTarget to the WRONG framebuffer — invisible geometry for the rest of the
     // pass, varying with FX/command timing (the world flicker candidate).
-    glBindFramebuffer(GL_FRAMEBUFFER, fboActive_ ? fbo_ : 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, curFbo());
     if (fbos[0]) glDeleteFramebuffers(1, &fbos[0]);
     if (fbos[1]) glDeleteFramebuffers(1, &fbos[1]);
     return D3D_OK;

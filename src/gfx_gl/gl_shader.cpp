@@ -234,7 +234,9 @@ std::string regName(Ctx &c, const Operand &o, bool isDest) {
         case RT_MISCTYPE: // vPos (pixel position) / vFace (front-facing). vPos was
                           // unhandled (-> vec4(0)), breaking every screen-space sample
                           // (light/refraction passes read the scene buffer at vPos*texel).
-            return o.reg == 1 ? "vec4(gl_FrontFacing ? 1.0 : -1.0)" : "gl_FragCoord";
+                          // D3D9's vPos is the integer pixel position (centres at
+                          // integers); gl_FragCoord's centres are at +0.5.
+            return o.reg == 1 ? "vec4(gl_FrontFacing ? 1.0 : -1.0)" : "vec4(floor(gl_FragCoord.xy), gl_FragCoord.zw)";
         default: (void)isDest; return "vec4(0.0)";
     }
 }
@@ -660,6 +662,7 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
     // (the heavy world-geometry flicker on the web build). Declaring it invariant forces the
     // compiler to compute it identically across shaders/passes.
     if (!c.isPixel) o << "invariant gl_Position;\n";
+    if (!c.isPixel) o << "uniform vec4 kbPosFixup;\n";
     o << "void main() {\n";
     for (int r : c.usedTemps) o << "  vec4 r" << r << " = vec4(0.0);\n";
     if (c.usedA0) o << "  ivec4 a0 = ivec4(0);\n";
@@ -673,6 +676,17 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
     // flickering in and out). z' = 2z - w maps NDC [0,1] -> [-1,1] exactly.
     if (!c.isPixel)
         o << "  gl_Position.z = 2.0 * gl_Position.z - gl_Position.w;\n";
+    // Render with D3D's row order: negating clip-space Y puts D3D's top row at GL row 0
+    // in every target, so render targets sample the right way up with D3D texture
+    // coordinates, viewports/scissors/blits use D3D rects unchanged, and gl_FragCoord.y
+    // counts from the top like vPos. Present flips the back buffer onto the window.
+    // D3D9 samples pixel centres at integer window coordinates, GL at +0.5: shift
+    // by half a pixel right and down so coverage and texel alignment match (an
+    // unshifted full-screen pass resamples between texels and moves the image half a
+    // pixel). kbPosFixup = (1/viewport width, 1/viewport height).
+    if (!c.isPixel)
+        o << "  gl_Position.y = -gl_Position.y;\n"
+          << "  gl_Position.xy += kbPosFixup.xy * gl_Position.w;\n";
     // ES alpha test: D3D's fixed-function cutout, done in-shader. D3DCMP_*:
     // 1=NEVER 2=LESS 3=EQUAL 4=LEQUAL 5=GREATER 6=NOTEQUAL 7=GEQUAL 8=ALWAYS.
     // Discard when the test FAILS. uAlphaTestFunc==0 disables it.

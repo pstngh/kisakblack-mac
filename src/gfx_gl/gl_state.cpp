@@ -142,16 +142,16 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
             break;
         }
         case D3DRS_CULLMODE:
-            // The vertex path flips Y in clip space (D3D's Y-down screen -> GL's
-            // Y-up), which reverses triangle winding. So the GL front face is the
-            // inverse of the naive D3D->GL mapping: D3DCULL_CW -> GL_CCW and
-            // D3DCULL_CCW -> GL_CW. (Without this every visible triangle is culled
-            // as a back face and the whole frame renders black.)
+            // Targets are stored top row first (the vertex shaders negate clip-space
+            // Y), so GL's window coordinates are D3D's screen coordinates and D3D's
+            // clockwise is GL's counter-clockwise. D3D's front face is always
+            // clockwise (vFace), so GL's is always CCW and the cull mode picks the
+            // side: D3DCULL_CCW culls back faces, D3DCULL_CW front faces.
+            glFrontFace(GL_CCW);
             if (Value == D3DCULL_NONE) { glDisable(GL_CULL_FACE); }
             else {
                 glEnable(GL_CULL_FACE);
-                glCullFace(GL_BACK);
-                glFrontFace(Value == D3DCULL_CW ? GL_CCW : GL_CW);
+                glCullFace(Value == D3DCULL_CW ? GL_FRONT : GL_BACK);
             }
             break;
         case D3DRS_ALPHABLENDENABLE:
@@ -309,18 +309,12 @@ HRESULT WINAPI GLDevice::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture
 HRESULT WINAPI GLDevice::SetScissorRect(const RECT *pRect) {
     KB_FlushTagged(11);
     if (pRect) {
-        // Y flip only for the window target — see SetViewport (FBO sub-rects keep
-        // D3D placement so sampled atlases match D3D-convention coordinates).
+        // No Y flip: targets hold D3D's row order (see SetViewport).
         int x = pRect->left;
-        int y = (fboActive_ && dsLive_ && (fbWidth_ != bbWidth_ || fbHeight_ != bbHeight_))
-                    ? pRect->top : (int)fbHeight_ - pRect->bottom;
+        int y = pRect->top;
         int w = pRect->right - pRect->left;
         int h = pRect->bottom - pRect->top;
-        // Clamp to the bound render target. A stale full-scene scissor (R_Set2D never clears it)
-        // leaking into a smaller post/2D RT (e.g. the quarter-res godrays/sun pass) would otherwise
-        // give a NEGATIVE top + oversized box after the GL Y-flip, masking the draw to a fraction of
-        // the target — the "rainbow/sky cut off to half/quarter screen" bug. Clamping keeps the box
-        // on-target; normal full-size scene scissors are unaffected.
+        // Clamp to the bound render target, as D3D does.
         if (x < 0) { w += x; x = 0; }
         if (y < 0) { h += y; y = 0; }
         if (x + w > (int)fbWidth_)  w = (int)fbWidth_  - x;

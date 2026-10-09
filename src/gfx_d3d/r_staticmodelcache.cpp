@@ -390,7 +390,7 @@ unsigned __int16 __cdecl SMC_Allocate(unsigned int smcIndex, unsigned int bitCou
         tree->usedlist.next->prev = &tree->usedlist;
     }
     leafs = s_cache.leafs[treeIndex];
-    index = ((char *)block - (char *)leafs) / 8;
+    index = (static_model_leaf_t *)block - leafs;
     if ( index >= 0x20
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_staticmodelcache.cpp",
@@ -533,7 +533,7 @@ char __cdecl SMC_GetFreeBlockOfSize(unsigned int smcIndex, unsigned int listInde
         tree->usedlist.next->prev = &tree->usedlist;
     }
     leafs = s_cache.leafs[treeIndex];
-    index = ((char *)block - (char *)leafs) / 8;
+    index = (static_model_leaf_t *)block - leafs;
     if ( index >= 0x20
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_staticmodelcache.cpp",

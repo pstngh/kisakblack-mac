@@ -10,59 +10,41 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-08, end of session 3)
+## Status (2026-10-08, end of session 4)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64. Every changed file
-  passes the i386 syntax check. Sessions 2 and 3 are **uncommitted** in the working
-  tree (last commit: "the dedicated server boots and runs its main loop").
-- **Dedicated server** with 4 bots: deaths, killstreaks, ragdolls, no DDL error (the
-  stats buffer now matches the data, see Decisions).
-- **Client main menu draws correctly** at full texture detail (picmip 0, S3TC
-  detected, autoconfigure picks the "4 GHz / 640 MB" row like Windows).
-- **Local match** (`+map mp_nuked` without `dedicated`, 4 bots, see CLAUDE.md):
-  loads, spawns the player, runs 150 s without crashing at ~100 fps (M4, cg 9 ms).
-  HUD, minimap, scoreboard, team menu and bot name tags draw. **The 3D world does
-  not**: the screen shows the clear colour (`r_clear` "blink" alternates
-  r_clearColor blue / r_clearColor2 orange) run through the post effects.
-- Diagnostics added: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
-  buffer as TGA every n presents and prints per-interval draw counters
-  (draws/builtinFall/skipPending/links); `KB_TRACEFRAME=n1,n2,..` logs the
-  SetRenderTarget/SetViewport/Clear/StretchRect/draw calls of those frames and, with
-  KB_SCREENSHOT set, dumps the back buffer at the first 3 resolves
-  (`resolve_N.tga`). Convert TGAs with any tool that ignores alpha.
+  passes the i386 syntax check (gfx_gl/ files: only the known header artefacts).
+  Session 4 is uncommitted in the working tree.
+- **Dedicated server** with 4 bots: deaths, killstreaks, ragdolls, no asserts.
+- **Client**: main menu, team menu (over the blurred world), and a **local match
+  that renders**: world, lighting, models, viewmodel, sky, post effects, HUD,
+  minimap, ammo/equipment icons. ~95-130 fps on an M4. Keyboard, mouse and the
+  console work in a match (a player spawned, moved, fired and typed commands).
+- Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
+  buffer as a top-down TGA every n presents with per-interval draw counters;
+  `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
+  StretchRect calls and every draw (GL state, GL error after the draw, bound
+  textures) and, with KB_SCREENSHOT, dumps the back buffer at the first 16 resolves
+  (`resolve_N.tga`). `KB_PTR32STATS=1` prints the busiest slow-path
+  `Ptr32_Encode` call sites (return addresses; `atos` after the slide).
 
 ## Next steps (in order)
 
-1. **3D world invisible.** What is known:
-   - At the first resolve after the main scene (`resolve_0.tga`) the sky is drawn,
-     but every opaque world/model pixel is still the clear colour: the depth
-     pre-pass (COLORWRITEENABLE 0) lands, the lit pass (cw=0xf, ZFUNC LESSEQUAL,
-     sane matrices in c0-c3, full viewport, depth range 0.015625..1) leaves no
-     colour. `KB_NOPREPASS=1` and `r_fullbright 1` don't change it.
-   - The final frame is the clear colour after tone mapping, so the post chain also
-     loses the sky.
-   - Open question from the last run: with `KB_TRACEFRAME` the draw trace placed in
-     DrawIndexedPrimitive's immediate path (`if (!g_kbBatchEnable)`) printed nothing
-     in frames that clearly drew (an earlier placement before `useDrawProgram()` did
-     print). Find out which path native draws take (a probe that printed
-     `g_kbBatchEnable` at function entry failed to compile: "undeclared" at that
-     point although `int g_kbBatchEnable` is defined near the top of
-     gl_d3d9_draw.cpp; check for a shadowing macro/namespace). Then compare GL state
-     at a lit draw (the trace prints depth func/range, colour mask, blend, program).
-   - Suspects: alpha/discard (the translator emits the in-shader alpha test only for
-     ES; core profile has no fixed-function alpha test), blend state, pixel-shader
-     output/MRT naming in the desktop GLSL path, the `invariant gl_Position` pairing
-     between pre-pass and lit shaders.
-2. HUD icon at the bottom right (the weapon/ammo area) draws the font atlas.
-3. devgui asserts in a match: `DevGui_FindMenu` gets handle 29554 (0x7372, "rs":
-   string bytes read as a handle) from `DevGui_AddDvar` (39x), then
-   `parentMenu->childType == DEV_CHILD_MENU` (9x).
-4. Redzones in the region allocators (`universal/ptr32.cpp`) so ASan sees heap
+1. Longer play sessions to shake out crashes: this session's crash (XAnim client
+   notifies) only showed up while playing. Look for i386 struct sizes and offsets
+   still hard-coded: `tools/audit_stride.py` (literal strides; its remaining hits
+   are reviewed false positives) and `tools/audit_rawofs.py` (raw field offsets).
+2. x86 memory-ordering assumptions: lock-free hand-offs through plain variables
+   (flags spun on, ring buffers) are ordered on x86 but not on arm64. The sound
+   command/notify queues are fixed; audit the rest (render command hand-off,
+   `volatile` flags, worker/job queues outside the `__sync`-based Interlocked
+   wrappers, which are full barriers).
+3. Redzones in the region allocators (`universal/ptr32.cpp`) so ASan sees heap
    overflows inside the in-image heap.
-5. Performance pass: alignment checks that call `Ptr32_Encode` on stack or malloc
-   pointers take the handle-table mutex (grep `Ptr32_Encode(.*) & 0x`).
-6. Later: input in a match, wire compatibility with a Windows/Linux server, an .app
-   bundle, Retina (SDL_WINDOW_ALLOW_HIGHDPI), controller support.
+4. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+   gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
+5. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
+   (SDL_WINDOW_ALLOW_HIGHDPI), controller support.
 
 ## Open items found but not fixed
 
@@ -83,6 +65,16 @@ Seen in session 3:
   64-bit `Allocator::Memory` headers (20 on i386): fewer shards fit before it runs out.
 - `Key_KeynumToString` (French/German digit keys) reads a table that followed
   `keynames_localized` in the original binary and is missing from the decompile.
+
+Seen in session 4:
+- `live_pcache` asserts `xuid != PCACHE_INVALID_XUID` at map load: with Demonware
+  removed the local player has no XUID (not 64-bit related).
+- `sv_main_mp.cpp (2903) !(dvar_modifiedFlags & DVAR_SYSTEMINFO)` after `sv_cheats 1`
+  in the console of a listen server.
+- 50 decompiled structs whose i386 layout no longer matches IDA's `sizeof` comment
+  (e.g. cgs_t 12712 vs 12708, trace_t 64 vs 56, pmove_t, actor_s, client_t,
+  sharedUiInfo_t): any raw offset into them is wrong on every build. The
+  cg_ents_mp.cpp corpse lookup was one (fixed).
 
 Pre-existing (wrong on every build):
 - `actor_fields.cpp` `aifields` offsets don't match `actor_s` (e.g. "fovcosine"
@@ -112,6 +104,42 @@ Pre-existing (wrong on every build):
   rigid_body (5), token_s (5), script_s (4) and a tail (flameGeneric_s and
   GfxStaticModelDrawStream are fixed): check each struct with layout_diff; those with
   the same layout on both ABIs are fine.
+
+## Decisions (session 4)
+
+- **The GL backend renders in D3D's row order.** The translated vertex shaders (and
+  the built-in XYZRHW program) negate clip-space Y, so row 0 of every target is
+  D3D's top row: render targets sample the right way up with D3D texture
+  coordinates, StretchRect/viewport/scissor rects need no flip, and gl_FragCoord.y
+  counts from the top like vPos. The back buffer is an offscreen FBO
+  (`GLDevice::backbufferFbo`, colour + depth-stencil renderbuffers); Present blits
+  it to the window upside down. Before this every post pass that read a render
+  target flipped the image, and the cull mapping/viewport flips were compensating
+  for the window only.
+- Cull: GL's front face is always CCW (= D3D's CW), D3DCULL_CW culls GL_FRONT, so
+  `gl_FrontFacing` matches D3D's vFace.
+- `SetRenderTarget(0, ..)` resets the viewport (depth 0..1) and scissor to the new
+  target, as D3D9 does; the renderer relies on it for its downsample chains (the
+  480x270/240x135 passes drew with a 1920x1080 viewport).
+- D3D9 pixel centres are at integer coordinates: vertex shaders add half a pixel
+  (`kbPosFixup`, per viewport size, as Wine does) and vPos is `floor(gl_FragCoord)`.
+- Sampler `sN` is bound to texture unit N at a program's first use on native GL
+  (it was only done in the web build's verified-bind path; every sampler read unit 0
+  and draws mixing 2D and cube samplers failed with GL_INVALID_OPERATION: the whole
+  lit world, and the HUD icon that drew the font atlas).
+- Sound command/notify queues: acquire/release fences (`std::atomic_thread_fence`,
+  no-ops on x86) around the lock-free consumer side.
+- Stride audit: the struct sizes of all 1560 IDA-annotated header structs were
+  probed in both ABIs (557 differ); byte arithmetic that multiplies or divides by
+  one of their i386 sizes found devgui (40), XAnimClientNotify (24, the crash),
+  UILocalVar (12), static_model_leaf_t (8), the fx_marks point-group limit (68)
+  and a corpse clientInfo_t lookup (`tools/audit_stride.py`); a grep for byte
+  pointer differences divided by a literal found a pointer array counted in 4-byte
+  slots in phys_collision.cpp. The remaining audit_stride hits are file formats,
+  bytecode, script memory nodes and asset structs with the same layout.
+- `Ptr32_Encode` slow path (the old "performance pass" item): measured ~16K calls
+  per map load and none during play; not a hot spot. SV_LinkEntity's NaN check
+  decoded float bits as a pointer (fixed).
 
 ## Decisions (session 1)
 

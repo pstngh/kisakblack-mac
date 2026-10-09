@@ -283,14 +283,14 @@ void __cdecl FX_FreeMarkTriGroups(FxMarksSystem *marksSystem, FxMark *mark)
 
 FxTriGroupPool *__cdecl FX_TriGroupFromHandle(FxMarksSystem *marksSystem, unsigned int handle)
 {
-    if ( handle >= 0x6000
+    if ( handle >= 1024 * sizeof(FxTriGroupPool)
         && !Assert_MyHandler(
                     "c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_marks.h",
                     212,
                     0,
                     "handle doesn't index FX_TRI_GROUP_LIMIT * sizeof( FxTriGroup )\n\t%i not in [0, %i)",
                     handle,
-                    24576) )
+                    (int)(1024 * sizeof(FxTriGroupPool))) )
     {
         __debugbreak();
     }
@@ -320,14 +320,14 @@ void __cdecl FX_FreeMarkPointGroups(FxMarksSystem *marksSystem, FxMark *mark)
 
 FxPointGroupPool *__cdecl FX_PointGroupFromHandle(FxMarksSystem *marksSystem, unsigned int handle)
 {
-    if ( handle >= 0x19800
+    if ( handle >= 1536 * sizeof(FxPointGroupPool)
         && !Assert_MyHandler(
                     "c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_marks.h",
                     237,
                     0,
                     "handle doesn't index FX_POINT_GROUP_LIMIT * sizeof( FxPointGroup )\n\t%i not in [0, %i)",
                     handle,
-                    104448) )
+                    (int)(1536 * sizeof(FxPointGroupPool))) )
     {
         __debugbreak();
     }
@@ -1127,14 +1127,14 @@ int __cdecl FX_TriGroupToHandle(FxMarksSystem *marksSystem, FxTriGroup *group)
     if ( !group && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_marks.h", 200, 0, "%s", "group") )
         __debugbreak();
     handle = (char *)group - (char *)marksSystem->triGroups;
-    if ( handle >= 0x6000
+    if ( handle >= 1024 * sizeof(FxTriGroupPool)
         && !Assert_MyHandler(
                     "c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_marks.h",
                     203,
                     0,
                     "handle doesn't index FX_TRI_GROUP_LIMIT * sizeof( FxTriGroup )\n\t%i not in [0, %i)",
                     handle,
-                    24576) )
+                    (int)(1024 * sizeof(FxTriGroupPool))) )
     {
         __debugbreak();
     }
@@ -1198,14 +1198,14 @@ int __cdecl FX_PointGroupToHandle(FxMarksSystem *marksSystem, FxPointGroup *grou
     if ( !group && !Assert_MyHandler("c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_marks.h", 225, 0, "%s", "group") )
         __debugbreak();
     handle = (char *)group - (char *)marksSystem->pointGroups;
-    if ( handle >= 0x19800
+    if ( handle >= 1536 * sizeof(FxPointGroupPool)
         && !Assert_MyHandler(
                     "c:\\projects_pc\\cod\\codsrc\\src\\effectscore\\fx_marks.h",
                     228,
                     0,
                     "handle doesn't index FX_POINT_GROUP_LIMIT * sizeof( FxPointGroup )\n\t%i not in [0, %i)",
                     handle,
-                    104448) )
+                    (int)(1536 * sizeof(FxPointGroupPool))) )
     {
         __debugbreak();
     }

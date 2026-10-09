@@ -926,7 +926,7 @@ void phys_contact_manifold_process::process(
                 // Compact: remove smallest_i by shifting the rest left
                 if (smallest_i < last)
                 {
-                    int shift_count = (int)((char *)last - (char *)smallest_i - 1) / 4 + 1;
+                    int shift_count = (int)(last - smallest_i);
                     memmove(smallest_i, smallest_i + 1, shift_count * sizeof(void *));
                 }
             }

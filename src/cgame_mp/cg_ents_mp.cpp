@@ -1471,7 +1471,7 @@ void __cdecl CG_UpdateClientDobjPartBits(centity_s *cent, unsigned int entnum, i
             else
             {
                 cgs = CG_GetLocalClientStaticGlobals(localClientNum);
-                ci = (clientInfo_t *)((char *)&cgs[-3] + 1480 * p_nextState->number - 3208);
+                ci = &cgs->corpseinfo[p_nextState->number - 32];
             }
             DObjGetHidePartBits(obj, oldPartBits);
             if ( ci->hideWeapon && p_nextState->clientNum == entnum )
