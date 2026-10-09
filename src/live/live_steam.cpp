@@ -221,7 +221,12 @@ void __cdecl LiveSteam_PopOverlayForSteamID(unsigned __int64 steamID)
 
 void __cdecl LiveSteam_Init()
 {
+#ifdef _WIN32
+    // In the current directory, the executable's on Windows. The other builds run
+    // without Steam (stubs_online.cpp) and may start anywhere (Finder: the home
+    // directory), where this would delete a steam_appid.txt.
     LiveSteam_CreateSteamAppIdFile();
+#endif
     g_liveSteamInitialized = 1;
     livesteam_sv_vac = _Dvar_RegisterBool("sv_vac", 1, 1u, "Enable VAC on this server");
 }

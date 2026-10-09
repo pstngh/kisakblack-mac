@@ -18,7 +18,10 @@
 #include <sys/stat.h>
 #if defined(__APPLE__)
 #include <sys/sysctl.h>
+#include <mach-o/dyld.h>         // _NSGetExecutablePath
 #endif
+#include <climits>
+#include <cstdlib>
 #include <dirent.h>
 #include <cmath>
 #include <cstdarg>
@@ -65,7 +68,39 @@ static char g_cwd[4096];
 char *Sys_Cwd() { if (!getcwd(g_cwd, sizeof(g_cwd))) g_cwd[0] = '\0'; return g_cwd; }
 void  Sys_Mkdir(const char *path) { if (path) mkdir(path, 0755); }
 const char *Sys_DefaultCDPath() { return ""; }
-char *Sys_DefaultInstallPath() { return Sys_Cwd(); }
+// The game folder: the executable's directory when the game data is there (a
+// portable install keeps the binary and its libraries in the game folder, and
+// Finder starts a program in the home directory), else the current directory, as
+// the original's base path (the dev builds run from the game folder). Everything
+// the game writes goes under it (fs_h defaults to the base path).
+char *Sys_DefaultInstallPath() {
+    static char installPath[PATH_MAX];
+    if (!installPath[0]) {
+        char exe[PATH_MAX], dir[PATH_MAX];
+        bool found = false;
+#if defined(__APPLE__)
+        uint32_t size = sizeof(exe);
+        found = _NSGetExecutablePath(exe, &size) == 0;
+#else
+        ssize_t len = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+        found = len > 0;
+        if (found) exe[len] = '\0';
+#endif
+        if (found && realpath(exe, dir)) {
+            if (char *slash = strrchr(dir, '/')) *slash = '\0';
+            struct stat st;
+            char sub[PATH_MAX];
+            snprintf(sub, sizeof(sub), "%s/main", dir);
+            found = !stat(sub, &st) && S_ISDIR(st.st_mode);
+            snprintf(sub, sizeof(sub), "%s/zone", dir);
+            found = found && !stat(sub, &st) && S_ISDIR(st.st_mode);
+        } else {
+            found = false;
+        }
+        snprintf(installPath, sizeof(installPath), "%s", found ? dir : Sys_Cwd());
+    }
+    return installPath;
+}
 int Sys_DirectoryHasContents(const char *dir) {
     if (!dir) return 0;
     char path[4096]; int i = 0; for (; dir[i] && i < 4095; ++i) path[i] = dir[i] == '\\' ? '/' : dir[i]; path[i] = 0;

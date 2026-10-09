@@ -23,8 +23,16 @@ and the gfx_gl/ files (they include the macOS GLEW header).
 Game data: /Users/pstn/Documents/Games/codbo. From that directory:
 
 ```sh
-/Users/pstn/Documents/kisakblack-mac/build_macos/blackops +set fs_basepath /Users/pstn/Documents/Games/codbo +set dedicated 1 +set developer 1
+/Users/pstn/Documents/kisakblack-mac/build_macos/blackops +set dedicated 1 +set developer 1
 ```
+
+The game folder (base path `fs_b`, zones, and everything the game writes: config,
+stats, logs, screenshots) is the executable's directory when `main/` and `zone/`
+are next to it, else the current directory; `+set fs_basepath` does nothing.
+`tools/make_portable.sh <game dir>` copies the build and its Homebrew libraries
+(into `<game dir>/lib`) into a game folder, which then runs from anywhere and can
+be moved; rerun it after rebuilding. The user's game folder has such a copy
+(`codbo/blackops`): don't run that one in tests (it writes the real profile).
 
 macOS has no `timeout`; use `perl -e 'alarm shift; exec @ARGV' 60 <cmd>`, or
 `perl tools/run_sampled.pl <seconds> <log> <cmd...>` to run, capture every

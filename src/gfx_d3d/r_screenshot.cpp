@@ -507,7 +507,9 @@ LABEL_12:
     sourceRect.right = width + pt.x;
     sourceRect.top = pt.y;
     sourceRect.bottom = height + pt.y;
-    FS_BuildOSPath(fs_gamedir, 0, filename, ospath);
+    // The decompile dropped the base (fs_homepath, as in IW3): the screenshot went
+    // to <current directory>/main/ while FS_FileExists numbered it in the home path.
+    FS_BuildOSPath((char *)fs_homepath->current.string, fs_gamedir, filename, ospath);
     if ( !FS_CreatePath(ospath) )
         D3DXSaveSurfaceToFileA(ospath, (D3DXIMAGE_FILEFORMAT)format, surface, 0, &sourceRect);
     do

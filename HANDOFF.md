@@ -63,6 +63,14 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   dedicated `map` server keeps `sv_cheats 1`. ASan client: a fresh profile through
   two match ends (mp_nuked, mp_array, mp_cracked) with the scripted player, and the
   main-menu screens above, no report.
+- **Portable game folder** (session 8): `tools/make_portable.sh <game dir>` puts
+  `blackops` and its six Homebrew libraries (`lib/`) in the game folder; the
+  user's `/Users/pstn/Documents/Games/codbo` has it. Started from another
+  directory with no arguments, it loads only its own libraries (`DYLD_PRINT_LIBRARIES`:
+  none from /opt/homebrew), finds its data, and writes config, stats, logs and
+  screenshots only inside the folder; a scan of the home and temp folders after a
+  match and a main-menu session found nothing else from the game except the
+  system's Metal shader cache.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters;
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
@@ -115,6 +123,24 @@ Seen in session 4:
   (e.g. cgs_t 12712 vs 12708, trace_t 64 vs 56, pmove_t, actor_s, client_t,
   sharedUiInfo_t): any raw offset into them is wrong on every build. The
   cg_ents_mp.cpp corpse lookup was one (fixed).
+
+Seen in session 8:
+- One crash in ~10 match ends (listen server, scripted player, 4 bots): at the end
+  of the match `G_FreeEntity: Player 0 is being freed.` without the usual
+  `SV_RemoveDemoClient: democlient removed 0.` before it, then the asserts
+  `g_utils_mp.cpp (2258) ed->r.inuse` and `g_spawn_mp.cpp (1067) ent->r.inuse`
+  twice, then SIGSEGV on the server thread in `Demo_WritePlayerStates` <-
+  `Demo_BuildDemoSnapshot` <- `SV_SendClientMessages`. Client 0 is the server's
+  demo-recording client; it looks like it was freed twice and then recorded. The
+  graphics options menu had just opened (`ui/options_graphics.cfg`), probably
+  from a click in the window; opening it from the console at the match end didn't
+  reproduce it. Not reproduced since.
+- The user's `codbo/main` held junk from an Oct 8 run (sessions 3-4): a directory
+  named by the bytes 0x01-0x2E (one 1 KB file in it) and empty files named 0x02 and
+  0x03 (moved to the Trash in session 8). If such names reappear, a file path was
+  built from garbage.
+- The system's Metal shader cache (`$(getconf DARWIN_USER_CACHE_DIR)com.apple.metal`)
+  is written by Apple's GL driver for any GL program, outside the game folder.
 
 Seen in session 7:
 - Contracts have no data offline (`LiveStorage_DoWeHaveContracts` is 0) though
@@ -208,6 +234,25 @@ Pre-existing (wrong on every build):
   release build ignored it.
 - `KB_MENU_CMDS` (linux_main.cpp): KB_CMDS's syntax, timed from startup and run
   once, connected or not, for the main menu (`openmenu cac_main`, ...).
+- **Portable**: on macOS/Linux `Sys_DefaultInstallPath` (zones) and the `fs_b`
+  default (base path; `fs_h`, where everything is written, defaults to it) are
+  the executable's directory when `main/` and `zone/` are there, else the current
+  directory as before (Windows unchanged: the original used the current
+  directory, where Windows starts a program). The base path dvar is `fs_b`
+  (`fs_basepath` never existed here) and doesn't move the zones, which load
+  before the filesystem starts. `make_portable.sh` copies the build and every
+  non-system library it links (plus SDL3, which sdl2-compat loads from next to
+  itself), rewrites the references to `@executable_path/lib/`, and re-signs
+  (ad hoc). Rerun it after each build; the dev workflow (build_macos/blackops
+  started in the game folder, Homebrew libraries) is unchanged.
+- Writes that ignored the game folder: the `screenshot` command's
+  `FS_BuildOSPath(fs_gamedir, 0, ..)` had lost its fs_homepath argument (IW3 has
+  it) and wrote to `<current directory>/main/screenshots` (every build);
+  `LiveSteam_Init` deleted `steam_appid.txt` in the current directory (Windows
+  only now; Steam is stubbed elsewhere). Debug-only writers still use the current
+  directory: `quickprint.log` (cg_draw_debug), `dx.log` (`r_logFile`), and the
+  `KB_*` dumps (their own paths). Bink's video path (`r_cinematic.cpp`) is the
+  current directory too, but Bink is stubbed.
 
 ## Decisions (session 7)
 

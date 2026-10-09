@@ -2556,7 +2556,12 @@ void FS_RegisterDvars()
     fs_copyfiles = _Dvar_RegisterBool("fs_copyfiles", 0, 0x10u, "Copy all used files to another location");
     v1 = (char *)Sys_DefaultCDPath();
     fs_cdpath = _Dvar_RegisterString("fs_cdpath", v1, 0x10u, "CD path");
+#ifdef _WIN32
     v2 = Sys_Cwd();
+#else
+    // The game folder even when started elsewhere (sys_platform.cpp).
+    v2 = Sys_DefaultInstallPath();
+#endif
     fs_basepath = _Dvar_RegisterString("fs_b", v2, 0x210u, "Base game path");
     fs_basegame = _Dvar_RegisterString("fs_basegame", (char *)"", 0x10u, "Base game name");
     fs_gameDirVar = _Dvar_RegisterString(
