@@ -1419,7 +1419,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, const char *
                                                                 UI_StopServerRefresh();
                                                                 sharedUiInfo.serverStatus.nextDisplayRefresh = 0;
                                                                 sharedUiInfo.nextServerStatusRefresh = 0;
-                                                                dc[1].localVars.table[65].name = 0;
+                                                                ((uiInfo_s *)dc)->nextFindPlayerRefresh = 0;
                                                             }
                                                         }
                                                         else if (sharedUiInfo.serverStatus.refreshActive)
@@ -1428,7 +1428,7 @@ void __cdecl UI_RunMenuScript(int localClientNum, int contextIndex, const char *
                                                             sharedUiInfo.serverStatus.nextDisplayRefresh = 0;
                                                             sharedUiInfo.nextServerStatusRefresh = 0;
                                                             sharedUiInfo.nextServerStatusScoreBoardRefresh = 0;
-                                                            dc[1].localVars.table[65].name = 0;
+                                                            ((uiInfo_s *)dc)->nextFindPlayerRefresh = 0;
                                                             UI_BuildServerDisplayList(localClientNum, (uiInfo_s *)dc, 1);
                                                         }
                                                         else

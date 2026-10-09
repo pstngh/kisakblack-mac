@@ -42,6 +42,13 @@ A map with bots: add `+set developer_script 1 +set scr_testclients 4 +map mp_nuk
 menu, there is no input). `KB_ASSERT_BT=1` prints a backtrace the first time each
 assert fires.
 
+A client and a dedicated server as separate processes (UDP over loopback): start
+the server with `+set net_port 28960` (plus the bots and `+map` above), then, once
+its map is up (~20 s), the client with `+set net_port 28961 +connect 127.0.0.1:28960`.
+Without Steam any client is accepted (stubs_online.cpp). The engine keeps at most
+32 `+` commands from the command line and silently drops the rest (`com_consoleLines`). Two processes need
+`perl -e 'alarm ...'` each, or kill them yourself; leftover servers keep the port.
+
 Playing without a keyboard: `KB_CMDS` runs console commands at times (seconds) after
 the client becomes active in a map (again after each map change), `|`-separated;
 entries after `loop@<start>/<period>` repeat. `+set scr_tdm_timelimit 1` ends a

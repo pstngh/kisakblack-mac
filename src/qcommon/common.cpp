@@ -1521,8 +1521,20 @@ void __cdecl Com_Init(char *commandLine)
     if ( !I_strcmp(sv_mapname->current.string, "") )
         Com_InitUIAndCommonXAssets();
 
+    bool uiReloaded = false;
     if ( com_errorEntered )
+    {
         Com_ErrorCleanup();
+        // A startup command failed (e.g. +connect to a bad address). The cleanup's
+        // Com_UnloadFrontEnd unloaded ui_mp again; load it before the UI starts, as
+        // Com_AssetLoadUI does after an error in a frame, or the UI comes up without
+        // ui_mp/menus.txt and no menu opens.
+        if ( !com_sv_running->current.enabled && !IsDedicatedServer() )
+        {
+            Com_LoadUiFastFile();
+            uiReloaded = true;
+        }
+    }
 
 #ifndef KISAK_DEDICATED
     if (!com_sv_running->current.enabled && !IsDedicatedServer())
@@ -1545,7 +1557,7 @@ void __cdecl Com_Init(char *commandLine)
 
     if ( !com_sv_running->current.enabled )
     {
-        if ( *Dvar_GetString("com_errorMessage") )
+        if ( *Dvar_GetString("com_errorMessage") && !uiReloaded )
             Com_LoadUiFastFile();
         //BLOPS_NULLSUB();
         Com_LoadFrontEnd();

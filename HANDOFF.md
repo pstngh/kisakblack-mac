@@ -10,7 +10,7 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-09, session 5)
+## Status (2026-10-09, session 6)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
   `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ files: only
@@ -22,8 +22,16 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   `KB_CMDS` (CLAUDE.md) plays without a keyboard: join, class, move, fire, grenade,
   reload, weapon switch, death and respawn. A soak of all 14 MP maps x 180 s with
   the scripted player ran without a crash; 1-minute matches end (scoreboard) and
-  rotate maps; the ASan client ran 8 match ends/rotations with no report after the
-  fixes below. Session 5 is **uncommitted** in the working tree.
+  rotate maps; the ASan client ran 8 match ends/rotations with no report.
+- **Networking** (session 6): UDP on Linux/macOS (`src/platform/linux/sys_net.cpp`).
+  A client process connects to a separate dedicated server (CLAUDE.md has the
+  commands), plays, follows match ends and map rotations (3 maps), and
+  `disconnect` drops it on the server at once; a second process also joins a listen
+  server. Two 64-bit processes read each other's packets, so the Huffman fix holds.
+  ASan client vs. server and ASan server vs. client: 3 maps each, no report. A
+  21-minute soak (ASan client, scripted player, dedicated server rotating dm, dom,
+  koth, ctf, sd, dem, sab, hq, tdm with 1-minute limits) played 12 maps with no
+  report after the two fixes below.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters;
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
@@ -34,22 +42,41 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-1. **Client and dedicated server as separate processes.** A dedicated server
-   (`+set dedicated 1 +set net_port 28960 ... +map mp_nuked`) and a client started
-   with `+set net_port 28961 +connect 127.0.0.1:28960` (25 s later): the client
-   prints "Disconnecting: Bad server address" and never connects (then "Could not
-   find menu 'main'" spam); the server only ever sees its bots. Look at
-   NET_StringToAdr / the connect command and the sockaddr handling on POSIX. Once
-   it connects, this is the test for the Huffman fix below (two 64-bit processes
-   must build the same tree).
+1. **Offline progression (decided, session 6): the user plays only offline against
+   local bots (a listen server) and wants rank, unlocks, attachments, perks and
+   custom classes to progress and persist.** No build ever had working stats:
+   upstream never defined `KISAK_LIVE_SERVICE`, so `LiveStorage_ReadStats` was always
+   empty; `Live_Frame` (the original's sign-in poll) is empty and nothing calls
+   `Live_UserSignedInLocally`/`ToLive`, so no XUID is ever set (`XUserGetXUID` returns
+   success without writing it: the `live_pcache` asserts); the client's
+   `CA_SENDINGSTATS` branch in `CL_CheckForResend` was never decompiled, and
+   `SV_SendClientGameState` zeroes `client->stats` and marks every stat packet received.
+   The server->client half exists: stat changes go out as the `N` server command
+   (`SV_AddModifiedStats`), the client applies them in `CG_DeployServerCommand`
+   (`LiveStats_SetStatChanged`), and `Q` calls `LiveStorage_UploadStats`.
+   Plan (no network upload needed, since host and server share the process):
+   1. Local sign-in at startup: a nonzero XUID (the stub SteamID), gamertag from
+      `name`, `xblive_loggedin`; check `Live_UserSignedIn`'s side effects (it sets
+      `name` from the gamertag, calls `GamerProfile_LogInProfile`).
+   2. `LiveStorage_ReadStats`: load a stats file from `players/` into the normal
+      (and basic-training) buffers, validate checksum and DDL as the removed
+      `LiveStorage_ReadPlayerStatsSuccessful` did (`git show baseline-pre-dw-strip`),
+      else `LiveStats_ResetStats`; set the fetched flags.
+   3. `LiveStorage_UploadStats`: write the file when `statsWriteNeeded`.
+   4. `SV_SendClientGameState`: for a loopback client, copy the local stats buffers
+      into `client->stats`/`globalStats` instead of zeroing them.
+   5. Test with `KB_CMDS`: the CAC menu, XP after a match (the `N` commands), rank
+      up, unlocks, the after-action report, restart and reload. Expect dormant code
+      (DDL, contracts, AAR menus) to surface new bugs; the stats.ddl/exe version gap
+      (STATS_BUFFER_SIZE in live_storage.h) matters here.
+   A remote client's stats (the network upload/receive) stay out of scope.
 2. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
    gametypes) and the ASan client; each fix of this kind so far came from a run.
-3. Offline stats: nothing sets `statsFetched` since the online services were
-   removed, so every stat operation fails (rank, unlocks, after-action report).
-   Decide on a local stats file (LiveStorage) or fetched-empty defaults.
-4. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+   Start the ASan client at the main menu too (session 6's report was in a main
+   menu script that runs only without `+map`).
+3. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
-5. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
+4. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
    (SDL_WINDOW_ALLOW_HIGHDPI), controller support.
 
 ## Open items found but not fixed
@@ -79,6 +106,15 @@ Seen in session 4:
   (e.g. cgs_t 12712 vs 12708, trace_t 64 vs 56, pmove_t, actor_s, client_t,
   sharedUiInfo_t): any raw offset into them is wrong on every build. The
   cg_ents_mp.cpp corpse lookup was one (fixed).
+
+Seen in session 6:
+- `CL_Connect_f` connects only to LAN addresses (`Sys_IsLANAddress`: 10/8, 127/8,
+  169.254/16, 172.16/12, 192.168/16, or the first three octets of a local interface);
+  any other address silently stays `CA_DISCONNECTED` (upstream; every build).
+- A remote client is "Unknown Soldier N" and every non-Steam client has the same
+  SteamID (stubs_online.cpp); the server keys nothing on it today.
+- "CG_SetWeaponHidePartBits: No such bone tag (tag_iron_sightlow) for weapon (m16_mp)":
+  probably the data (the viewmodel lacks a tag the weapon file hides).
 
 Pre-existing (wrong on every build):
 - `actor_fields.cpp` `aifields` offsets don't match `actor_s` (e.g. "fovcosine"
@@ -110,6 +146,35 @@ Pre-existing (wrong on every build):
   string copies through a struct pointer.
 - `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
   sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 6)
+
+- **POSIX UDP** (`sys_net.cpp`) ports win_net.cpp's IP socket: `net_ip`/`net_port`
+  (3074, tries the next 9 ports), non-blocking, SO_BROADCAST, `getaddrinfo` for
+  names, `getifaddrs` for the local addresses that `Sys_IsLANAddress` compares,
+  `net_noudp` and `net_restart`. Not ported: the SOCKS proxy, the client socket pool
+  (`cl_socketpool_enabled` defaults to 0) and the remote script-debug sockets.
+- **Offline connect without Steam** (`stubs_online.cpp`): the handshake carries a
+  Steam ticket (getchallenge) that the server checks with `Steam_CheckClientTicket`.
+  Without Steam the client sends the placeholder ticket "offline" and the stub
+  user's SteamID (the same for every client), and a non-Steam server accepts any
+  nonzero SteamID: there is nothing to verify against (LAN/offline play). A Windows
+  Steam server rejects these clients. `CL_CDKeyValidate` calls
+  `Steam_UpdateClientAuthTicket` on every platform (the stub returns true).
+- `CG_Vehicle_DoControllers` is upstream's simplified rewrite of the decompiled
+  function (kept under `#if 0`); it lost the `boneIndex < 0xFE` guards on the gunner
+  turret, wheel and extra-wheel tags, so a vehicle without those tags (255) indexed
+  `partBits[7]` of a 5-word stack array and could call `DObjSetLocalTagInternal` on
+  bone 255 (writes past the bone matrices). Guards restored (every build). The rewrite
+  also drops wheel suspension, steering and child-bone rotation (vehicle visuals).
+- `Com_Init`: when a startup command fails (`+connect` to a bad address), the error
+  cleanup unloads ui_mp right after `Com_InitUIAndCommonXAssets` loaded it, and the UI
+  started without `ui_mp/menus.txt` ("Could not find menu 'main'" every frame, no
+  menu). ui_mp is now reloaded right after that cleanup, as `Com_AssetLoadUI` does.
+- `UI_RunMenuScript`'s "stop refresh" branches wrote `dc[1].localVars.table[65].name`:
+  on i386 that is `uiInfo_s::nextFindPlayerRefresh` (offset 10080), on 64-bit 3312
+  bytes past `uiInfoArray`, i.e. 8 zero bytes into another global every time the
+  main menu opened. Found by the ASan client started at the main menu.
 
 ## Decisions (session 5)
 

@@ -198,14 +198,8 @@ void __cdecl CL_ServerInfoPacket(XNKID *secID, msg_t *msg, int time)
 
 bool __cdecl CL_CDKeyValidate(netadr_t addr)
 {
-#ifdef WIN32
+    // Without Steam (Linux, macOS) this always succeeds; see stubs_online.cpp.
     return Steam_UpdateClientAuthTicket(addr);
-#else
-    // Steam auth-ticket integration is deferred on the Linux port (Steamworks SDK
-    // not yet wired in); validate as a no-op for now.
-    (void)addr;
-    return false;
-#endif
 }
 
 void __cdecl CL_Connect_f()

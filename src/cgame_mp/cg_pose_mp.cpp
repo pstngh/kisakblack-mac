@@ -496,7 +496,7 @@ void CG_Vehicle_DoControllers(const cpose_t *pose, const DObj *obj, int *partBit
         gunnerTurretAngles[i * 3] = pose->vehicle.gunnerYaw[i] * 0.0054931641f;
         gunnerTurretAngles[i * 3 + 2] = pose->vehicle.gunnerPitch[i] * 0.0054931641f;
 
-        if (DObjSetRotTransIndex(obj, partBits, boneIndex)) {
+        if (boneIndex < 0xFE && DObjSetRotTransIndex(obj, partBits, boneIndex)) {
             DObjSetLocalTagInternal(obj, vec3_origin, &gunnerTurretAngles[i * 3], boneIndex);
         }
     }
@@ -507,7 +507,7 @@ void CG_Vehicle_DoControllers(const cpose_t *pose, const DObj *obj, int *partBit
         float wheelHeight = pose->vehicle.wheelHeight[k];
         float wheelRotation = pose->vehicle.nitrousWheelRotation[k];
 
-        if (DObjSetRotTransIndex(obj, partBits, wheelBone)) {
+        if (wheelBone < 0xFE && DObjSetRotTransIndex(obj, partBits, wheelBone)) {
             float wheelPos[3] = { 0, 0, wheelHeight };
             DObjSetLocalTagInternal(obj, wheelPos, &wheelRotation, wheelBone);
         }
@@ -519,7 +519,7 @@ void CG_Vehicle_DoControllers(const cpose_t *pose, const DObj *obj, int *partBit
         float angle = pose->vehicle.nitrousWheelRotation[m] * pose->vehicle.extra_wheel_rot_scale;
         float wheelAngles[3] = { 0, 0, angle };
 
-        if (DObjSetRotTransIndex(obj, partBits, wheelBone)) {
+        if (wheelBone < 0xFE && DObjSetRotTransIndex(obj, partBits, wheelBone)) {
             DObjSetLocalTagInternal(obj, vec3_origin, &wheelAngles[2], wheelBone);
         }
     }

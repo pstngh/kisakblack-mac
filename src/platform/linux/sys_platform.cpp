@@ -1,11 +1,13 @@
 // sys_platform.cpp — Linux implementations of the Sys_*/NET_*/IN_* platform layer
 // that the engine calls (declared in src/win32/*.h, whose .cpp impls are Windows-only
 // and excluded from the Linux build). Load-critical paths (critical sections,
-// filesystem, the event queue, timing, error/exit) are implemented for real; the
-// non-essential Windows extras (debug sockets, splash/console, hotkeys) are no-ops.
+// filesystem, the event queue, timing, error/exit) are implemented for real (UDP
+// networking in sys_net.cpp); the non-essential Windows extras (debug sockets,
+// splash/console, hotkeys) are no-ops.
 #include <win32/win_main.h>
 #include <win32/win_common.h>
 #include <universal/dvar.h>   // _Dvar_RegisterBool (sys_SSE registration)
+#include <qcommon/cmd.h>      // net_restart
 #include <win32/win_shared.h>
 #include <win32/win_net.h>
 #include <win32/win_input.h>
@@ -24,7 +26,6 @@
 #include <cstring>
 
 #include "../sdl/sdl_events.h"   // Sys_PumpSDLEvents
-#include "../sdl/sdl_mainthread.h"  // Sys_ServiceMainThreadWork (NET_Sleep)
 #include <SDL2/SDL.h>            // SDL_GetMouseState / relative-mouse mode (IN_Frame)
 
 // Client mouse entry point (src/client_mp/cl_input_mp.cpp). Declared directly to
@@ -171,8 +172,12 @@ void Sys_RegisterInfoDvars() {
     _Dvar_RegisterString("sys_cpuName", sys_info.cpuName, 0x40u, "CPU name description");
 }
 
+static cmd_function_s Sys_Net_Restart_f_VAR;
+static void Sys_Net_Restart_f() { NET_Restart(); }
+
 void Sys_Init() {
     EnsureCritInit();
+    Cmd_AddCommandInternal("net_restart", Sys_Net_Restart_f, &Sys_Net_Restart_f_VAR);
     Sys_RegisterInfoDvars();   // Com_InitDvars() has already run
 }
 void Sys_GetInfo(SysInfo *info) { Sys_EnsureInfo(); if (info) memcpy(info, &sys_info, sizeof(SysInfo)); }
@@ -265,18 +270,10 @@ void  Sys_DestroySplashWindow() {}
 void  Sys_HideSplashWindow() {}
 void  Sys_UpdateHotkeyBlock() {}
 
-// ---- Networking: minimal (offline) -----------------------------------------
-void NET_Init() {}
-// The main thread's idle waits (R_BeginRegistration waiting for the render thread)
-// run here, so it also runs work the render thread posted for it (macOS windows).
-void NET_Sleep(unsigned int msec) { Sys_ServiceMainThreadWork(); if (msec) usleep(msec * 1000u); }
+// ---- Networking: UDP is in sys_net.cpp; no SOCKS proxy or client socket pool --
 void NET_RestartDebug() {}
 void NET_ShutdownDebug() {}
-char Sys_SendPacket(unsigned int, unsigned char *, netadr_t) { return 1; }
-int  Sys_GetPacket(netadr_t *, msg_t *) { return 0; }
 int  Sys_SocketPool_GetPacket(netadr_t *, msg_t *) { return 0; }
-int  Sys_StringToAdr(const char *, netadr_t *a) { if (a) memset(a, 0, sizeof(*a)); return 0; }
-int  Sys_IsLANAddress(netadr_t) { return 0; }
 void Sys_CheckForNATOverflow() {}
 
 // ---- Remote script-debug sockets: not supported (no-ops) -------------------

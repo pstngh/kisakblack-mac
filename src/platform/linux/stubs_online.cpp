@@ -142,10 +142,18 @@ S_API void S_CALLTYPE SteamAPI_UnregisterCallResult( class CCallbackBase * /*pCa
 // ============================================================================
 // Engine Steam wrapper (win_steam.h) — ticket / client authentication.
 //
-// Offline: never initialized, no tickets, no SteamID, all checks "fail closed".
+// Offline: Steam is never initialized. The connect handshake still carries a
+// ticket and a SteamID (getchallenge), so a client sends a placeholder ticket and
+// the stub user's SteamID, and a server accepts any ticket: without Steam there
+// is nothing to verify it against (LAN / offline play). A Steam server rejects
+// these clients.
 // ============================================================================
 
 bool g_steamInitialized = false;
+
+namespace {
+unsigned char g_offlineTicket[] = "offline";
+}
 
 void Steam_Init()
 {
@@ -157,12 +165,14 @@ void Steam_Shutdown()
 
 bool Steam_UpdateClientAuthTicket( netadr_t /*serverIpv4*/ )
 {
-    return false;
+    return true;
 }
 
-bool Steam_GetRawClientTicket( unsigned char ** /*pBuffer*/, uint32 * /*pSize*/ )
+bool Steam_GetRawClientTicket( unsigned char **pBuffer, uint32 *pSize )
 {
-    return false;
+    *pBuffer = g_offlineTicket;
+    *pSize = sizeof(g_offlineTicket) - 1;
+    return true;
 }
 
 void Steam_CancelClientTicket()
@@ -171,12 +181,12 @@ void Steam_CancelClientTicket()
 
 uint64_t Steam_GetClientSteamID64()
 {
-    return 0;
+    return g_stubSteamUser.GetSteamID().ConvertToUint64();
 }
 
-bool Steam_CheckClientTicket( const void * /*pAuthTicket*/, uint32 /*authTicketLen*/, uint64_t /*steamID64*/ )
+bool Steam_CheckClientTicket( const void * /*pAuthTicket*/, uint32 /*authTicketLen*/, uint64_t steamID64 )
 {
-    return false;
+    return steamID64 != 0;
 }
 
 void Steam_CheckClients()
