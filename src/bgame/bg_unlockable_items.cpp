@@ -721,7 +721,7 @@ int __cdecl BG_UnlockablesCompareItemsBySortKey(const void *arg0, const void *ar
 {
     int returnValue; // [esp+0h] [ebp-Ch]
 
-    returnValue = *(unsigned int *)Ptr32_Decode(*(unsigned int *)arg0 + 264) - *(unsigned int *)Ptr32_Decode(*(unsigned int *)arg1 + 264);
+    returnValue = (*(const itemInfo_t *const *)arg0)->sortKey - (*(const itemInfo_t *const *)arg1)->sortKey;
     if ( !returnValue )
         return **(unsigned int **)arg0 - **(unsigned int **)arg1;
     return returnValue;

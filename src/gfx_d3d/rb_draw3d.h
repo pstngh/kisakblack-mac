@@ -26,6 +26,7 @@ void __cdecl R_HW_DisableScissor(IDirect3DDevice9 *device);
 void    R_DrawReflected(const GfxViewInfo *viewInfo, GfxCmdBuf *cmdBuf);
 void __cdecl R_DrawReflectedCallback(const void *userData, GfxCmdBufContext context, GfxCmdBufContext prepassContext);
 void __cdecl R_InitLocalCmdBufState(GfxCmdBufState *state);
+void R_RebaseCmdBufStats(GfxCmdBufState *to, const GfxCmdBufState *from);
 bool __cdecl RB_ShouldDrawCoronas();
 void __cdecl RB_Draw3DInternal(GfxViewInfo *viewInfo);
 void __cdecl RB_FullbrightDrawCommands(const GfxViewInfo *viewInfo);

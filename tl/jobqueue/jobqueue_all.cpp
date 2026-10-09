@@ -6,6 +6,8 @@
 #include <universal/q_shared.h>
 #include <qcommon/threads.h>
 
+#include <atomic>
+
 thread_local jqBatch *jqCurBatch;
 thread_local jqWorker *jqCurWorker;
 thread_local jqQueue *jqCurQueue;
@@ -845,7 +847,12 @@ bool __cdecl jqPoll(jqBatchGroup *GroupID)
     {
         __debugbreak();
     }
-    return p_group->BatchCount != 0;
+    if (p_group->BatchCount != 0)
+        return 1;
+    // A batch's results happen-before the worker's (interlocked) decrement of the
+    // count; x86 kept the caller's reads of them after this load, arm64 needs the fence.
+    std::atomic_thread_fence(std::memory_order_acquire);
+    return 0;
 }
 
 bool __cdecl jqAreJobsQueued(jqBatchGroup *GroupID)
@@ -1929,6 +1936,7 @@ void __cdecl jqFlush(jqBatchGroup *GroupID, unsigned __int64 batchCount)
         if (i++ > 1)
             Sleep(0);
     }
+    std::atomic_thread_fence(std::memory_order_acquire);   // as in jqPoll
 }
 
 void __cdecl jqStop()

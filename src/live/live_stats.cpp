@@ -178,7 +178,14 @@ int __cdecl LiveStats_CanPerformStatOperation(int controllerIndex)
     }
     else
     {
-        Com_PrintError(16, "Tried to perform a stats operation before the stats have been fetched.\n");
+        // Nothing fetches stats since the online services were removed, so this
+        // fails every frame; say it once.
+        static bool warned;
+        if ( !warned )
+        {
+            warned = true;
+            Com_PrintError(16, "Tried to perform a stats operation before the stats have been fetched.\n");
+        }
         return 0;
     }
 }

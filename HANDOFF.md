@@ -10,16 +10,20 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-08, end of session 4)
+## Status (2026-10-09, session 5)
 
-- **Builds and links**: `build_macos/blackops`, Mach-O arm64. Every changed file
-  passes the i386 syntax check (gfx_gl/ files: only the known header artefacts).
-  Session 4 is uncommitted in the working tree.
-- **Dedicated server** with 4 bots: deaths, killstreaks, ragdolls, no asserts.
-- **Client**: main menu, team menu (over the blurred world), and a **local match
-  that renders**: world, lighting, models, viewmodel, sky, post effects, HUD,
-  minimap, ammo/equipment icons. ~95-130 fps on an M4. Keyboard, mouse and the
-  console work in a match (a player spawned, moved, fired and typed commands).
+- **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
+  `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ files: only
+  the known header artefacts).
+- **Dedicated server** with 4 bots: deaths, killstreaks, ragdolls, no asserts; also
+  clean under ASan with heap redzones (120 s).
+- **Client**: main menu, team menu over the blurred world, local matches that render
+  on every MP map; ~95-130 fps on an M4. Keyboard, mouse and console work.
+  `KB_CMDS` (CLAUDE.md) plays without a keyboard: join, class, move, fire, grenade,
+  reload, weapon switch, death and respawn. A soak of all 14 MP maps x 180 s with
+  the scripted player ran without a crash; 1-minute matches end (scoreboard) and
+  rotate maps; the ASan client ran 8 match ends/rotations with no report after the
+  fixes below. Session 5 is **uncommitted** in the working tree.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters;
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
@@ -30,17 +34,19 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-1. Longer play sessions to shake out crashes: this session's crash (XAnim client
-   notifies) only showed up while playing. Look for i386 struct sizes and offsets
-   still hard-coded: `tools/audit_stride.py` (literal strides; its remaining hits
-   are reviewed false positives) and `tools/audit_rawofs.py` (raw field offsets).
-2. x86 memory-ordering assumptions: lock-free hand-offs through plain variables
-   (flags spun on, ring buffers) are ordered on x86 but not on arm64. The sound
-   command/notify queues are fixed; audit the rest (render command hand-off,
-   `volatile` flags, worker/job queues outside the `__sync`-based Interlocked
-   wrappers, which are full barriers).
-3. Redzones in the region allocators (`universal/ptr32.cpp`) so ASan sees heap
-   overflows inside the in-image heap.
+1. **Client and dedicated server as separate processes.** A dedicated server
+   (`+set dedicated 1 +set net_port 28960 ... +map mp_nuked`) and a client started
+   with `+set net_port 28961 +connect 127.0.0.1:28960` (25 s later): the client
+   prints "Disconnecting: Bad server address" and never connects (then "Could not
+   find menu 'main'" spam); the server only ever sees its bots. Look at
+   NET_StringToAdr / the connect command and the sockaddr handling on POSIX. Once
+   it connects, this is the test for the Huffman fix below (two 64-bit processes
+   must build the same tree).
+2. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
+   gametypes) and the ASan client; each fix of this kind so far came from a run.
+3. Offline stats: nothing sets `statsFetched` since the online services were
+   removed, so every stat operation fails (rank, unlocks, after-action report).
+   Decide on a local stats file (LiveStorage) or fetched-empty defaults.
 4. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
 5. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
@@ -49,8 +55,6 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 ## Open items found but not fixed
 
 Seen in session 2, unverified against a Windows run:
-- 75x "Field lerp.u.anonymous.data[6] changed for archived eType Invisible Entity
-  when we thought it never would" (sv_msg_write.cpp change hints) with bots.
 - "Could not load xanim pb_huey_*", "xmodel t5_veh_civ_tiara", "weapon X not found
   in weapon table" (killstreak/utility weapons), bg_shock dvars set to 0.
 
@@ -100,10 +104,47 @@ Pre-existing (wrong on every build):
 - `rb_resource` CREATEVERTEXDECL/LOADINDEXBUFFER treat `resource` as native `T **`
   (no producer today). r_cinematic's skip/wait logic is decompiler garbage (dead
   while Bink is stubbed; radbase.h defines `__RAD32__`, a real Bink would need 64).
-- `tools/audit_rawofs.py` still lists raw-offset accesses into WeaponComponent (10),
-  rigid_body (5), token_s (5), script_s (4) and a tail (flameGeneric_s and
-  GfxStaticModelDrawStream are fixed): check each struct with layout_diff; those with
-  the same layout on both ABIs are fine.
+- `tools/audit_rawofs.py`'s remaining sites are reviewed: centity_s and the GfxModel
+  surfaces keep the i386 layout; WeaponComponent, the rigid_body fields reached (m_last_position,
+  m_mat, m_a_vel) and the other listed structs lay out the same on both ABIs; the rest are byte-wise
+  string copies through a struct pointer.
+- `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
+  sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 5)
+
+- arm64 memory ordering: acquire/release fences (`std::atomic_thread_fence`, no
+  code on x86) where a thread reads data another thread published through a plain
+  variable: the dvar read lock (after the writeCount spin), job-queue completion
+  (`jqPoll`'s "done" result, the end of `jqFlush`), the stream IO thread's
+  request status (texture buffers), deferred server->client packets and the glass
+  action ring, on top of session 4's sound queues. Hand-offs through events,
+  critical sections or the Interlocked wrappers (full barriers) need nothing.
+- ASan: under `-fsanitize=address` the region allocator poisons a guard granule
+  after each allocation and freed ranges; the small-block heap adds a 16-byte
+  redzone and poisons slack and freed blocks. The first run found the physics
+  debug buffers allocated with their i386 size.
+- `KB_CMDS` scripted console commands (linux_main.cpp) for unattended play.
+- "Tried to perform a stats operation before the stats have been fetched" prints
+  once (it fired every frame); the underlying issue is next step 2.
+- The session-1 cast rewrite also produced `Ptr32_Decode(<size>)` comparisons
+  (glass shard Defrag assert) and hid out-of-bounds reads into the next global
+  (live_contracts display order); FindCycleBFS's stack-local queue is a struct now.
+- qsort comparators over arrays of native pointers that read the element as a
+  32-bit value and decoded it sorted by garbage (the low half of a 64-bit pointer;
+  it only works when the image base's low 32 bits are 0, as under lldb): HUD
+  elements (`compare_hudelems`), unlockable items, and the **network Huffman tree**
+  (`nodeCmp`), which came out ASLR-dependent, so two 64-bit processes could not
+  read each other's packets (the listen server shares one tree, so it never showed).
+- `GfxCmdBufState` stats pointers (`prim.viewStats/primStats/backupPrimStats`)
+  point into the state's own `frameStats`; R_DrawCall's stack copies left the global
+  pointing into a dead frame (later draws added counts into other functions'
+  locals). `R_RebaseCmdBufStats` re-points them after each copy (every build).
+- `R_SetDLightsConstants` (upstream reconstruction): the spot light def was stored as
+  8 bytes into `diffuseColor[0]` (clobbering an omni light's colour, or the pointer
+  read back with an omni's colour in its high half), and the spot matrix transform
+  read a 4th component past `lightAttentuation` (now w 0, then `[3][3] = 1`).
+- `cdl_proftimer::reset` sorted `mx[5]` with `i < 5` (read and swapped one past).
 
 ## Decisions (session 4)
 

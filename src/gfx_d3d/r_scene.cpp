@@ -4741,7 +4741,8 @@ void R_SetDLightsConstants(
     float reds[4]         = {};  // omni -1/r^2
     float greens[4]       = {};  // omni R-diffuse scaled
     float blues[4]        = {};  // omni G-diffuse scaled
-    float diffuseColor[4] = {};  // [0]=spot lightDef ptr (alias), [1..3]=omni B-diffuse
+    float diffuseColor[4] = {};  // [1..3]=omni B-diffuse
+    const GfxLightDef *spotDef = nullptr;   // IDA aliased it into diffuseColor[0]: 8 bytes on 64-bit
 
     // ---- Spot-light scratch (only populated if a spot is processed) ----
     float lightAttentuation[4] = {};                          // [0]=L.attenuation[3], [1..3]=pos view-rel
@@ -4798,9 +4799,8 @@ void R_SetDLightsConstants(
         {
             iassert(L.type == GFX_LIGHT_TYPE_SPOT);
 
-            // Stash spot lightDef pointer bit-aliased into diffuseColor[0]. The non-null
-            // check below is what triggers the spot's attenuation-image binding.
-            *(const GfxLightDef **)&diffuseColor[0] = L.def;
+            // The non-null check below is what triggers the spot's attenuation-image binding.
+            spotDef = L.def;
 
             lightAttentuation[1] = L.origin[0] - viewInfo->cullViewInfo.viewParms.origin[0];
             lightAttentuation[2] = L.origin[1] - viewInfo->cullViewInfo.viewParms.origin[1];
@@ -4872,9 +4872,8 @@ void R_SetDLightsConstants(
                            diffuseColor[1], diffuseColor[2], diffuseColor[3], blues[0]);
 
     // ===== Bind spot attenuation image (codeImages[17]) =====
-    if (*(uint32_t *)&diffuseColor[0])
+    if (spotDef)
     {
-        const GfxLightDef *spotDef = *(const GfxLightDef **)&diffuseColor[0];
         input->codeImages[TEXTURE_SRC_CODE_DLIGHT_ATTENUATION] = spotDef->attenuation.image;
         R_SetInputCodeImageSamplerState(input, 0x11u, spotDef->attenuation.samplerState);
     }
@@ -4955,13 +4954,18 @@ void R_SetDLightsConstants(
     // ===== DLIGHT_SPOT_MATRIX_0..3 (slots 0x97-0x9A) — spot view*proj =====
     // 1. Transform light position through the spot's view matrix; the result replaces the
     //    view matrix's translation row (row 3).
-    MatrixTransformVector44(&lightAttentuation[1],
+    //    (This passed &lightAttentuation[1] as the vec4, reading past the array for w.
+    //    Positions are camera-relative, so the row must be -(lightPosRel * rotation)
+    //    with w 1: transform with w 0, then restore w.)
+    const float lightPosRel[4] = { lightAttentuation[1], lightAttentuation[2], lightAttentuation[3], 0.0f };
+    MatrixTransformVector44(lightPosRel,
                             (const float (*)[4])viewMatrix,
                             viewMatrix[3]);
-    // 2. Negate the xyz of that translation row (leave w alone).
+    // 2. Negate the xyz of that translation row.
     viewMatrix[3][0] = -viewMatrix[3][0];
     viewMatrix[3][1] = -viewMatrix[3][1];
     viewMatrix[3][2] = -viewMatrix[3][2];
+    viewMatrix[3][3] = 1.0f;
     // 3. Compose final = viewMatrix * projMatrix.
     float finalMatrix[4][4];
     MatrixMultiply44((const float (*)[4])viewMatrix,

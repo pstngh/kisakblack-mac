@@ -92,7 +92,9 @@ nodetype *__cdecl Huff_initNode(huff_t *huff, int ch, int weight)
 
 int __cdecl nodeCmp(const void *left, const void *right)
 {
-    return *(unsigned int *)Ptr32_Decode(*(unsigned int *)left + 12) - *(unsigned int *)Ptr32_Decode(*(unsigned int *)right + 12);
+    // heap[] holds native pointers (a 32-bit read sorted by garbage: every 64-bit
+    // process built a different tree and could not read another's packets).
+    return (*(const nodetype *const *)left)->weight - (*(const nodetype *const *)right)->weight;
 }
 
 void __cdecl Huff_BuildFromData(huff_t *huff, const int *msg_hData)

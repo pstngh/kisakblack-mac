@@ -11,6 +11,8 @@
 #include "threads.h"
 #include <server_mp/sv_net_chan_mp.h>
 
+#include <atomic>
+
 // (jedi academy)
 #define MAX_PACKETLEN 1264
 #define	FRAGMENT_SIZE			(MAX_PACKETLEN - 100)
@@ -868,6 +870,9 @@ bool __cdecl NET_GetDeferredClientPacket(netadr_t *net_from, msg_t *net_message)
 
     if ( deferredQueue.get >= deferredQueue.send )
         return false;
+    // The server thread fills the slot before its interlocked increment of send;
+    // keep the reads below after the load of send on arm64.
+    std::atomic_thread_fence(std::memory_order_acquire);
 
     msg = &deferredQueue.msgs[deferredQueue.get & 0xF];
     memcpy(net_message->data, msg->data, msg->datalen);

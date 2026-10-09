@@ -3,6 +3,17 @@
 #ifdef KISAK_PTR32
 
 #include <sys/mman.h>
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define KISAK_ASAN 1
+#endif
+#endif
+#if defined(__SANITIZE_ADDRESS__)
+#define KISAK_ASAN 1
+#endif
+#ifdef KISAK_ASAN
+#include <sanitizer/asan_interface.h>
+#endif
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -39,6 +50,21 @@ std::map<uintptr_t, size_t> &LiveRanges() { static std::map<uintptr_t, size_t> m
 
 void **g_handleTable;
 
+// AddressSanitizer only knows the region as one big global. Under ASan, memory the
+// allocators have not handed out is poisoned: region allocations get a guard
+// granule after them, heap blocks a redzone, and freed memory stays poisoned.
+#ifdef KISAK_ASAN
+constexpr size_t REGION_GUARD = REGION_GRANULE;
+constexpr size_t HEAP_REDZONE = 16;
+inline void Poison(const void *p, size_t n) { ASAN_POISON_MEMORY_REGION(p, n); }
+inline void Unpoison(const void *p, size_t n) { ASAN_UNPOISON_MEMORY_REGION(p, n); }
+#else
+constexpr size_t REGION_GUARD = 0;
+constexpr size_t HEAP_REDZONE = 0;
+inline void Poison(const void *, size_t) {}
+inline void Unpoison(const void *, size_t) {}
+#endif
+
 [[noreturn]] void Ptr32_Fatal(const char *msg)
 {
     fprintf(stderr, "ptr32: %s\n", msg);
@@ -65,6 +91,7 @@ void *Ptr32_RegionAlloc(size_t size)
     size = (size + REGION_GRANULE - 1) & ~(REGION_GRANULE - 1);
     if (!size)
         size = REGION_GRANULE;
+    size += REGION_GUARD;
     std::lock_guard<std::mutex> lock(RegionMutex());
     auto &freeRanges = FreeRanges();
     for (auto it = freeRanges.begin(); it != freeRanges.end(); ++it)
@@ -77,6 +104,9 @@ void *Ptr32_RegionAlloc(size_t size)
         if (rest)
             freeRanges[start + size] = rest;
         LiveRanges()[start] = size;
+        // Whole pages are usable, as with VirtualAlloc; the guard granule is not.
+        Unpoison((void *)start, size - REGION_GUARD);
+        Poison((void *)(start + size - REGION_GUARD), REGION_GUARD);
         return (void *)start;
     }
     fprintf(stderr, "ptr32: heap region exhausted (%zu bytes requested)\n", size);
@@ -88,7 +118,7 @@ size_t Ptr32_RegionAllocSize(const void *p)
     std::lock_guard<std::mutex> lock(RegionMutex());
     auto &live = LiveRanges();
     auto it = live.find((uintptr_t)p);
-    return it == live.end() ? 0 : it->second;
+    return it == live.end() ? 0 : it->second - REGION_GUARD;
 }
 
 void Ptr32_RegionFree(void *p)
@@ -107,6 +137,7 @@ void Ptr32_RegionFree(void *p)
     // Give the pages back and leave them demand-zero, like a fresh allocation.
     if (mmap((void *)start, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_FIXED, -1, 0) == MAP_FAILED)
         Ptr32_Fatal("could not reset freed region pages");
+    Poison((void *)start, size);
 
     auto &freeRanges = FreeRanges();
     auto next = freeRanges.lower_bound(start);
@@ -165,7 +196,7 @@ void *Ptr32_HeapAlloc(size_t size)
 {
     size_t total = size + HEAP_HEADER;
     uint32_t c = 0;
-    while (c < HEAP_CLASSES && kClassSizes[c] < total)
+    while (c < HEAP_CLASSES && kClassSizes[c] < total + HEAP_REDZONE)
         ++c;
     if (c == HEAP_CLASSES)
     {
@@ -184,6 +215,7 @@ void *Ptr32_HeapAlloc(size_t size)
     unsigned char *block = (unsigned char *)hc.freeList;
     if (block)
     {
+        Unpoison(block + HEAP_HEADER, sizeof(void *));
         hc.freeList = *(void **)(block + HEAP_HEADER);
     }
     else
@@ -194,10 +226,13 @@ void *Ptr32_HeapAlloc(size_t size)
             if (!hc.bump)
                 return nullptr;
             hc.bumpEnd = hc.bump + HEAP_SLAB;
+            Poison(hc.bump, HEAP_SLAB);
         }
         block = hc.bump;
         hc.bump += kClassSizes[c];
     }
+    Unpoison(block, HEAP_HEADER + size);
+    Poison(block + HEAP_HEADER + size, kClassSizes[c] - HEAP_HEADER - size);
     HeapHeader *h = (HeapHeader *)block;
     h->magic = HEAP_MAGIC;
     h->sizeClass = c;
@@ -224,8 +259,10 @@ void Ptr32_HeapFree(void *p)
     std::lock_guard<std::mutex> lock(HeapMutex());
     HeapClass &hc = g_heapClasses[h->sizeClass];
     h->magic = 0;
+    Unpoison(p, sizeof(void *));
     *(void **)p = hc.freeList;
     hc.freeList = block;
+    Poison(p, kClassSizes[h->sizeClass] - HEAP_HEADER);
 }
 
 uint32_t Ptr32_EncodeSlow(const void *p)

@@ -2,6 +2,7 @@
 #include <database/db_registry.h>
 
 #include <algorithm>
+#include <atomic>
 
 #include <gfx_d3d/r_material_load_obj.h>
 #include <ctype.h>
@@ -35,6 +36,7 @@ dvar_s *__cdecl Dvar_FindMalleableVar_0(int dvarHash)
     _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
     while (g_dvarCritSect.writeCount)
         NET_Sleep(0);
+    std::atomic_thread_fence(std::memory_order_acquire);  // the writer's stores happen-before its unlock
     for (var = dvarHashTable[dvarHash & 0x3FF]; var; var = var->hashNext)
     {
         if (var->hash == dvarHash)
@@ -3234,6 +3236,7 @@ void __cdecl Dvar_SetCheatState()
     _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
     while ( g_dvarCritSect.writeCount )
         NET_Sleep(0);
+    std::atomic_thread_fence(std::memory_order_acquire);
     for ( dvarIter = 0; dvarIter < dvarCount; ++dvarIter )
     {
         dvar = &dvarPool[dvarIter];
@@ -3262,6 +3265,7 @@ void __cdecl Dvar_ResetScriptInfo()
     _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
     while ( g_dvarCritSect.writeCount )
         NET_Sleep(0);
+    std::atomic_thread_fence(std::memory_order_acquire);
     for ( dvarIter = 0; dvarIter < dvarCount; ++dvarIter )
         dvarPool[dvarIter].flags &= ~0x400u;
     Sys_UnlockRead(&g_dvarCritSect);
@@ -3274,6 +3278,7 @@ char __cdecl Dvar_AnyLatchedValues()
     _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
     while ( g_dvarCritSect.writeCount )
         NET_Sleep(0);
+    std::atomic_thread_fence(std::memory_order_acquire);
     for ( dvarIter = 0; dvarIter < dvarCount; ++dvarIter )
     {
         if ( Dvar_HasLatchedValue(&dvarPool[dvarIter]) )
@@ -3296,6 +3301,7 @@ void __cdecl Dvar_RestoreDvars()
         _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
         while ( g_dvarCritSect.writeCount )
             NET_Sleep(0);
+        std::atomic_thread_fence(std::memory_order_acquire);
         for ( hash = 0; hash < 0x400; ++hash )
         {
             for ( dvar = dvarHashTable[hash]; dvar; dvar = dvar->hashNext )
@@ -3320,6 +3326,7 @@ void __cdecl Dvar_ResetDvars(unsigned int filter, DvarSetSource setSource)
     _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
     while ( g_dvarCritSect.writeCount )
         NET_Sleep(0);
+    std::atomic_thread_fence(std::memory_order_acquire);
     for ( dvarIter = 0; dvarIter < dvarCount; ++dvarIter )
     {
         if ( (filter & dvarPool[dvarIter].flags) != 0 )
@@ -3354,6 +3361,7 @@ void __cdecl Dvar_ResetConAccessDvars()
     _InterlockedExchangeAdd(&g_dvarCritSect.readCount, 1u);
     while ( g_dvarCritSect.writeCount )
         NET_Sleep(0);
+    std::atomic_thread_fence(std::memory_order_acquire);
     for ( dvarIter = 0; dvarIter < dvarCount; ++dvarIter )
         dvarPool[dvarIter].flags &= ~0x10000u;
     Sys_UnlockRead(&g_dvarCritSect);

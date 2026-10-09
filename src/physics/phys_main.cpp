@@ -3631,7 +3631,7 @@ void __thiscall cdl_proftimer::reset()
         do
         {
             swap = 0;
-            for (i = 0; i < 5; ++i)
+            for (i = 0; i < 4; ++i)   // mx[5]: i + 1 must stay in range (it read and swapped mx[5])
             {
                 if (this->mx[i] > this->mx[i + 1])
                 {

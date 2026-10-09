@@ -42,6 +42,15 @@ A map with bots: add `+set developer_script 1 +set scr_testclients 4 +map mp_nuk
 menu, there is no input). `KB_ASSERT_BT=1` prints a backtrace the first time each
 assert fires.
 
+Playing without a keyboard: `KB_CMDS` runs console commands at times (seconds) after
+the client becomes active in a map (again after each map change), `|`-separated;
+entries after `loop@<start>/<period>` repeat. `+set scr_tdm_timelimit 1` ends a
+match after a minute, to test the end of a match and map rotation. This joins, picks a class and fights:
+
+```sh
+KB_CMDS='8:openscriptmenu team_marinesopfor autoassign|11:openscriptmenu changeclass assault_mp,0|loop@14/10|0:+forward|1:+attack|2.5:-attack|3:+right|3.6:-right|4:+gostand|4.2:-gostand|5:+usereload|5.2:-usereload|6:weapnext|7:+frag|7.3:-frag|9.5:-forward'
+```
+
 Seeing the client: `screencapture` lacks Screen Recording permission and the
 console is unreachable, so `KB_SCREENSHOT=<dir> KB_SCREENSHOT_EVERY=<n>` writes the
 back buffer as `<dir>/present_N.tga` every n presents (with draw counters on stderr).

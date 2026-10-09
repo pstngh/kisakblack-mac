@@ -181,9 +181,28 @@ void __cdecl R_DrawReflectedCallback(const void *userData, GfxCmdBufContext cont
     R_HW_DisableScissor(context.state->prim.device);
 }
 
+// prim.viewStats/primStats/backupPrimStats point into prim.frameStats of the state
+// they were set on. R_DrawCall works on stack copies of gfxCmdBufState and copies them
+// back, which left the global pointing into a dead frame: later draws added their
+// counts to whatever locals lived there. Re-point them into the destination copy.
+void R_RebaseCmdBufStats(GfxCmdBufState *to, const GfxCmdBufState *from)
+{
+    const char *lo = (const char *)&from->prim.frameStats;
+    const char *hi = lo + sizeof(from->prim.frameStats);
+    char *base = (char *)&to->prim.frameStats;
+
+    if ((const char *)to->prim.viewStats >= lo && (const char *)to->prim.viewStats < hi)
+        to->prim.viewStats = (GfxViewStats *)(base + ((const char *)to->prim.viewStats - lo));
+    if ((const char *)to->prim.primStats >= lo && (const char *)to->prim.primStats < hi)
+        to->prim.primStats = (GfxPrimStats *)(base + ((const char *)to->prim.primStats - lo));
+    if ((const char *)to->prim.backupPrimStats >= lo && (const char *)to->prim.backupPrimStats < hi)
+        to->prim.backupPrimStats = (GfxPrimStats *)(base + ((const char *)to->prim.backupPrimStats - lo));
+}
+
 void __cdecl R_InitLocalCmdBufState(GfxCmdBufState *state)
 {
     memcpy(state->refSamplerState, gfxCmdBufState.refSamplerState, sizeof(GfxCmdBufState));
+    R_RebaseCmdBufStats(state, &gfxCmdBufState);
     memset(state->vertexShaderConstState, 0, sizeof(state->vertexShaderConstState));
     memset(state->pixelShaderConstState, 0, sizeof(state->pixelShaderConstState));
 }

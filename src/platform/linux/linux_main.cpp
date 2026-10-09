@@ -16,6 +16,9 @@
 #include <universal/dvar.h>
 #include <universal/q_parse.h>
 #include <universal/timing.h>
+#include <client/client.h>
+#include <qcommon/cmd.h>
+#include <win32/win_shared.h>
 
 #include <cstring>
 #include <cstdio>
@@ -52,6 +55,66 @@ bool PC_StartWithNoSounds() { return false; }
 // and typeinfo here (otherwise nothing in the build emits them).
 void broad_phase_terrain_query_callback::query(const broad_phase_environment_query_input *, broad_phase_environement_query_results *) {}
 
+// ---- Scripted console commands (testing without a player at the keyboard) ----
+// KB_CMDS="20:openscriptmenu team_marinesopfor autoassign|25:+attack|26:-attack"
+// runs each command that many seconds after the client becomes active in a map
+// (again on every map). Entries after "loop@<start>/<period>" repeat every
+// <period> seconds from <start>, their times relative to each repetition.
+static void KB_RunScriptedCommands() {
+    struct Entry { int ms; const char *cmd; };
+    static Entry entries[64];
+    static int count = -1, loopFirst, next, loopNext;
+    static int startMs, loopStartMs, loopPeriodMs, loopBaseMs;
+    if (count < 0) {
+        count = 0;
+        const char *env = getenv("KB_CMDS");
+        if (env) {
+            static char buf[4096];
+            snprintf(buf, sizeof(buf), "%s", env);
+            loopFirst = 64;
+            for (char *tok = strtok(buf, "|"); tok && count < 64; tok = strtok(nullptr, "|")) {
+                if (!strncmp(tok, "loop@", 5)) {
+                    loopFirst = count;
+                    loopStartMs = (int)(atof(tok + 5) * 1000.0);
+                    const char *slash = strchr(tok, '/');
+                    loopPeriodMs = slash ? (int)(atof(slash + 1) * 1000.0) : 0;
+                    continue;
+                }
+                char *colon = strchr(tok, ':');
+                if (!colon) continue;
+                *colon = 0;
+                entries[count].ms = (int)(atof(tok) * 1000.0);
+                entries[count].cmd = colon + 1;
+                ++count;
+            }
+            loopNext = loopFirst;
+        }
+    }
+    if (!count) return;
+    if (CL_GetLocalClientConnectionState(0) != CA_ACTIVE) {
+        startMs = 0;   // the next map starts the list over
+        next = 0;
+        loopNext = loopFirst;
+        return;
+    }
+    int now = Sys_Milliseconds();
+    if (!startMs) { startMs = now; loopBaseMs = now + loopStartMs; }
+    auto run = [&](const Entry &e) {
+        fprintf(stderr, "[kbcmds] %.1f s: %s\n", (now - startMs) / 1000.0, e.cmd);
+        Cbuf_AddText(0, e.cmd);
+        Cbuf_AddText(0, "\n");
+    };
+    while (next < loopFirst && next < count && now - startMs >= entries[next].ms)
+        run(entries[next++]);
+    if (loopFirst >= count || loopPeriodMs <= 0 || now < loopBaseMs) return;
+    while (loopNext < count && now - loopBaseMs >= entries[loopNext].ms)
+        run(entries[loopNext++]);
+    if (now - loopBaseMs >= loopPeriodMs) {
+        loopBaseMs += loopPeriodMs;
+        loopNext = loopFirst;
+    }
+}
+
 // ---- Entry point -----------------------------------------------------------
 int main(int argc, char **argv) {
     char cmdline[2048] = {0};
@@ -75,6 +138,9 @@ int main(int argc, char **argv) {
     Sys_SetupTLCallbacks(0x900000);
     Com_Init(cmdline);
 
-    for (;;) Com_Frame();
+    for (;;) {
+        Com_Frame();
+        KB_RunScriptedCommands();
+    }
     return 0;
 }

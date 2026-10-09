@@ -2342,7 +2342,7 @@ void __thiscall GlassShard::Defrag()
         //v4 = GlassShard::Mesh::SetPointers(&this->mesh, (PackedUnitVec *)ptr);
         v4 = this->mesh.SetPointers((PackedUnitVec *)ptr);
         ptr += v4;
-        if ( (unsigned __int8 *)(ptr - this->memoryPtr) != (unsigned __int8 *)Ptr32_Decode(this->memorySize)
+        if ( ptr - this->memoryPtr != (int)this->memorySize
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_shard.cpp",
                         1726,

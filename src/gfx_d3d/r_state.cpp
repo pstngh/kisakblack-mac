@@ -3313,6 +3313,7 @@ void R_DrawCall(
 
         callback(userData, context, prepassContext);
         memcpy(&gfxCmdBufState, &prepassCmdBuf, sizeof(gfxCmdBufState));
+        R_RebaseCmdBufStats(&gfxCmdBufState, &prepassCmdBuf);
     }
     else
     {
@@ -3321,4 +3322,5 @@ void R_DrawCall(
         callback(userData, context, prepassContext);
     }
     memcpy(gfxCmdBufState.refSamplerState, cmdBuf.refSamplerState, sizeof(gfxCmdBufState));
+    R_RebaseCmdBufStats(&gfxCmdBufState, &cmdBuf);
 }

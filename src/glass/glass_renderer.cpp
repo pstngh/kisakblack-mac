@@ -14,6 +14,8 @@
 #include <gfx_d3d/r_primarylights.h>
 #include <universal/com_workercmds.h>
 
+#include <atomic>
+
 // KISAKTODO: uses too much aislop to get rid of the horrible STL iterators and such (should be done manually with another pass)
 
 cmd_function_s MemInfoCmd_VAR;
@@ -1775,6 +1777,9 @@ void __thiscall GlassRenderer::ExecuteActions()
 
     while ( this->actionOutputIndex != this->actionInputIndex )
     {
+        // The producer fills the action before its interlocked increment of the
+        // input index; keep the reads below after that load on arm64.
+        std::atomic_thread_fence(std::memory_order_acquire);
         action = &this->actions[this->actionOutputIndex % 0xC8u];
         switch ( action->type )
         {

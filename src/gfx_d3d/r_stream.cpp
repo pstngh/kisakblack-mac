@@ -21,6 +21,7 @@
 #include <xanim/xmodel.h>
 
 #include <algorithm>
+#include <atomic>
 #include <DynEntity/DynEntity_load_obj.h>
 #include <DynEntity/DynEntity_client.h>
 #include "r_rendercmds.h"
@@ -230,7 +231,11 @@ void __cdecl R_StreamUpdate_ReadTextures()
     R_StreamAlloc_Unlock();
     if ( request )
     {
-        if ( Image_LoadToBuffer(request->image, request->highMip, &request->buffer, &request->bufferSize) )
+        bool loaded = Image_LoadToBuffer(request->image, request->highMip, &request->buffer, &request->bufferSize);
+        // The status publishes the buffer to other threads without a lock: on arm64
+        // the buffer and its contents must be visible first (x86 kept store order).
+        std::atomic_thread_fence(std::memory_order_release);
+        if ( loaded )
             request->status = STREAM_STATUS_FINISHED;
         else
             request->status = STREAM_STATUS_CANCELLED;
@@ -255,6 +260,7 @@ bool __cdecl R_StreamUpdate_ProcessFileCallbacks()
         request = &s_pendingRequests[i];
         if (request->status >= (unsigned int)STREAM_STATUS_CANCELLED)
         {
+            std::atomic_thread_fence(std::memory_order_acquire);   // pairs with R_StreamUpdate_ReadTextures
             image = request->image;
             if (!image
                 && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\gfx_d3d\\r_stream.cpp", 1189, 0, "%s", "image != NULL"))
@@ -869,6 +875,7 @@ void R_Stream_Sync()
             R_Stream_InvalidateRequest(request);
             break;
         case STREAM_STATUS_FINISHED:
+            std::atomic_thread_fence(std::memory_order_acquire);   // pairs with R_StreamUpdate_ReadTextures
             imageIndexa = DB_GetImageIndex(request->image);
             streamFrontendGlob.imageLoading[(imageIndexa >> 5) - 8] &= ~(1 << (imageIndexa & 0x1F));
             Z_VirtualFree(request->buffer, 20);
@@ -878,6 +885,7 @@ void R_Stream_Sync()
             while (s_pendingRequests[i].status < STREAM_STATUS_CANCELLED
                 || s_pendingRequests[i].status > STREAM_STATUS_FINISHED)
                 NET_Sleep(1u);
+            std::atomic_thread_fence(std::memory_order_acquire);   // pairs with R_StreamUpdate_ReadTextures
             imageIndexb = DB_GetImageIndex(request->image);
             streamFrontendGlob.imageLoading[(imageIndexb >> 5) - 8] &= ~(1 << (imageIndexb & 0x1F));
             Z_VirtualFree(request->buffer, 20);
