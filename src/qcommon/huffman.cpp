@@ -66,7 +66,7 @@ void __cdecl Huff_offsetTransmit(huff_t *huff, int ch, unsigned __int8 *fout, in
 
 void __cdecl Huff_Init(huffman_t *huff)
 {
-    Com_Memset((unsigned int *)huff, 0, 19476);
+    Com_Memset((unsigned int *)huff, 0, sizeof(*huff));
     huff->compressDecompress.loc[256] = &huff->compressDecompress.nodeList[huff->compressDecompress.blocNode++];
     huff->compressDecompress.tree = huff->compressDecompress.loc[256];
     huff->compressDecompress.tree->symbol = 256;

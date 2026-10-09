@@ -1142,7 +1142,7 @@ char __thiscall GlassShard::Outline::CloseOutline()
     this->area = 0.0f;
     for ( i = 0; i < this->numVerts; ++i )
     {
-        v11 = ((signed int)-fabs(i - (this->numVerts - 1)) >> 31) & (i + 1);
+        v11 = i == this->numVerts - 1 ? 0 : i + 1;
         this->length = this->length + this->verts[i].edge.len;
         this->area = (float)((float)((float)(this->verts[i].edge.origin[0] * this->verts[v11].edge.origin[1])
                                                              - (float)(this->verts[i].edge.origin[1] * this->verts[v11].edge.origin[0]))
@@ -3574,9 +3574,12 @@ int GlassShard::Split(
         newOutline.Add(newDir, newEdgeDist)->isOriginalEdge = isOriginalEdge;
         v13 = this->outline.verts[newEdgeIdx].isOriginalEdge;
         otherOutline.Add(newOutline.verts[newOutline.numVerts - 1].edge.origin)->isOriginalEdge = v13;
-        for ( edgeIndex = ((signed int)-abs(newEdgeIdx - (this->outline.numVerts - 1)) >> 31) & (newEdgeIdx + 1);
+        // The decompiled next/previous index with wrap-around used (int)-fabs(unsigned
+        // difference) >> 31: an out-of-range double to int conversion, which clang
+        // folds differently from x87/SSE truncation (the loop never ended).
+        for ( edgeIndex = newEdgeIdx == this->outline.numVerts - 1 ? 0 : newEdgeIdx + 1;
                     edgeIndex != startEdge;
-                    edgeIndex = ((signed int)-fabs(edgeIndex - (this->outline.numVerts - 1)) >> 31) & (edgeIndex + 1) )
+                    edgeIndex = edgeIndex == this->outline.numVerts - 1 ? 0 : edgeIndex + 1 )
         {
             v12 = this->outline.verts[edgeIndex].isOriginalEdge;
             newOutline.Add(this->outline.verts[edgeIndex].edge.origin)->isOriginalEdge = v12;
@@ -3585,9 +3588,7 @@ int GlassShard::Split(
             goto LABEL_36;
         for ( edgeIndex = newEdgeIdx; edgeIndex != startEdge; edgeIndex = nextEdgeIndex )
         {
-            nextEdgeIndex = this->outline.numVerts
-                                        - 1
-                                        + (((signed int)-fabs(edgeIndex) >> 31) & (edgeIndex - this->outline.numVerts));
+            nextEdgeIndex = edgeIndex ? edgeIndex - 1 : this->outline.numVerts - 1;
             v11 = this->outline.verts[nextEdgeIndex].isOriginalEdge;
             otherOutline.Add(this->outline.verts[edgeIndex].edge.origin)->isOriginalEdge = v11;
         }
@@ -4113,7 +4114,7 @@ bool __thiscall GlassShard::IsOnBottomEdge()
     }
     if ( edgeIdx == -1 )
         return 0;
-    edgeIdx2 = ((signed int)-fabs(edgeIdx - (this->outline.numVerts - 1)) >> 31) & (edgeIdx + 1);
+    edgeIdx2 = edgeIdx == this->outline.numVerts - 1 ? 0 : edgeIdx + 1;
     minEdge = FLT_MAX;
     minOthers = FLT_MAX;
     for ( j = 0; j < this->outline.numVerts; ++j )

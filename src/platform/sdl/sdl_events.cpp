@@ -1,5 +1,6 @@
 // sdl_events.cpp — SDL → engine input translation.
 #include "sdl_events.h"
+#include "sdl_mainthread.h"
 
 #include <SDL2/SDL.h>
 #include <ui/keycodes.h>      // keyNum_t (the engine's key codes)
@@ -9,6 +10,7 @@
 // convention, so this declaration resolves to the same symbol.
 void Sys_QueEvent(unsigned int time, sysEventType_t type, int value, int value2,
                   int ptrLength, void *ptr);
+bool Sys_IsMainThread();
 
 int Sys_SDLKeyToKeyNum(int sym) {
     // Printable ASCII maps straight through (Quake convention: letter/number/symbol
@@ -41,6 +43,12 @@ int Sys_SDLKeyToKeyNum(int sym) {
 }
 
 void Sys_PumpSDLEvents(unsigned t) {
+    // The render thread gets here through Sys_LoadingKeepAlive while it draws the
+    // loading screen. SDL pumps events only on the main thread (AppKit throws
+    // otherwise), and the engine's event queue is the main thread's.
+    if (!Sys_IsMainThread())
+        return;
+    Sys_ServiceMainThreadWork();
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         switch (e.type) {

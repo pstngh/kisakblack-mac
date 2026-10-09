@@ -32,7 +32,7 @@ jqModule Demo_SaveModule =
     .Code = Demo_SaveCallback,
     //.Group = 0
 };
-jqWorkerCmd Demo_SaveWorkerCmd = { &Demo_SaveModule, 12u, 0, 0, &Demo_SaveLimit, NULL, 0u };
+jqWorkerCmd Demo_SaveWorkerCmd = { &Demo_SaveModule, sizeof(demoSaveCmd), 0, 0, &Demo_SaveLimit, NULL, 0u };
 
 int g_democlientindex;
 

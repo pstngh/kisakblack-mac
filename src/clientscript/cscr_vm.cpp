@@ -39,6 +39,19 @@ const dvar_t *scrShowVarUseage;
 const dvar_t *scrShowStrUsage;
 const dvar_t *sv_clientside;
 
+// VM_Execute_0 recovers from script errors by longjmp-ing back into itself, then
+// keeps using locals it changed after the setjmp (localFs, fieldValueId, objectId,
+// ...). Those are indeterminate unless they live in memory: MSVC kept them there,
+// but clang and GCC keep them in registers, which longjmp rolls back to their
+// values at function entry. Build the interpreter unoptimized on those compilers.
+#if defined(__clang__)
+#define SCR_VM_SETJMP_SAFE __attribute__((optnone))
+#elif defined(__GNUC__)
+#define SCR_VM_SETJMP_SAFE __attribute__((optimize("O0")))
+#else
+#define SCR_VM_SETJMP_SAFE
+#endif
+
 unsigned int __cdecl VM_Execute_0(scriptInstance_t inst);
 
 void __cdecl Scr_ClearErrorMessage(scriptInstance_t inst)
@@ -137,7 +150,9 @@ void __cdecl Scr_Settings(int developer, int developer_script, int abort_on_erro
 #endif
     // KISAKTODO: script debug "potential infinite loop!!!"
     gScrVarPub[inst].developer = false;
-    gScrVarPub[inst].developer_script = false;
+    // developer_script only compiles the /# #/ blocks (maps/mp/gametypes/_dev.gsc:
+    // scr_testclients bots, etc.); off unless the dvar is set.
+    gScrVarPub[inst].developer_script = developer_script != 0;
     gScrVmPub[inst].abort_on_error = false;
 }
 
@@ -4255,7 +4270,7 @@ void __cdecl Scr_StackClear(scriptInstance_t inst)
     gScrVmPub[inst].top = gScrVmPub[inst].stack;
 }
 
-unsigned int __cdecl VM_Execute_0(scriptInstance_t inst)
+SCR_VM_SETJMP_SAFE unsigned int __cdecl VM_Execute_0(scriptInstance_t inst)
 {
     int v1; // ecx
     //unsigned int Self; // eax

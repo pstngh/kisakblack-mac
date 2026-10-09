@@ -404,6 +404,7 @@ void __cdecl Image_Create2DTexture_PC(
     }
     if ( r_logFile && r_logFile->current.integer )
         RB_LogPrint("dx.device->CreateTexture( width, height, mipmapCount, usage, imageFormat, memPool, &image->texture.map, 0 )\n");
+    IDirect3DTexture9 *map = nullptr; // image->texture is a 4-byte Ptr32 on 64-bit builds
     hr = dx.device->CreateTexture(
                  width,
                  height,
@@ -411,8 +412,9 @@ void __cdecl Image_Create2DTexture_PC(
                  usage,
                  imageFormat,
                  memPool,
-                 (IDirect3DTexture9 **)image,
+                 &map,
                  0);
+    image->texture.map = map;
     if ( hr < 0 )
     {
         ++g_disableRendering;
@@ -487,6 +489,7 @@ void __cdecl Image_Create3DTexture_PC(
     if ( r_logFile && r_logFile->current.integer )
         RB_LogPrint(
             "dx.device->CreateVolumeTexture( width, height, depth, mipmapCount, 0, imageFormat, D3DPOOL_MANAGED, &image->texture.volmap, 0 )\n");
+    IDirect3DVolumeTexture9 *volmap = nullptr; // image->texture is a 4-byte Ptr32 on 64-bit builds
     hr = dx.device->CreateVolumeTexture(
                  width,
                  height,
@@ -495,8 +498,9 @@ void __cdecl Image_Create3DTexture_PC(
                  0,
                  imageFormat,
                  D3DPOOL_MANAGED,
-                 (IDirect3DVolumeTexture9 **)image,
+                 &volmap,
                  0);
+    image->texture.volmap = volmap;
     if ( hr < 0 )
     {
         ++g_disableRendering;
@@ -550,14 +554,16 @@ void __cdecl Image_CreateCubeTexture_PC(
     if ( r_logFile && r_logFile->current.integer )
         RB_LogPrint(
             "dx.device->CreateCubeTexture( edgeLen, mipmapCount, 0, imageFormat, D3DPOOL_MANAGED, &image->texture.cubemap, 0 )\n");
+    IDirect3DCubeTexture9 *cubemap = nullptr; // image->texture is a 4-byte Ptr32 on 64-bit builds
     hr = dx.device->CreateCubeTexture(
                  edgeLen,
                  mipmapCount,
                  0,
                  imageFormat,
                  D3DPOOL_MANAGED,
-                 (IDirect3DCubeTexture9 **)image,
+                 &cubemap,
                  0);
+    image->texture.cubemap = cubemap;
     if ( hr < 0 )
     {
         ++g_disableRendering;
@@ -900,7 +906,7 @@ GfxImage *__cdecl Image_FindExisting_FastFile(const char *name)
 GfxImage *__cdecl Image_Register(char *imageName, unsigned __int8 semantic, int imageTrack)
 {
     if ( useFastFile->current.enabled )
-        return (GfxImage *)Ptr32_Decode(((int (__cdecl *)(char *, unsigned int, int))Image_Register_FastFile)(imageName, semantic, imageTrack));
+        return Image_Register_FastFile(imageName);
     else
         return Image_Register_LoadObj(imageName, semantic, imageTrack);
 }

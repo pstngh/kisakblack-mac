@@ -62,7 +62,7 @@ GlassesClient::GlassesClient(const Glasses *glss)
 
     this->numGlasses = glss->numGlasses;
     this->glasses = (GlassClient *)GlassesClient::Allocate(
-                                                                     12 * this->numGlasses,
+                                                                     sizeof(GlassClient) * this->numGlasses,
                                                                      "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_client.cpp",
                                                                      80);
 
@@ -719,7 +719,7 @@ int __cdecl GlassClient::Outlines::CalcMemorySize(const GlassShard **shards, int
     numVerts = 0;
     for ( i = 0; i < numShards; ++i )
         numVerts += shards[i]->outline.numVerts;
-    return 12 * numShards + 8 * numVerts + 8;
+    return sizeof(GlassClient::Outlines::Outline) * numShards + 8 * numVerts + sizeof(GlassClient::Outlines);
 }
 
 GlassClient::Outlines::Outlines(

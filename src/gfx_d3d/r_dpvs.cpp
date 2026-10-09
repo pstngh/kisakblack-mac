@@ -2680,10 +2680,11 @@ void __cdecl R_GetStaticModelsAabb(
 void __cdecl R_AddCellDynBrushSurfacesInFrustumCmd(DpvsPlane **data)
 {
     unsigned int oldViewIndex; // [esp+0h] [ebp-8h]
+    const DpvsDynamicCellCmd *dpvsCell = (const DpvsDynamicCellCmd *)data;
 
-    oldViewIndex = R_SetVisData(*((unsigned __int16 *)data + 4));
+    oldViewIndex = R_SetVisData(dpvsCell->viewIndex);
     if ( r_drawDynEnts->current.enabled )
-        R_CullDynBrushInCell((unsigned int)Ptr32_Encode(data[1]), *data, *((unsigned __int8 *)data + 10));
+        R_CullDynBrushInCell(dpvsCell->cellIndex, (DpvsPlane *)dpvsCell->planes, dpvsCell->planeCount);
     R_SetVisData(oldViewIndex);
 }
 
@@ -3831,7 +3832,7 @@ void __cdecl R_ShowCull(const float *viewOrigin)
             if ( Vec3DistanceSq(v9->placement.base.origin, viewOrigin) <= v8 )
             {
                 if ( v9->model && v9->model->name )
-                    _snprintf(string, 0x200u, "%d:%d:%s", sceneEntIndex, v9->entnum, v9->model->name);
+                    _snprintf(string, 0x200u, "%d:%d:%s", sceneEntIndex, v9->entnum, (const char *)v9->model->name);
                 else
                     _snprintf(string, 0x200u, "%d:%d:%s", sceneEntIndex, v9->entnum, "");
                 R_AddDebugString(&frontEndDataOut->debugGlobals, v9->placement.base.origin, color, 0.25, string);
@@ -3842,7 +3843,7 @@ void __cdecl R_ShowCull(const float *viewOrigin)
     {
         sceneEntCount = scene.sceneDObjCount;
         sceneEntVisData = scene.sceneDObjVisData[0];
-        entInfo = (GfxEntCellRefInfo *)Ptr32_Decode(scene.dynSModelVisBitsCamera[scene.dpvs.localClientNum - 4]);
+        entInfo = scene.dpvs.entInfo[scene.dpvs.localClientNum];   // decompiled as dynSModelVisBitsCamera[localClientNum - 4]
         for ( sceneEntIndex = 0; sceneEntIndex < sceneEntCount; ++sceneEntIndex )
         {
             sceneEnt = &scene.sceneDObj[sceneEntIndex];
@@ -4172,8 +4173,8 @@ void __cdecl R_CullDynamicPointLightsInCameraView()
     {
         if ( scene.addedLight[lightIndex].type != 2 || lightIndex )
             scene.isAddedLightCulled[lightIndex] = R_CullPointAndRadius(
-                                                                                             (const float *)&scene.isAddedLightCulled[368 * lightIndex - 11748],
-                                                                                             *(float *)&scene.isAddedLightCulled[368 * lightIndex - 11736],
+                                                                                             scene.addedLight[lightIndex].origin,
+                                                                                             scene.addedLight[lightIndex].radius,
                                                                                              planes,
                                                                                              planeCount);
     }

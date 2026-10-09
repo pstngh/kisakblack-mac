@@ -974,7 +974,9 @@ void __cdecl DB_FreeXAssetHeader_EmblemSet_(XAssetPoolEntry<EmblemSet> **pool, X
 
     oldFreeHead = *pool;
     *pool = (XAssetPoolEntry<EmblemSet> *)header.xmodelPieces;
-    header.xmodelPieces->name = (const char *)oldFreeHead;
+    // The original wrote header.xmodelPieces->name, a 4-byte field: the same slot
+    // as next on 32-bit, but only its low half on 64-bit.
+    ((XAssetPoolEntry<EmblemSet> *)header.xmodelPieces)->next = oldFreeHead;
 }
 
 XAssetHeader __cdecl DB_AllocMaterial(void *arg)
@@ -4782,7 +4784,7 @@ void __cdecl DB_Cleanup()
 
 int __cdecl DB_GetImageIndex(const GfxImage *image)
 {
-    unsigned int index = ((char *)image - (char *)g_GfxImagePool.entries) / sizeof(GfxImage);
+    unsigned int index = ((char *)image - (char *)g_GfxImagePool.entries) / sizeof(g_GfxImagePool.entries[0]);
     bcassert(index, ARRAY_COUNT(g_GfxImagePool.entries));
     return index;
 }
@@ -4795,7 +4797,7 @@ XAssetPoolEntry<GfxImage> *__cdecl DB_GetImageAtIndex(unsigned int index)
 
 int __cdecl DB_GetMaterialIndex(const Material *material)
 {
-    unsigned int index = ((char *)material - (char *)g_MaterialPool.entries) / sizeof(Material);
+    unsigned int index = ((char *)material - (char *)g_MaterialPool.entries) / sizeof(g_MaterialPool.entries[0]);
     bcassert(index, ARRAY_COUNT(g_MaterialPool.entries));
     return index;
 }
@@ -4808,7 +4810,7 @@ XAssetPoolEntry<Material> *__cdecl DB_GetMaterialAtIndex(unsigned int index)
 
 int __cdecl DB_GetXModelIndex(const XModel *model)
 {
-    unsigned int index = ((char *)model - (char *)g_XModelPool.entries) / sizeof(XModel);
+    unsigned int index = ((char *)model - (char *)g_XModelPool.entries) / sizeof(g_XModelPool.entries[0]);
     bcassert(index, ARRAY_COUNT(g_XModelPool.entries));
     return index;
 }

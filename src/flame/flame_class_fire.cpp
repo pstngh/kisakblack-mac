@@ -15,8 +15,8 @@ int g_FireCountWaterMark;
 
 void __cdecl Flame_Class_Fire_Init()
 {
-    memset(flameFire, 0, 0x3A980u);
-    Flame_List_Init((flameGeneric_s*)flameFire, 100, 2400);
+    memset(flameFire, 0, sizeof(flameFire));
+    Flame_List_Init((flameGeneric_s*)flameFire, sizeof(flameFire[0]), ARRAY_COUNT(flameFire));
     flameFireFree = flameFire;
     flameFireUsed = 0;
     ++g_FireCount;
@@ -56,7 +56,7 @@ void __cdecl Flame_Class_Fire_Age(bool is_server, int time)
             next = (flameFire_t *)trav->gen.listGlobal.next;
             if ( trav->gen.age.lastUpdateTime < trav->gen.age.endTime )
             {
-                if ( ((*((unsigned int *)&trav->gen + 23) >> 4) & 0xFFFFFFFu) < flame_freeze_id )
+                if ( trav->gen.id < flame_freeze_id )
                 {
                     trav->gen.phys.velocity[0] = 0.0f;
                     trav->gen.phys.velocity[1] = 0.0f;
@@ -103,9 +103,9 @@ flameFire_t *__cdecl Flame_Class_Fire_Spawn(bool is_server, flameChunk_s *fromCh
         return 0;
     flameVars = fromChunk->gen.stream->flameVars;
     flameRend = fromChunk->gen.stream->renderList->flameRend;
-    *((unsigned int *)&fire->gen + 23) = *((unsigned int *)&fire->gen + 23) & 0xFFFFFFF8 | 2;
+    fire->gen.type = 2;
     fire->gen.stream = fromChunk->gen.stream;
-    *((unsigned int *)&fire->gen + 23) = (16 * (*((unsigned int *)&fromChunk->gen + 23) >> 4)) | *((unsigned int *)&fire->gen + 23) & 0xF;
+    fire->gen.id = fromChunk->gen.id;
     if ( fromChunk->gen.age.endTime == fromChunk->gen.age.startTime
         && !Assert_MyHandler(
                     "C:\\projects_pc\\cod\\codsrc\\src\\flame\\flame_class_fire.cpp",

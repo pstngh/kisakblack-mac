@@ -85,7 +85,7 @@ adjacencyWinding_t *__cdecl BuildBrushdAdjacencyWindingForSide(
             v23 = TestConvexWithoutNearPoints((const SimplePlaneIntersection **)cycle[1], cycleCount[1]);
             if ( CycleLess(v22, v23, perimiter1, perimiter2, cycleCount[0], cycleCount[1]) )
             {
-                memcpy((unsigned __int8 *)cycle, (unsigned __int8 *)cycle[1], 4 * cycleCount[1]);
+                memcpy((unsigned __int8 *)cycle, (unsigned __int8 *)cycle[1], sizeof(cycle[1][0]) * cycleCount[1]);
                 cycleCount[0] = cycleCount[1];
             }
         }
@@ -348,7 +348,7 @@ const SimplePlaneIntersection *__cdecl RemoveNextPointFormedByThisPlane(
     if ( begina == end )
         return 0;
     returnVal = *begina;
-    memmove((unsigned __int8 *)begina, (unsigned __int8 *)begina + 4, 4 * (end - (begina + 1)));
+    memmove((unsigned __int8 *)begina, (unsigned __int8 *)(begina + 1), sizeof(*begina) * (end - (begina + 1)));
     return returnVal;
 }
 
@@ -1059,7 +1059,7 @@ int __cdecl RemovePtsWithPlanesThatOccurLessThanTwice(const SimplePlaneIntersect
         }
         else
         {
-            memmove((unsigned __int8 *)&pts[ptsIndex], (unsigned __int8 *)&pts[ptsIndex + 1], 4 * (ptsCount - ptsIndex) - 4);
+            memmove((unsigned __int8 *)&pts[ptsIndex], (unsigned __int8 *)&pts[ptsIndex + 1], sizeof(pts[0]) * (ptsCount - ptsIndex - 1));
             --ptsCount;
             ptsIndex = 0;
         }
@@ -1286,7 +1286,7 @@ int __cdecl Remove(const SimplePlaneIntersection **pts, int ptsCount, const Simp
         ;
     if ( ptsIndex == ptsCount )
         return ptsCount;
-    memmove((unsigned __int8 *)&pts[ptsIndex], (unsigned __int8 *)&pts[ptsIndex + 1], 4 * (ptsCount - ptsIndex) - 4);
+    memmove((unsigned __int8 *)&pts[ptsIndex], (unsigned __int8 *)&pts[ptsIndex + 1], sizeof(pts[0]) * (ptsCount - ptsIndex - 1));
     ptsCounta = ptsCount - 1;
     if ( ptsCounta >= 3 )
         return RemovePtsWithPlanesThatOccurLessThanTwice(pts, ptsCounta);

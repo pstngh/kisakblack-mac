@@ -1020,7 +1020,7 @@ void __cdecl ActorCmd_Teleport(scr_entref_t entref)
     }
     else
     {
-        player = G_Find(0, 356, scr_const.player);
+        player = G_Find(0, offsetof(gentity_s, classname), scr_const.player);
         if ( player && player->sentient )
         {
             Sentient_GetEyePosition(player->sentient, vEyePos);

@@ -10,6 +10,9 @@ extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched
 
 #include <SDL2/SDL.h>   // adapter display-mode queries (EnumAdapterModes etc.)
 #include <cstdio>
+#include <cstdlib>
+#include <vector>
+extern int g_kbTrace;   // KB_TRACEFRAME (defined below, before Present)
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/html5_webgl.h>  // emscripten_webgl_get_current_context()
 #include <emscripten.h>              // EM_ASM_INT (?noslopebias toggle in FillDefaultCaps)
@@ -184,6 +187,8 @@ HRESULT WINAPI GLDevice::SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurfa
     KB_OpTag("setRT", (unsigned)(uintptr_t)pRenderTarget, 0, 0);
     if (RenderTargetIndex != 0) return D3D_OK;  // single render target for now (MRT: TODO)
     GLSurface *s = static_cast<GLSurface *>(pRenderTarget);
+    if (g_kbTrace) fprintf(stderr, "[trace] SetRT %p bb=%d %ux%u tex=%u ds=%p\n", (void *)s, s ? (int)s->isBackbuffer() : -1,
+                           s ? s->width() : 0, s ? s->height() : 0, s ? s->texName() : 0, (void *)curDS_);
     // A null target, or the back-buffer surface itself, means the default framebuffer.
     if (!s || s->isBackbuffer()) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -367,8 +372,77 @@ HRESULT WINAPI GLDevice::Reset(D3DPRESENT_PARAMETERS *pp) {
     return D3D_OK;
 }
 
+// Diagnostic: KB_TRACEFRAME=<n> logs the render-target, viewport, clear and draw calls
+// of the frame after present n (native only).
+int g_kbTrace = 0;
+
+#if !defined(__EMSCRIPTEN__)
+// Diagnostic: KB_SCREENSHOT=<dir> writes the back buffer to <dir>/present_<n>.tga
+// every KB_SCREENSHOT_EVERY presents (default 300). The console `screenshot` command
+// needs the console, and `+wait` on the command line runs out during loading.
+// Write the default framebuffer's back buffer to <path> as a 32-bit TGA (alpha forced
+// opaque). Restores the read framebuffer and read buffer.
+void KB_WriteBackbufferTGA(const char *path, int w, int h) {
+    std::vector<unsigned char> px((size_t)w * h * 4);
+    GLint oldFbo = 0, oldReadBuffer = 0;
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldFbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glGetIntegerv(GL_READ_BUFFER, &oldReadBuffer);
+    glReadBuffer(GL_BACK);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px.data());
+    glReadBuffer(oldReadBuffer);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, oldFbo);
+    for (size_t i = 3; i < px.size(); i += 4) px[i] = 0xFF;
+
+    FILE *f = fopen(path, "wb");
+    if (!f) return;
+    unsigned char hdr[18] = {0};   // uncompressed true-colour, 32bpp BGRA, bottom-up
+    hdr[2]  = 2;
+    hdr[12] = (unsigned char)(w & 0xFF); hdr[13] = (unsigned char)((w >> 8) & 0xFF);
+    hdr[14] = (unsigned char)(h & 0xFF); hdr[15] = (unsigned char)((h >> 8) & 0xFF);
+    hdr[16] = 32; hdr[17] = 8;
+    fwrite(hdr, 1, sizeof(hdr), f);
+    fwrite(px.data(), 1, px.size(), f);
+    fclose(f);
+}
+
+static void KB_MaybeScreenshot(int w, int h) {
+    static const char *dir = getenv("KB_SCREENSHOT");
+    if (!dir || w <= 0 || h <= 0) return;
+    static int every = [] { const char *e = getenv("KB_SCREENSHOT_EVERY"); int n = e ? atoi(e) : 0; return n > 0 ? n : 300; }();
+    static unsigned long presents;
+    if (++presents % every) return;
+
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/present_%06lu.tga", dir, presents);
+    KB_WriteBackbufferTGA(path, w, h);
+    extern unsigned long g_kbDraws, g_kbBuiltinFall, g_kbSkipPending, g_kbProgLinks, g_kbBlits;
+    static unsigned long lastDraws, lastFall, lastSkip;
+    fprintf(stderr, "[gl] wrote %s (since last: draws=%lu builtinFall=%lu skipPending=%lu; links=%lu blits=%lu)\n", path,
+            g_kbDraws - lastDraws, g_kbBuiltinFall - lastFall, g_kbSkipPending - lastSkip, g_kbProgLinks, g_kbBlits);
+    lastDraws = g_kbDraws; lastFall = g_kbBuiltinFall; lastSkip = g_kbSkipPending;
+}
+#endif
+
 HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA *) {
     KB_FlushTagged(11);
+#if !defined(__EMSCRIPTEN__)
+    KB_MaybeScreenshot(fbWidth_, fbHeight_);
+    {
+        static const char *traceList = getenv("KB_TRACEFRAME");   // comma-separated present numbers
+        static long presentNo;
+        ++presentNo;
+        if (g_kbTrace) { g_kbTrace = 0; fprintf(stderr, "[trace] ---- present\n"); }
+        for (const char *t = traceList; t && *t; ) {
+            char *end;
+            long n = strtol(t, &end, 10);
+            if (end == t) break;
+            if (n == presentNo) { g_kbTrace = 1; fprintf(stderr, "[trace] ---- frame after present %ld\n", presentNo); break; }
+            t = *end == ',' ? end + 1 : end;
+        }
+    }
+#endif
     if (ctx_) ctx_->SwapBuffers();
     return D3D_OK;
 }
@@ -376,6 +450,7 @@ HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA
 HRESULT WINAPI GLDevice::Clear(DWORD /*Count*/, const D3DRECT * /*pRects*/, DWORD Flags,
                                D3DCOLOR Color, float Z, DWORD Stencil) {
     KB_FlushTagged(11);
+    if (g_kbTrace) fprintf(stderr, "[trace] Clear flags=%x color=%08x z=%g fbo=%d\n", (unsigned)Flags, (unsigned)Color, Z, (int)fboActive_);
     GLbitfield mask = 0;
     if (Flags & D3DCLEAR_TARGET) {
         const float inv = 1.0f / 255.0f;
@@ -411,6 +486,8 @@ HRESULT WINAPI GLDevice::Clear(DWORD /*Count*/, const D3DRECT * /*pRects*/, DWOR
 HRESULT WINAPI GLDevice::SetViewport(const D3DVIEWPORT9 *vp) {
     KB_FlushTagged(11);
     if (!vp) return E_INVALIDARG;
+    if (g_kbTrace) fprintf(stderr, "[trace] SetViewport %u %u %u %u z %g..%g fbo=%d\n", (unsigned)vp->X, (unsigned)vp->Y,
+                           (unsigned)vp->Width, (unsigned)vp->Height, vp->MinZ, vp->MaxZ, (int)fboActive_);
     // WINDOW target: D3D viewport origin is top-left, GL is bottom-left — flip Y.
     // FBO target: keep D3D placement. The vertex path already flips clip-space Y, so
     // CONTENT orientation matches D3D either way; the viewport flip only RELOCATES
@@ -450,6 +527,9 @@ HRESULT WINAPI GLD3D9::GetAdapterIdentifier(UINT, DWORD, D3DADAPTER_IDENTIFIER9 
     const GLubyte *vendor   = nullptr;
 #if defined(__EMSCRIPTEN__)
     if (emscripten_webgl_get_current_context() > 0)
+#else
+    // macOS's glGetString faults rather than returning null without a context.
+    if (SDL_GL_GetCurrentContext())
 #endif
     {
         renderer = glGetString(GL_RENDERER);

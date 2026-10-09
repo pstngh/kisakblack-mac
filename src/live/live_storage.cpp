@@ -150,17 +150,17 @@ void __cdecl LiveStorage_CorrectStatsError(char *msg)
 
 int __cdecl LiveStorage_GetStatsBufferSize()
 {
-    return 40168;
+    return STATS_BUFFER_SIZE;
 }
 
 unsigned __int8 __cdecl LiveStorage_GetStatsChecksumValid(int controllerIndex, statsLocation playerStatsLocation)
 {
-    return LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)[1].statsBuffer[892];
+    return LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)->isChecksumValid;
 }
 
 void __cdecl LiveStorage_SetStatsChecksumValid(int controllerIndex, statsLocation playerStatsLocation, bool isValid)
 {
-    LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)[1].statsBuffer[892] = isValid;
+    LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)->isChecksumValid = isValid;
 }
 
 bool __cdecl LiveStorage_GetStatsWriteNeeded(int controllerIndex, statsLocation location)
@@ -181,7 +181,7 @@ void __cdecl LiveStorage_SetStatsWriteNeeded(int controllerIndex, bool isWriteNe
 
 int __cdecl LiveStorage_ValidateWithDDL(int controllerIndex, statsLocation location)
 {
-    char backupBuffer[40172]; // [esp+0h] [ebp-9CF8h] BYREF
+    char backupBuffer[sizeof(persistentStats)]; // [esp+0h] [ebp-9CF8h] BYREF
     char *buffer; // [esp+9CF0h] [ebp-8h]
     int bufferSize; // [esp+9CF4h] [ebp-4h]
 
@@ -197,8 +197,8 @@ int __cdecl LiveStorage_ValidateWithDDL(int controllerIndex, statsLocation locat
         LiveStorage_SetStatsDDLValidated(controllerIndex, location, 1);
         return 1;
     }
-    else if ( DDL_FixBufferVersion(buffer, g_statsDDL, "ddl_mp/stats.ddl", backupBuffer, 40168)
-                 || DDL_FixBufferVersion(buffer, g_statsDDL, "ddl_mp/stats_archive.ddl", backupBuffer, 40168) )
+    else if ( DDL_FixBufferVersion(buffer, g_statsDDL, "ddl_mp/stats.ddl", backupBuffer, STATS_BUFFER_SIZE)
+                 || DDL_FixBufferVersion(buffer, g_statsDDL, "ddl_mp/stats_archive.ddl", backupBuffer, STATS_BUFFER_SIZE) )
     {
         DDL_NoCheckPrintWarning(
             "DDL: Stats buffer updated to version %d for controller index %d.\n",
@@ -215,7 +215,7 @@ int __cdecl LiveStorage_ValidateWithDDL(int controllerIndex, statsLocation locat
 
 unsigned __int8 __cdecl LiveStorage_AreStatsDDLValidated(int controllerIndex, statsLocation playerStatsLocation)
 {
-    return LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)[1].statsBuffer[894];
+    return LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)->statsValidatedWithDDL;
 }
 
 void __cdecl LiveStorage_SetStatsDDLValidated(
@@ -223,17 +223,17 @@ void __cdecl LiveStorage_SetStatsDDLValidated(
                 statsLocation playerStatsLocation,
                 bool statsValidatedWithDDL)
 {
-    LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)[1].statsBuffer[894] = statsValidatedWithDDL;
+    LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 1)->statsValidatedWithDDL = statsValidatedWithDDL;
 }
 
 unsigned __int8 __cdecl LiveStorage_DoWeHaveStats(int controllerIndex, statsLocation playerStatsLocation)
 {
-    return LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 0)[1].statsBuffer[895];
+    return LiveStorage_GetPersStatsBuffer(controllerIndex, playerStatsLocation, 0)->statsFetched;
 }
 
 unsigned __int8 __cdecl LiveStorage_DoWeHaveCurrentStats(int controllerIndex)
 {
-    return LiveStorage_GetPersStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 0)[1].statsBuffer[895];
+    return LiveStorage_GetPersStatsBuffer(controllerIndex, STATS_LOCATION_NORMAL, 0)->statsFetched;
 }
 
 bool __cdecl LiveStorage_DoWeHaveAllStats(int controllerIndex)
@@ -248,7 +248,7 @@ bool __cdecl LiveStorage_DoWeHaveAllStats(int controllerIndex)
 
 void __cdecl LiveStorage_SetStatsFetched(int localControllerIndex, statsLocation playerStatsLocation, bool isFetched)
 {
-    LiveStorage_GetPersStatsBuffer(localControllerIndex, playerStatsLocation, 0)[1].statsBuffer[895] = isFetched;
+    LiveStorage_GetPersStatsBuffer(localControllerIndex, playerStatsLocation, 0)->statsFetched = isFetched;
 }
 
 void __cdecl LiveStorage_RestoreStatsFromBackup(int localControllerIndex)

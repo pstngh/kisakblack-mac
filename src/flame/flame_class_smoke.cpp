@@ -15,8 +15,8 @@ int g_SmokeCount;
 
 void __cdecl Flame_Class_Smoke_Init()
 {
-    memset(flameSmoke, 0, 0x7148u);
-    Flame_List_Init((flameGeneric_s*)flameSmoke, 116, 250);
+    memset(flameSmoke, 0, sizeof(flameSmoke));
+    Flame_List_Init((flameGeneric_s*)flameSmoke, sizeof(flameSmoke[0]), ARRAY_COUNT(flameSmoke));
     flameSmokeFree = flameSmoke;
     flameSmokeUsed = 0;
     ++g_SmokeCount;
@@ -57,7 +57,7 @@ void __cdecl Flame_Class_Smoke_Age(bool is_server, int time)
             }
             else
             {
-                if ( ((*((unsigned int *)&trav->gen + 23) >> 4) & 0xFFFFFFFu) < flame_freeze_id )
+                if ( trav->gen.id < flame_freeze_id )
                 {
                     trav->gen.phys.velocity[0] = 0.0f;
                     trav->gen.phys.velocity[1] = 0.0f;
@@ -85,9 +85,9 @@ flameSmoke_t *__cdecl Flame_Class_Smoke_Spawn(flameChunk_s *fromChunk, int curTi
         return 0;
     flameVars = fromChunk->gen.stream->flameVars;
     duration = (int)((Flame_Random(0) * flameVars->flameVar_smokeLifeRand + flameVars->flameVar_smokeLife) * 1000.0);
-    *((unsigned int *)&smoke->gen + 23) = *((unsigned int *)&smoke->gen + 23) & 0xFFFFFFF8 | 3;
+    smoke->gen.type = 3;
     smoke->gen.stream = fromChunk->gen.stream;
-    *((unsigned int *)&smoke->gen + 23) = (16 * (*((unsigned int *)&fromChunk->gen + 23) >> 4)) | *((unsigned int *)&smoke->gen + 23) & 0xF;
+    smoke->gen.id = fromChunk->gen.id;
     smoke->gen.age.startTime = curTime;
     smoke->gen.age.endTime = duration + curTime;
     smoke->gen.age.lastUpdateTime = curTime;

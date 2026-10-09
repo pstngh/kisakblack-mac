@@ -633,10 +633,10 @@ void __cdecl Flame_Phys_Collision_Response(bool is_server, trace_t *trace, flame
         trace->normal.vec.v[1] = (float)(-1.0 / len) * trace->normal.vec.v[1];
         trace->normal.vec.v[2] = (float)(-1.0 / len) * trace->normal.vec.v[2];
     }
-    if ( ((*((unsigned int *)gen + 23) >> 4) & 0xFFFFFFFu) > flame_freeze_id )
-        flame_freeze_id = (*((unsigned int *)gen + 23) >> 4) & 0xFFFFFFF;
+    if ( gen->id > flame_freeze_id )
+        flame_freeze_id = gen->id;
     if ( Flame_Random(is_server) < 0.69999999 )
-        *((unsigned int *)gen + 23) |= 8u;
+        gen->delete_chunk = 1;
     Flame_ClipVelocity(gen->phys.velocity, trace->normal.vec.v, newVel);
     gen->phys.velocity[0] = newVel[0];
     gen->phys.velocity[1] = newVel[1];

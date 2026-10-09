@@ -872,7 +872,7 @@ void __cdecl R_CheckResizeWindow();
 void __cdecl R_ResizeWindow();
 void __cdecl R_StoreWindowSettings(const GfxWindowParms *wndParms);
 void __cdecl R_SetWndParms(GfxWindowParms *wndParms);
-const char *__cdecl R_ClosestRefreshRateForMode(unsigned int width, unsigned int height, int refreshRate);
+int __cdecl R_ClosestRefreshRateForMode(unsigned int width, unsigned int height, int refreshRate);
 bool __cdecl R_SetCustomResolution(GfxWindowParms *wndParms);
 void __cdecl R_AllocateMinimalResources();
 void __cdecl R_SetIsMultiplayer(bool isMp);

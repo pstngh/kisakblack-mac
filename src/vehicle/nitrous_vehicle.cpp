@@ -2078,19 +2078,19 @@ void __cdecl NitrousVehicle::frame_epilog_all_systems(float delta_t)
 
 NitrousVehicle *__cdecl NitrousVehicle::add_vehicle(int id)
 {
-    phys_free_list<NitrousVehicle> *i; // [esp+24h] [ebp-8h]
     NitrousVehicle *vehicle; // [esp+28h] [ebp-4h]
 
     if (id != -1)
     {
-        for (i = (phys_free_list<NitrousVehicle> *)g_rb_vehicle_list.m_dummy_head.m_next_T_internal;
-            &g_rb_vehicle_list != i;
-            i = (phys_free_list<NitrousVehicle> *)i->m_dummy_head.m_next_T_internal)
+        // The decompiled loop typed the nodes as the list and read id/refcount as
+        // m_ptr_list[244]/[245] (their offsets in the node on 32-bit).
+        for (phys_free_list<NitrousVehicle>::iterator i = g_rb_vehicle_list.begin(); i != g_rb_vehicle_list.end(); ++i)
         {
-            if (i->m_ptr_list[244] == (NitrousVehicle *)Ptr32_Decode(id))
+            vehicle = *i;
+            if (vehicle->id == id)
             {
-                ++i->m_ptr_list[245];
-                return (NitrousVehicle*)i->m_ptr_list;
+                ++vehicle->refcount;
+                return vehicle;
             }
         }
     }

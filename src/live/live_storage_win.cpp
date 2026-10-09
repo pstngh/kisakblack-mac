@@ -235,9 +235,9 @@ void __cdecl LiveStorage_ResetStats(unsigned __int8 *buffer)
             16,
             "LiveStorage_ResetStats: resetstats called - writing statversion %i to buffer\n",
             stat_version->current.integer);
-        memset(buffer, 0, 0x9CE8u);
-        DDL_AssociateBuffer((char *)buffer, 40168, g_statsDDL);
-        LiveStats_WriteChecksumToBuffer(buffer, 40168);
+        memset(buffer, 0, STATS_BUFFER_SIZE);
+        DDL_AssociateBuffer((char *)buffer, STATS_BUFFER_SIZE, g_statsDDL);
+        LiveStats_WriteChecksumToBuffer(buffer, STATS_BUFFER_SIZE);
         LiveStats_SetPlayerStatByKey(
             "PlayerStatsList",
             MP_PLAYERSTATSKEY_STATS_VERSION,

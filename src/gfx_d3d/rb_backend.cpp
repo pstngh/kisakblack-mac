@@ -3680,9 +3680,10 @@ double __cdecl RB_DrawHudIcon(
     {
         __debugbreak();
     }
-    if ( !IsValidMaterialHandle(*(Material *const *)(text + 3)) )
+    // The text holds a 4-byte encoded handle (CL_AddMessageIcon).
+    if ( !IsValidMaterialHandle((Material *)Ptr32_Decode(*(const unsigned int *)(text + 3))) )
         return 0.0;
-    material = Material_FromHandle(*(Material **)(text + 3));
+    material = Material_FromHandle((Material *)Ptr32_Decode(*(const unsigned int *)(text + 3)));
     RB_DrawStretchPicRotate(material, x, ya, 1.0, w, h, s0, 0.0, s1, 1.0, sinAngle, cosAngle, color, GFX_PRIM_STATS_HUD);
     return w;
 }

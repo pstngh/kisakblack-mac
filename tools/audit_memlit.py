@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Find memset/memcpy of a struct with a literal size that is a 32-bit sizeof.
 
-`memset(p, 0, 52)` with `p` a `Foo *`: if 52 is a whole number of i386 Foo's and
-Foo is larger natively, the call clears or copies too little (GREW). Needs
-Homebrew LLVM (clang-query).
+`memset(p, 0, 52)` or `Com_Memset((unsigned int *)p, 0, 52 * count)` with `p` a
+`Foo *` or `Foo[N]` (casts on `p` are looked through): if 52 is a whole number of
+i386 Foo's and Foo is larger natively, the call clears or copies too little (GREW).
+Needs Homebrew LLVM (clang-query).
 
   tools/audit_memlit.py <build_dir> [file.cpp ...]
 """
@@ -14,7 +15,7 @@ import kbprobe
 
 QUERY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'audit_memlit.query')
 CLANG_QUERY = '/opt/homebrew/opt/llvm/bin/clang-query'
-DST = re.compile(r"<(/[^:>]+):(\d+):\d+(?:, [^>]*)?> '(?:const )?(?:struct |union )?([A-Za-z_][\w:<>, ]*?) \*'")
+DST = re.compile(r"<(/[^:>]+):(\d+):\d+(?:, [^>]*)?> '(?:const )?(?:struct |union )?([A-Za-z_][\w:<>, ]*?)(?: \*|\[\d+\])'")
 LIT = re.compile(r"IntegerLiteral .* '[^']*' (\d+)$")
 
 build = sys.argv[1]

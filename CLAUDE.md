@@ -33,7 +33,31 @@ backtraces print from the signal handler; `atos -o build_macos/blackops <addr>`
 symbolizes after subtracting the slide (compare `nm` of CrashHandler with its
 printed address). `lldb --batch -o run -k "bt" -k "frame variable" -- <cmd>`
 works; if a launch under lldb hangs in dyld `open`, kill leftover blackops
-processes first.
+processes first. lldb turns ASLR off (image at 0x100000000), which hides bugs
+that depend on the image address: reproduce outside it too.
+
+A map with bots: add `+set developer_script 1 +set scr_testclients 4 +map mp_nuked`
+(the bots come from the `/# #/` blocks of maps/mp/gametypes/_dev.gsc). Drop
+`+set dedicated 1` for the client (a listen server; the player may stay on the team
+menu, there is no input). `KB_ASSERT_BT=1` prints a backtrace the first time each
+assert fires.
+
+Seeing the client: `screencapture` lacks Screen Recording permission and the
+console is unreachable, so `KB_SCREENSHOT=<dir> KB_SCREENSHOT_EVERY=<n>` writes the
+back buffer as `<dir>/present_N.tga` every n presents (with draw counters on stderr).
+`KB_TRACEFRAME=n1,n2` logs those frames' render-target/viewport/clear/blit/draw
+calls and, with KB_SCREENSHOT, dumps the back buffer at the first resolves.
+
+AddressSanitizer: configure `build_asan` with `-DCMAKE_CXX_FLAGS="-fsanitize=address
+-fno-omit-frame-pointer"` (same for C and the linker). ASan's dlopen interceptor
+makes sdl2-compat look for libSDL3 next to the ASan runtime, so copy
+`libclang_rt.asan_osx_dynamic.dylib` into `build_asan/asanrt/`, symlink
+`/opt/homebrew/lib/libSDL3.dylib` there, and run with
+`DYLD_LIBRARY_PATH=build_asan/asanrt`. SIP strips `DYLD_*` when it runs
+/usr/bin/perl or /bin/bash, so don't launch through those wrappers.
+
+The agent shell's `grep` is a function that skips Latin-1 files (19 sources,
+g_main_mp.cpp among them); search with `command grep -a`.
 
 ## Conventions
 

@@ -785,6 +785,8 @@ void __cdecl    SV_SpawnServer(int controllerIndex, char *server, int mapIsPrelo
 // The original IKState was 3680 bytes; ikStates[] is indexed with the decompiled
 // struct, which is larger (and larger still on 64-bit).
 const int ikStateSize = sizeof(IKState) > 3680 ? sizeof(IKState) : 3680;
+// Likewise client_t (544000 originally).
+const int clientSize = sizeof(client_t) > 544000 ? sizeof(client_t) : 544000;
 unsigned __int8 *sv_ikBuf;
 char *__cdecl SV_AllocateClientMemory_SizeRequired(int maxLocalClients, int maxClients)
 {
@@ -800,7 +802,7 @@ char *__cdecl SV_AllocateClientMemory_SizeRequired(int maxLocalClients, int maxC
     else
         v3 = 2;
 
-    return (char *)Ptr32_Decode(0x118D00 * maxClients
+    return (char *)Ptr32_Decode((clientSize + 0x1000 + 602112) * maxClients
         + 0x1A00 * maxClients * maxClients
         + 0x4880
         + (maxClients << 7)
@@ -816,8 +818,8 @@ void __cdecl SV_AllocateClientMemory(HunkUser *hunk, int maxLocalClients, int ma
     int v3; // [esp+0h] [ebp-8h]
     int v4; // [esp+4h] [ebp-4h]
 
-    svs.clients = (client_t *)Hunk_UserAlloc(hunk, (sizeof(client_t) > 544000 ? sizeof(client_t) : 544000) * maxClients, 4, "svs.clients");
-    memset(svs.clients, 0, (sizeof(client_t) > 544000 ? sizeof(client_t) : 544000) * maxClients);
+    svs.clients = (client_t *)Hunk_UserAlloc(hunk, clientSize * maxClients, 4, "svs.clients");
+    memset(svs.clients, 0, clientSize * maxClients);
     svs.numSnapshotMatchStates = 32 * maxClients;
     svs.snapshotMatchStates = (MatchState *)Hunk_UserAlloc(hunk, maxClients << 12, 4, "svs.snapshotMatchStates");
     memset(svs.snapshotMatchStates, 0, svs.numSnapshotMatchStates << 7);

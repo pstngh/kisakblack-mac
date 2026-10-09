@@ -589,11 +589,51 @@ GLContext *GLContext::Create(const GLContextDesc &desc) {
 // No worker event loop to yield to off the pthreads build — render thread runs normally.
 extern "C" void KB_RenderThreadYield() {}
 
+#include "../platform/sdl/sdl_mainthread.h"
+
+// Per-present counter (gl_query.cpp). The program cache's per-frame link budget
+// resets when it changes; without the increment here only the first 4 programs ever
+// linked and every other draw was skipped as "still linking".
+extern unsigned long g_kbPresentEnter;
+
 namespace {
 
 class SDLGLContext final : public GLContext {
 public:
+    // The renderer creates its device on the render thread, but macOS only lets the
+    // main thread create windows and GL contexts: create them there, then make the
+    // context current on this thread.
     bool init(const GLContextDesc &desc) {
+        desc_ = &desc;
+        Sys_RunOnMainThread([](void *self) { static_cast<SDLGLContext *>(self)->created_ = static_cast<SDLGLContext *>(self)->create(); }, this);
+        if (!created_) return false;
+        SDL_GL_MakeCurrent(win_, ctx_);
+
+        glewExperimental = GL_TRUE;
+        GLenum ge = glewInit();
+        if (ge != GLEW_OK) {
+            fprintf(stderr, "[gl] glewInit: %s\n", glewGetErrorString(ge));
+            return false;
+        }
+        glGetError();  // GLEW can leave a benign GL_INVALID_ENUM behind on core profiles.
+        return true;
+    }
+
+    ~SDLGLContext() override {
+        Sys_RunOnMainThread([](void *self) { static_cast<SDLGLContext *>(self)->destroy(); }, this);
+    }
+
+    void  MakeCurrent() override        { SDL_GL_MakeCurrent(win_, ctx_); }
+    void  SwapBuffers() override        { ++g_kbPresentEnter; SDL_GL_SwapWindow(win_); }
+    void  Resize(int w, int h) override {
+        size_[0] = w; size_[1] = h;
+        Sys_RunOnMainThread([](void *self) { auto *c = static_cast<SDLGLContext *>(self); SDL_SetWindowSize(c->win_, c->size_[0], c->size_[1]); }, this);
+    }
+    void *GetProcAddress(const char *n) override { return SDL_GL_GetProcAddress(n); }
+
+private:
+    bool create() {
+        const GLContextDesc &desc = *desc_;
         if (SDL_WasInit(SDL_INIT_VIDEO) == 0 && SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
             fprintf(stderr, "[gl] SDL_InitSubSystem(VIDEO): %s\n", SDL_GetError());
             return false;
@@ -623,28 +663,18 @@ public:
 
         ctx_ = SDL_GL_CreateContext(win_);
         if (!ctx_) { fprintf(stderr, "[gl] SDL_GL_CreateContext: %s\n", SDL_GetError()); return false; }
-
-        glewExperimental = GL_TRUE;
-        GLenum ge = glewInit();
-        if (ge != GLEW_OK) {
-            fprintf(stderr, "[gl] glewInit: %s\n", glewGetErrorString(ge));
-            return false;
-        }
-        glGetError();  // GLEW can leave a benign GL_INVALID_ENUM behind on core profiles.
+        SDL_GL_MakeCurrent(win_, nullptr);  // init() makes it current on the calling thread
         return true;
     }
 
-    ~SDLGLContext() override {
+    void destroy() {
         if (ctx_) SDL_GL_DeleteContext(ctx_);
         if (win_) SDL_DestroyWindow(win_);
     }
 
-    void  MakeCurrent() override        { SDL_GL_MakeCurrent(win_, ctx_); }
-    void  SwapBuffers() override        { SDL_GL_SwapWindow(win_); }
-    void  Resize(int w, int h) override { SDL_SetWindowSize(win_, w, h); }
-    void *GetProcAddress(const char *n) override { return SDL_GL_GetProcAddress(n); }
-
-private:
+    const GLContextDesc *desc_ = nullptr;
+    bool          created_ = false;
+    int           size_[2] = {};
     SDL_Window   *win_ = nullptr;
     SDL_GLContext ctx_ = nullptr;
 };

@@ -1881,26 +1881,34 @@ void __cdecl CG_RegisterDvars()
     CG_SetupSplitscreenDvars();
 }
 
+// The original IKState was 3680 bytes; ikStates[] is indexed with the decompiled
+// struct, which is larger (and larger still on 64-bit).
+static const int kIkStateSize = sizeof(IKState) > 3680 ? sizeof(IKState) : 3680;
+static const int kCgSize = sizeof(cg_s) > 466048 ? sizeof(cg_s) : 466048;
+
 int __cdecl CG_AllocateClientMemory_SizeRequired(int maxLocalClients)
 {
     int localClientNum; // [esp+0h] [ebp-8h]
     int size; // [esp+4h] [ebp-4h]
+    int needed;
 
     size = 907268 * maxLocalClients;
     for ( localClientNum = 0; localClientNum < maxLocalClients; ++localClientNum )
         size += 1062080;
-    return size;
+    // The literals are the 32-bit sizes. What CG_AllocateClientMemory takes, with
+    // alignment padding, is more on 64-bit.
+    needed = (int)((kCgSize + 127 + sizeof(cgs_t) + 7 + 512 * sizeof(fake_centity_s) + sizeof(ViewModelInfo)
+                       + 2048 * sizeof(weaponInfo_s) + 1024 * sizeof(centity_s) + 18432 + 144 * sizeof(Destructible)
+                       + 32 * kIkStateSize + 15)
+                   * maxLocalClients);
+    return size > needed ? size : needed;
 }
-
-// The original IKState was 3680 bytes; ikStates[] is indexed with the decompiled
-// struct, which is larger (and larger still on 64-bit).
-static const int kIkStateSize = sizeof(IKState) > 3680 ? sizeof(IKState) : 3680;
 
 void __cdecl CG_AllocateClientMemory(HunkUser *hunk, int maxLocalClients)
 {
     int localClientNum; // [esp+0h] [ebp-4h]
 
-    cgArray = (cg_s *)Hunk_UserAlloc(hunk, (sizeof(cg_s) > 466048 ? sizeof(cg_s) : 466048) * maxLocalClients, 128, "cgArray");
+    cgArray = (cg_s *)Hunk_UserAlloc(hunk, kCgSize * maxLocalClients, 128, "cgArray");
     cgsArray = (cgs_t *)Hunk_UserAlloc(hunk, sizeof(cgs_t) * maxLocalClients, 8, "cgsArray");
     cg_fakeEntitiesArray = (fake_centity_s *)Hunk_UserAlloc(hunk, 512 * sizeof(fake_centity_s) * maxLocalClients, 4, "cg_fakeEntitiesArray");
     cg_viewModelArray = (ViewModelInfo *)Hunk_UserAlloc(hunk, sizeof(ViewModelInfo) * maxLocalClients, 4, "cg_viewModelArray");

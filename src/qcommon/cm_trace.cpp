@@ -1388,19 +1388,19 @@ LABEL_54:
 
 void __cdecl CM_TestInTempBrush(const traceWork_t *tw, trace_t *trace)
 {
-    const cbrush_t **info; // [esp+4h] [ebp-14h]
+    const cbrush_t *info; // [esp+4h] [ebp-14h]
     unsigned int i; // [esp+Ch] [ebp-Ch]
     PhysGeomList *geoms; // [esp+14h] [ebp-4h]
 
     geoms = *tw->threadInfo.geoms;
     for ( i = 0; i < geoms->count; ++i )
     {
-        info = (const cbrush_t **)&geoms->geoms[i];
-        if ( *info )
+        info = (const cbrush_t *)geoms->geoms[i].brush;
+        if ( info )
         {
-            if ( (tw->contents & (*info)->contents) != 0 )
+            if ( (tw->contents & info->contents) != 0 )
             {
-                CM_TestBoxInBrush(tw, *info, trace);
+                CM_TestBoxInBrush(tw, info, trace);
                 if ( trace->allsolid )
                     break;
             }
@@ -1410,7 +1410,7 @@ void __cdecl CM_TestInTempBrush(const traceWork_t *tw, trace_t *trace)
 
 void __cdecl CM_TraceThroughTempBrush(const traceWork_t *tw, trace_t *trace)
 {
-    const cbrush_t **info; // [esp+4h] [ebp-14h]
+    const cbrush_t *info; // [esp+4h] [ebp-14h]
     unsigned int i; // [esp+Ch] [ebp-Ch]
     PhysGeomList *geoms; // [esp+14h] [ebp-4h]
 
@@ -1419,12 +1419,12 @@ void __cdecl CM_TraceThroughTempBrush(const traceWork_t *tw, trace_t *trace)
         geoms = *tw->threadInfo.geoms;
         for ( i = 0; i < geoms->count; ++i )
         {
-            info = (const cbrush_t **)&geoms->geoms[i];
-            if ( *info )
+            info = (const cbrush_t *)geoms->geoms[i].brush;
+            if ( info )
             {
-                if ( (tw->contents & (*info)->contents) != 0 )
+                if ( (tw->contents & info->contents) != 0 )
                 {
-                    CM_TraceThroughBrush(tw, *info, trace);
+                    CM_TraceThroughBrush(tw, info, trace);
                     if ( trace->fraction == 0.0 )
                         break;
                 }
@@ -3233,15 +3233,15 @@ int __cdecl CM_BoxSightTrace(
 
 int __cdecl CM_SightTraceThroughTempBrush(const traceWork_t *tw, trace_t *trace)
 {
-    const cbrush_t **info; // [esp+Ch] [ebp-14h]
+    const cbrush_t *info; // [esp+Ch] [ebp-14h]
     unsigned int i; // [esp+14h] [ebp-Ch]
     PhysGeomList *geoms; // [esp+1Ch] [ebp-4h]
 
     geoms = *tw->threadInfo.geoms;
     for ( i = 0; i < geoms->count; ++i )
     {
-        info = (const cbrush_t **)&geoms->geoms[i];
-        if ( *info && (tw->contents & (*info)->contents) != 0 && CM_SightTraceThroughBrush(tw, *info, 1, trace) )
+        info = (const cbrush_t *)geoms->geoms[i].brush;
+        if ( info && (tw->contents & info->contents) != 0 && CM_SightTraceThroughBrush(tw, info, 1, trace) )
             return -1;
     }
     return 0;

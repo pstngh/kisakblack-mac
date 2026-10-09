@@ -1102,7 +1102,7 @@ void CL_ConsolePrint_AddLine(
                         goto LABEL_79;
                     }
                     bcassert(con.lineOffset, sizeof(con.textTempLine));
-                    if (!IsValidMaterialHandle(*(Material *const *)(text + 3))
+                    if (!IsValidMaterialHandle((Material *)Ptr32_Decode(*(const unsigned int *)(text + 3)))
                         && !Assert_MyHandler(
                             "C:\\projects_pc\\cod\\codsrc\\src\\client\\cl_console.cpp",
                             1343,

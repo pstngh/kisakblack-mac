@@ -7505,7 +7505,13 @@ void __cdecl Material_Sort()
     PROF_SCOPED("Material_Sort"); // LWSS ADD
 
     if ( useFastFile->current.enabled )
-        rgp.materialCount = DB_GetAllXAssetOfType(ASSET_TYPE_MATERIAL, (XAssetHeader *)rgp.sortedMaterials, 4096);
+    {
+        // XAssetHeader is a 4-byte slot; sortedMaterials holds native pointers.
+        static XAssetHeader headers[ARRAY_COUNT(rgp.sortedMaterials)];
+        rgp.materialCount = DB_GetAllXAssetOfType(ASSET_TYPE_MATERIAL, headers, ARRAY_COUNT(rgp.sortedMaterials));
+        for ( unsigned int i = 0; i < rgp.materialCount; ++i )
+            rgp.sortedMaterials[i] = headers[i].material;
+    }
     Material_SortInternal(rgp.sortedMaterials, rgp.materialCount);
 }
 

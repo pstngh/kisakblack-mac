@@ -3055,14 +3055,10 @@ void __cdecl Phys_BodyGrabSnapshotNitrous(PhysObjUserData *userData, float delta
 //void __cdecl Nitrous_ForEachBody<void(__cdecl *)(PhysObjUserData &, float)>(void(__cdecl *func)(PhysObjUserData *, float), float t)
 void __cdecl Nitrous_ForEachBody(void(__cdecl *func)(PhysObjUserData *, float), float t)
 {
-    PhysGlob *i; // [esp+Ch] [ebp-4h]
-
-    for (i = (PhysGlob *)physGlob.objects.m_dummy_head.m_next_T_internal;
-        &physGlob != i;
-        i = (PhysGlob *)i->objects.m_dummy_head.m_next_T_internal)
-    {
-        ((void(__cdecl *)(PhysObjUserData **, _DWORD))func)(i->objects.m_ptr_list, LODWORD(t));
-    }
+    // The decompiled loop typed the nodes as PhysGlob and passed objects.m_ptr_list,
+    // which is at the offset of T_internal::m_data on 32-bit only.
+    for (phys_free_list<PhysObjUserData>::iterator i = physGlob.objects.begin(); i != physGlob.objects.end(); ++i)
+        func(*i, t);
 }
 
 int num_destructible_hits;

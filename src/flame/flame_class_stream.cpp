@@ -27,8 +27,8 @@ void __cdecl Flame_Class_Stream_Init()
 {
     int i; // [esp+0h] [ebp-4h]
 
-    memset(&flameStreams, 0, 0x2300u);
-    Flame_List_Init((flameGeneric_s*)&flameStreams[0], 140, 64);
+    memset(&flameStreams, 0, sizeof(flameStreams));
+    Flame_List_Init((flameGeneric_s*)&flameStreams[0], sizeof(flameStreams[0]), ARRAY_COUNT(flameStreams));
     flameStreamsFree = (flameStream_s *)&flameStreams;
     flameStreamsUsed = 0;
     for (i = 0; i < 64; ++i)
@@ -36,7 +36,7 @@ void __cdecl Flame_Class_Stream_Init()
         flameStreams[i].renderList = &flameStreamRenderList[i];
     }
     memset((void *)&sv_flameStreams[0], 0, sizeof(sv_flameStreams));
-    Flame_List_Init(&sv_flameStreams[0].gen, 140, 64);
+    Flame_List_Init(&sv_flameStreams[0].gen, sizeof(sv_flameStreams[0]), ARRAY_COUNT(sv_flameStreams));
     sv_flameStreamsFree = sv_flameStreams;
     sv_flameStreamsUsed = 0;
     ++g_StreamCount;
@@ -217,7 +217,7 @@ void __cdecl Flame_Class_Stream_Fire_Chunks(
     {
         stream = source->currentStream;
         stream->gen.stream = stream;
-        *((unsigned int *)&stream->gen + 23) &= 0xFFFFFFF8;
+        stream->gen.type = 0;
         stream->entityNum = source->entityNum;
         stream->flameVars = fTable;
         if ( !source->is_server_alloc )

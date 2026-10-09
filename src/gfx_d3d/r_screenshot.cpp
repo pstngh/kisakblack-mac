@@ -608,7 +608,7 @@ void R_LevelShot()
     unsigned __int8 *buffer; // [esp+0h] [ebp-10Ch]
     char checkname[260]; // [esp+4h] [ebp-108h] BYREF
 
-    sprintf(checkname, "levelshots/%s.tga", rgp.world->baseName);
+    sprintf(checkname, "levelshots/%s.tga", (const char *)rgp.world->baseName);
     buffer = R_TakeResampledScreenshot(128, 128, 3, 18);
     if ( buffer )
     {

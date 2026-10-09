@@ -21,7 +21,7 @@ XAnimServerNotifyList *g_currList;
 
 int __cdecl XAnimTreeSize()
 {
-    return 8;
+    return sizeof(XAnimTree_s); // 8 on 32-bit
 }
 
 bool __cdecl XAnimTreeHasInfo(const XAnimTree_s *tree)
@@ -96,9 +96,7 @@ XAnimParts *__cdecl XAnimPrecache(char *name, void *(__cdecl *Alloc)(int))
     XAnimParts *parts; // [esp+10h] [ebp-4h]
 
     if ( useFastFile->current.enabled )
-        result = (XAnimParts *)Ptr32_Decode(((int (__cdecl *)(char *, unsigned __int8 *(__cdecl *)(unsigned int)))XAnimFindData_FastFile)(
-                                                         name,
-                                                         (unsigned char*(*)(unsigned int))Hunk_AllocXAnimPrecache));
+        result = XAnimFindData_FastFile(name);
     else
         result = XAnimFindData_LoadObj(name, (void *(__cdecl *)(int))Hunk_AllocXAnimPrecache);
     if ( !result )
@@ -108,7 +106,7 @@ XAnimParts *__cdecl XAnimPrecache(char *name, void *(__cdecl *Alloc)(int))
         {
             Com_PrintWarning(19, "WARNING: Couldn't find xanim '%s', using default xanim '%s' instead\n", name, "void");
             if ( useFastFile->current.enabled )
-                Data_LoadObj = (XAnimParts *)Ptr32_Decode(((int (__cdecl *)(const char *, unsigned __int8 *(__cdecl *)(unsigned int)))XAnimFindData_FastFile)("void",(unsigned char *(*)(unsigned int))Hunk_AllocXAnimPrecache));
+                Data_LoadObj = XAnimFindData_FastFile("void");
             else
                 Data_LoadObj = XAnimFindData_LoadObj((char *)"void", (void *(__cdecl *)(int))Hunk_AllocXAnimPrecache);
             defaultParts = Data_LoadObj;
@@ -187,9 +185,7 @@ void __cdecl XAnimCreate(XAnim_s *anims, unsigned int animIndex, char *name)
     XAnimParts *parts; // [esp+30h] [ebp-4h]
 
     if ( useFastFile->current.enabled )
-        Data_LoadObj = (XAnimParts *)Ptr32_Decode(((int (__cdecl *)(char *, unsigned __int8 *(__cdecl *)(unsigned int)))XAnimFindData_FastFile)(
-                                                                     name,
-                                                                     (unsigned char *(*)(unsigned int))Hunk_AllocXAnimPrecache));
+        Data_LoadObj = XAnimFindData_FastFile(name);
     else
         Data_LoadObj = XAnimFindData_LoadObj(name, (void *(__cdecl *)(int))Hunk_AllocXAnimPrecache);
     parts = Data_LoadObj;
@@ -390,8 +386,9 @@ XAnim_s *__cdecl XAnimCreateAnimsWithValues(
         __debugbreak();
     if ( !Alloc && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\xanim\\xanim.cpp", 684, 0, "%s", "Alloc") )
         __debugbreak();
-    anims = (XAnim_s *)Alloc(16 * size + 20 * iTotalValueCount + 24);
-    memset(anims, 0, 16 * size + 20 * iTotalValueCount + 24);
+    // 16 * size + 20 * iTotalValueCount + 24 on 32-bit
+    anims = (XAnim_s *)Alloc(sizeof(XAnimEntry) * size + sizeof(XAnimParam) * iTotalValueCount + offsetof(XAnim_s, entries));
+    memset(anims, 0, sizeof(XAnimEntry) * size + sizeof(XAnimParam) * iTotalValueCount + offsetof(XAnim_s, entries));
     anims->size = size;
     anims->paramSize = iTotalValueCount;
     if ( anims->paramSize )
@@ -4301,9 +4298,7 @@ void __cdecl XAnimSetupSyncNodes_r(XAnim_s *anims, unsigned int animIndex, int p
                     if ( !useFastFile->current.enabled )
                         XAnimPrecache((char *)"void_loop", (void *(__cdecl *)(int))Hunk_AllocXAnimPrecache);
                     if ( useFastFile->current.enabled )
-                        Data_LoadObj = (XAnimParts *)Ptr32_Decode(((int (__cdecl *)(const char *, unsigned __int8 *(__cdecl *)(unsigned int)))XAnimFindData_FastFile)(
-                                                                                     "void_loop",
-                                                                                     (unsigned char*(*)(unsigned int))Hunk_AllocXAnimPrecache));
+                        Data_LoadObj = XAnimFindData_FastFile("void_loop");
                     else
                         Data_LoadObj = XAnimFindData_LoadObj((char*)"void_loop", (void *(__cdecl *)(int))Hunk_AllocXAnimPrecache);
                     anims->entries[animIndex].parts = Data_LoadObj;

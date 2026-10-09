@@ -268,11 +268,12 @@ int __cdecl DB_SizeofXAsset_menuDef_t_()
     return 400;
 }
 
-static_assert(sizeof(void *) != 4 || sizeof(XAnimTree_s) == 8);
-//int __cdecl XAnimTreeSize()
-//{
-//    return 8;
-//}
+// The original table used XAnimTreeSize, folded with the 8-byte asset types' size
+// functions (localize, impactfx, ddl). XAnimTree_s is 16 bytes on 64-bit.
+int __cdecl DB_SizeofXAsset_LocalizeEntry_()
+{
+    return 8;
+}
 
 static_assert(sizeof(WeaponVariantDef) == 228);
 int __cdecl DB_SizeofXAsset_WeaponVariantDef_()
@@ -324,13 +325,13 @@ int(__cdecl *DB_GetXAssetSizeHandler[43])() =
   &DB_SizeofXAsset_Font_s_,
   &DB_SizeofXAsset_RawFile_,
   &DB_SizeofXAsset_menuDef_t_,
-  &XAnimTreeSize,
+  &DB_SizeofXAsset_LocalizeEntry_,
   &DB_SizeofXAsset_WeaponVariantDef_,
   NULL,
   NULL,
   &DB_SizeofXAsset_SndDriverGlobals_,
   &DB_SizeofXAsset_FxEffectDef_,
-  &XAnimTreeSize,
+  &DB_SizeofXAsset_LocalizeEntry_,
   NULL,
   NULL,
   NULL,
@@ -341,7 +342,7 @@ int(__cdecl *DB_GetXAssetSizeHandler[43])() =
   &DB_SizeofXAsset_StringTable_,
   &DB_SizeofXAsset_PackIndex_,
   &DB_SizeofXAsset_XGlobals_,
-  &XAnimTreeSize,
+  &DB_SizeofXAsset_LocalizeEntry_,
   &DB_SizeofXAsset_Glasses_,
   &DB_SizeofXAsset_EmblemSet_
 };

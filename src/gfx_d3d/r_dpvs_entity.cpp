@@ -2,6 +2,7 @@
 #include "r_model_pose.h"
 #include <cgame/cg_pose_utils.h>
 #include "r_dobj_skin.h"
+#include "r_dpvs_sceneent.h"
 
 void __cdecl R_AddEntitySurfacesInFrustumCmd(unsigned __int16 *data)
 {
@@ -15,8 +16,9 @@ void __cdecl R_AddEntitySurfacesInFrustumCmd(unsigned __int16 *data)
     GfxSceneEntity *localSceneEnt; // [esp+28h] [ebp-Ch] BYREF
     const DpvsPlane *planes; // [esp+2Ch] [ebp-8h]
     GfxSceneEntity *sceneEnt; // [esp+30h] [ebp-4h]
+    const DpvsEntityCmd *dpvsEntity = (const DpvsEntityCmd *)data;
 
-    sceneEnt = *(GfxSceneEntity **)data;
+    sceneEnt = dpvsEntity->sceneEnt;
     boneMatrix = R_UpdateSceneEntBounds(sceneEnt, &localSceneEnt, &obj, 1);
     if ( boneMatrix )
     {
@@ -30,8 +32,8 @@ void __cdecl R_AddEntitySurfacesInFrustumCmd(unsigned __int16 *data)
         {
             __debugbreak();
         }
-        planes = (const DpvsPlane *)Ptr32_Decode(*((unsigned int *)data + 1));
-        v2 = data[4];
+        planes = dpvsEntity->planes;
+        v2 = dpvsEntity->planeCount;
         minmax = localSceneEnt->cull.mins;
         v5 = 0;
         plane = (DpvsPlane *)planes;
@@ -50,7 +52,7 @@ LABEL_14:
         if ( !v1
             && R_BoundsInCell(
                      (mnode_t *)g_worldDpvsPlanes->nodes,
-                     data[5],
+                     dpvsEntity->cellIndex,
                      localSceneEnt->cull.mins,
                      localSceneEnt->cull.maxs) )
         {
@@ -66,7 +68,7 @@ LABEL_14:
             {
                 __debugbreak();
             }
-            *(_BYTE *)Ptr32_Decode(localSceneEnt->entnum + *((unsigned int *)data + 3)) = 1;
+            dpvsEntity->entVisData[localSceneEnt->entnum] = 1;
         }
         else
         {

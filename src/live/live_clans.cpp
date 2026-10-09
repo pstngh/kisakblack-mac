@@ -3,6 +3,9 @@
 
 char *__cdecl Clan_GetName(int controllerIndex)
 {
-    return GamerProfile_GetProfileSettings(controllerIndex)->clanPrefix;
+    GamerSettingState *settings = GamerProfile_GetProfileSettings(controllerIndex);
+
+    // The macOS/Linux builds have no gamer profile (stubs_online.cpp returns null).
+    return settings ? settings->clanPrefix : (char *)"";
 }
 

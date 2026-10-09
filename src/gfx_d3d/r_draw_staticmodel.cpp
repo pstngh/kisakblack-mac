@@ -23,7 +23,7 @@ void __cdecl R_DrawStaticModelSurfLit(
     drawStream.dynSModelView = 0;
     drawStream.dynSModelState = 0;
     data = context.source->input.data;
-    *((unsigned int *)&drawStream + 10) &= 0xFFFFFFFC;
+    drawStream.which_lod = 0;
     drawStream.primDrawSurfPos = primDrawSurfPos;
     drawStream.reflectionProbeTexture = context.state->samplerTexture[15];
     drawStream.customSamplerFlags = context.state->pass->customSamplerFlags;
@@ -89,7 +89,7 @@ void __cdecl R_DrawStaticModelSurf(
     drawStream.dynSModelView = 0;
     drawStream.dynSModelState = 0;
     data = context.source->input.data;
-    *((unsigned int *)&drawStream + 10) &= 0xFFFFFFFC;
+    drawStream.which_lod = 0;
     drawStream.primDrawSurfPos = primDrawSurfPos;
     drawStream.reflectionProbeTexture = context.state->samplerTexture[15];
     drawStream.customSamplerFlags = context.state->pass->customSamplerFlags;
@@ -290,7 +290,7 @@ void __cdecl R_DrawStaticModelSkinnedSurfLit(
     drawStream.dynSModelState = 0;
     R_SetupPassPerObjectArgs(context);
     data = context.source->input.data;
-    *((unsigned int *)&drawStream + 10) &= 0xFFFFFFFC;
+    drawStream.which_lod = 0;
     drawStream.primDrawSurfPos = primDrawSurfPos;
     drawStream.reflectionProbeTexture = context.state->samplerTexture[15];
     drawStream.customSamplerFlags = context.state->pass->customSamplerFlags;
@@ -397,7 +397,7 @@ void __cdecl R_DrawStaticModelSkinnedSurf(
     drawStream.dynSModelState = 0;
     R_SetupPassPerObjectArgs(context);
     data = context.source->input.data;
-    *((unsigned int *)&drawStream + 10) &= 0xFFFFFFFC;
+    drawStream.which_lod = 0;
     drawStream.primDrawSurfPos = primDrawSurfPos;
     drawStream.reflectionProbeTexture = context.state->samplerTexture[15];
     drawStream.customSamplerFlags = context.state->pass->customSamplerFlags;
@@ -488,7 +488,7 @@ void __cdecl R_DrawStaticModelCachedSurfLit(const unsigned int *primDrawSurfPos,
     R_SetupCachedStaticModelLighting(context.source);
     R_SetupPassPerObjectArgs(context);
     data = context.source->input.data;
-    *((unsigned int *)&drawStream + 10) &= 0xFFFFFFFC;
+    drawStream.which_lod = 0;
     drawStream.primDrawSurfPos = primDrawSurfPos;
     drawStream.reflectionProbeTexture = context.state->samplerTexture[15];
     drawStream.customSamplerFlags = context.state->pass->customSamplerFlags;
@@ -636,7 +636,7 @@ void __cdecl R_DrawStaticModelCachedSurf(const unsigned int *primDrawSurfPos, Gf
     drawStream.dynSModelState = 0;
     R_SetupPassPerObjectArgs(context);
     data = context.source->input.data;
-    *((unsigned int *)&drawStream + 10) &= 0xFFFFFFFC;
+    drawStream.which_lod = 0;
     drawStream.primDrawSurfPos = primDrawSurfPos;
     drawStream.reflectionProbeTexture = context.state->samplerTexture[15];
     drawStream.customSamplerFlags = context.state->pass->customSamplerFlags;

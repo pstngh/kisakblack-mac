@@ -275,23 +275,21 @@ void __cdecl DObjCreate(
     }
     if ( !buf && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\xanim\\dobj.cpp", 756, 0, "%s", "obj") )
         __debugbreak();
-    memset(buf + 20, 0, 0x44u);
-    buf[8] = 0;
-    *((_WORD *)buf + 2) = 0;
-    *((unsigned int *)buf + 3) = 0;
-    *((unsigned int *)buf + 4) = 0;
-    *((_WORD *)buf + 3) = entnum;
-    *((unsigned int *)buf + 23) = 0;
-    *((unsigned int *)buf + 24) = 0;
-    *((unsigned int *)buf + 25) = 0;
-    *((unsigned int *)buf + 26) = 0;
-    *((unsigned int *)buf + 27) = 0;
-    DObjCreateDuplicateParts((DObj *)buf, dobjModels, numModels);
-    DObjComputeBounds((DObj *)buf);
-    DObjSetTree((DObj *)buf, tree);
-    buf[112] = -1;
-    *((unsigned int *)buf + 29) = 0;
-    buf[113] = 0;
+    // The decompiled code wrote these at their i386 offsets; DObj is larger on 64-bit.
+    DObj *obj = (DObj *)buf;
+    memset(&obj->skel, 0, sizeof(obj->skel));
+    obj->duplicatePartsSize = 0;
+    obj->duplicateParts = 0;
+    obj->ignoreCollision = 0;
+    obj->locked = 0;
+    obj->entnum = entnum;
+    memset(obj->hidePartBits, 0, sizeof(obj->hidePartBits));
+    DObjCreateDuplicateParts(obj, dobjModels, numModels);
+    DObjComputeBounds(obj);
+    DObjSetTree(obj, tree);
+    obj->localClientIndex = -1;
+    obj->ikState = 0;
+    obj->flags = 0;
 }
 
 void __cdecl DObjCreateDuplicateParts(DObj *obj, DObjModel_s *dobjModels, unsigned int numModels)
@@ -562,10 +560,10 @@ void __cdecl DObjCreateExt(
         DObjSetFlag((DObj *)buf, 1u, 1);
     if ( isLocalPlayer )
         DObjSetFlag((DObj *)buf, 2u, 1);
-    buf[112] = localClientIndex;
+    ((DObj *)buf)->localClientIndex = localClientIndex;
     if ( tree )
         tree->inst = !DObjIsServer((const DObj *)buf);
-    *((unsigned int *)buf + 29) = 0;
+    ((DObj *)buf)->ikState = 0;
 }
 
 void __cdecl DObjFree(DObj *obj)

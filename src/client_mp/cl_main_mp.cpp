@@ -2602,7 +2602,7 @@ void __cdecl AllocatePerLocalClientMemory(int maxLocalClients, int maxClients, u
     int mem_neededb; // [esp+0h] [ebp-4h]
 
     CL_FreePerLocalClientMemory();
-    mem_needed = 2449480 * maxLocalClients;
+    mem_needed = (int)((1728768 + sizeof(clientConnection_t)) * maxLocalClients); // 2449480 on 32-bit
     if ( (flags & 1) == 0 )
         mem_needed += (int)Ptr32_Encode(SV_AllocateClientMemory_SizeRequired(maxLocalClients, maxClients));
     mem_neededa = mem_needed + CG_AllocateClientMemory_SizeRequired(maxLocalClients);

@@ -16,24 +16,28 @@ enum statsLocation : __int32
     STATS_LOCATION_COUNT         = 0x8,
 };
 
-struct persistentStats // sizeof=0x996C
+// The executable (7.0.61) was built for a stats.ddl of 40168 bytes. The stats.ddl in
+// the final game data (v100, 324062 bits + the 320-bit DDL header) needs 40548.
+#define STATS_BUFFER_SIZE 40548
+
+struct persistentStats // sizeof=0x9CEC in 7.0.61
 {                                       // XREF: .data:s_otherPlayerStats/r
-    unsigned __int8 statsBuffer[39272];
+    unsigned __int8 statsBuffer[STATS_BUFFER_SIZE];
     bool isChecksumValid;
     bool statsWriteNeeded;
     bool statsValidatedWithDDL;
     bool statsFetched;
 };
 
-struct playerNetworkData // sizeof=0x3AD90
+struct playerNetworkData // sizeof=0x3AD90 in 7.0.61
 {                                       // XREF: .data:controllerNetworkData/r
-    _BYTE playerStats[40172];
-    _BYTE playerStatsBackup[40172];     // XREF: LiveStorage_GetPersStatsBuffer+81/o
-    _BYTE stableStatsBuffer[40172];     // XREF: LiveStorage_GetPersStatsBuffer+94/o
-    _BYTE basicTrainingStats[40172];    // XREF: LiveStorage_GetPersStatsBuffer+B1/o
+    _BYTE playerStats[sizeof(persistentStats)];
+    _BYTE playerStatsBackup[sizeof(persistentStats)];     // XREF: LiveStorage_GetPersStatsBuffer+81/o
+    _BYTE stableStatsBuffer[sizeof(persistentStats)];     // XREF: LiveStorage_GetPersStatsBuffer+94/o
+    _BYTE basicTrainingStats[sizeof(persistentStats)];    // XREF: LiveStorage_GetPersStatsBuffer+B1/o
                                         // LiveStorage_GetPersStatsBuffer+117/o
-    _BYTE globalplayerStats[40172];     // XREF: LiveStorage_GetPersStatsBuffer+C5/o
-    _BYTE globalStablePlayerStats[40172];
+    _BYTE globalplayerStats[sizeof(persistentStats)];     // XREF: LiveStorage_GetPersStatsBuffer+C5/o
+    _BYTE globalStablePlayerStats[sizeof(persistentStats)];
                                         // XREF: LiveStorage_GetPersStatsBuffer+D8/o
     bool firstTimeRunning;              // XREF: LiveStorage_PlayerStatsFileNotFound+49/w
                                         // LiveStorage_ReadPlayerStatsSuccessful+79/w ...

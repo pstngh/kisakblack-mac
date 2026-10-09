@@ -160,13 +160,32 @@ GLVertexBuffer::GLVertexBuffer(IDirect3DDevice9 *device, UINT length, DWORD usag
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+// Apple's GL on Metal turns a glBufferSubData into a buffer the GPU may still read
+// into a blit on a fresh Metal command buffer, and blocks once those run out; one per
+// dynamic index upload held a match to ~6 fps. NOOVERWRITE and DISCARD locks promise
+// the range is not in use (DISCARD has just orphaned the storage), so write those
+// through an unsynchronized mapping.
+static void KB_BufferUpload(GLenum target, GLintptr off, GLsizeiptr size, const void *src, bool synced) {
+#if !defined(__EMSCRIPTEN__)
+    if (!synced) {
+        void *dst = glMapBufferRange(target, off, size,
+                                     GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+        if (dst) {
+            memcpy(dst, src, size);
+            if (glUnmapBuffer(target)) return;
+        }
+    }
+#endif
+    glBufferSubData(target, off, size, src);
+}
+
 void GLVertexBuffer::sync() {
     UINT upMin, upMax;
-    bool upDiscard;
+    bool upDiscard, upSync;
     {
         std::lock_guard<std::mutex> g(lockMu_);
-        upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_;
-        pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false;
+        upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_; upSync = pendSync_;
+        pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false; pendSync_ = false;
     }
     if (!vbo_) {
 #if defined(__EMSCRIPTEN__)
@@ -198,7 +217,7 @@ void GLVertexBuffer::sync() {
             glBufferData(GL_ARRAY_BUFFER, length_, nullptr, GL_DYNAMIC_DRAW);
         // Arena residents re-upload in place (no orphan possible — the chunk is shared);
         // the shadow holds the full current contents either way.
-        glBufferSubData(GL_ARRAY_BUFFER, arenaOff_ + upMin, upMax - upMin, shadow_.data() + upMin);
+        KB_BufferUpload(GL_ARRAY_BUFFER, arenaOff_ + upMin, upMax - upMin, shadow_.data() + upMin, upSync || arena_);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         g_kbBufBytes += upMax - upMin;
     }
@@ -236,6 +255,7 @@ HRESULT WINAPI GLVertexBuffer::Lock(UINT OffsetToLock, UINT SizeToLock, void **p
             if (OffsetToLock < outMin_) outMin_ = OffsetToLock;
             if (OffsetToLock + SizeToLock > outMax_) outMax_ = OffsetToLock + SizeToLock;
             if (Flags & D3DLOCK_DISCARD) outDiscard_ = true;
+            if (!(Flags & (D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE))) outSync_ = true;
         }
     }
     *ppbData = shadow_.data() + OffsetToLock;
@@ -251,7 +271,7 @@ HRESULT WINAPI GLVertexBuffer::Unlock() {
     // — dynamic-buffer unlocks were the #1 batch-breaker, ~1900 flushes/frame).
     { std::lock_guard<std::mutex> g(lockMu_); if (outDiscard_) KB_FlushTagged(11); }
     UINT upMin = ~0u, upMax = 0;
-    bool upDiscard = false, uploadNow = false;
+    bool upDiscard = false, upSync = false, uploadNow = false;
 #if defined(__EMSCRIPTEN__)
     extern int g_kbCoalesceEnable;
 #endif
@@ -262,9 +282,10 @@ HRESULT WINAPI GLVertexBuffer::Unlock() {
         // other thread's still-open range may upload half-written, but its own Unlock
         // re-folds it, so the final upload always carries complete data.
         if (outDiscard_) pendDiscard_ = true;
+        if (outSync_) pendSync_ = true;
         if (outMin_ < pendMin_) pendMin_ = outMin_;
         if (outMax_ > pendMax_) pendMax_ = outMax_;
-        if (!lockDepth_) { outMin_ = ~0u; outMax_ = 0; outDiscard_ = false; }
+        if (!lockDepth_) { outMin_ = ~0u; outMax_ = 0; outDiscard_ = false; outSync_ = false; }
         // DYNAMIC buffers defer even on the GL thread when coalescing: the engine does
         // many small Lock/Unlock cycles per frame (FX quads, skinned chunks); folding
         // them into the pending range and uploading ONCE at next bind replaces N
@@ -276,8 +297,8 @@ HRESULT WINAPI GLVertexBuffer::Unlock() {
 #endif
                     ;
         if (uploadNow) {
-            upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_;
-            pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false;
+            upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_; upSync = pendSync_;
+            pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false; pendSync_ = false;
         }
     }
     if (uploadNow && upMax > upMin) {
@@ -289,7 +310,7 @@ HRESULT WINAPI GLVertexBuffer::Unlock() {
         // DISCARDs at offset 0 (see rb_backend/r_shade), so the orphaned tail is never drawn.
         if (upDiscard)
             glBufferData(GL_ARRAY_BUFFER, length_, nullptr, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, upMin, upMax - upMin, shadow_.data() + upMin);
+        KB_BufferUpload(GL_ARRAY_BUFFER, upMin, upMax - upMin, shadow_.data() + upMin, upSync);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         g_kbBufBytes += upMax - upMin;
     }
@@ -323,11 +344,11 @@ GLIndexBuffer::GLIndexBuffer(IDirect3DDevice9 *device, UINT length, DWORD usage,
 
 void GLIndexBuffer::sync() {
     UINT upMin, upMax;
-    bool upDiscard;
+    bool upDiscard, upSync;
     {
         std::lock_guard<std::mutex> g(lockMu_);
-        upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_;
-        pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false;
+        upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_; upSync = pendSync_;
+        pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false; pendSync_ = false;
     }
     // Uploads go through GL_COPY_WRITE_BUFFER: the ELEMENT_ARRAY binding is VAO
     // STATE, so binding here silently rewrote (then zeroed) the element binding of
@@ -358,7 +379,7 @@ void GLIndexBuffer::sync() {
         glBindBuffer(GL_COPY_WRITE_BUFFER, ibo_);
         if (upDiscard && !arena_)
             glBufferData(GL_COPY_WRITE_BUFFER, length_, nullptr, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_COPY_WRITE_BUFFER, arenaOff_ + upMin, upMax - upMin, shadow_.data() + upMin);
+        KB_BufferUpload(GL_COPY_WRITE_BUFFER, arenaOff_ + upMin, upMax - upMin, shadow_.data() + upMin, upSync || arena_);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
         g_kbBufBytes += upMax - upMin;
     }
@@ -389,6 +410,7 @@ HRESULT WINAPI GLIndexBuffer::Lock(UINT OffsetToLock, UINT SizeToLock, void **pp
             if (OffsetToLock < outMin_) outMin_ = OffsetToLock;
             if (OffsetToLock + SizeToLock > outMax_) outMax_ = OffsetToLock + SizeToLock;
             if (Flags & D3DLOCK_DISCARD) outDiscard_ = true;
+            if (!(Flags & (D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE))) outSync_ = true;
         }
     }
     *ppbData = shadow_.data() + OffsetToLock;
@@ -399,7 +421,7 @@ HRESULT WINAPI GLIndexBuffer::Unlock() {
     // Flush pending batched draws only on DISCARD (orphan) — see GLVertexBuffer::Unlock.
     { std::lock_guard<std::mutex> g(lockMu_); if (outDiscard_) KB_FlushTagged(11); }
     UINT upMin = ~0u, upMax = 0;
-    bool upDiscard = false, uploadNow = false;
+    bool upDiscard = false, upSync = false, uploadNow = false;
 #if defined(__EMSCRIPTEN__)
     extern int g_kbCoalesceEnable;
 #endif
@@ -407,17 +429,18 @@ HRESULT WINAPI GLIndexBuffer::Unlock() {
         std::lock_guard<std::mutex> g(lockMu_);
         if (lockDepth_) --lockDepth_;
         if (outDiscard_) pendDiscard_ = true;
+        if (outSync_) pendSync_ = true;
         if (outMin_ < pendMin_) pendMin_ = outMin_;
         if (outMax_ > pendMax_) pendMax_ = outMax_;
-        if (!lockDepth_) { outMin_ = ~0u; outMax_ = 0; outDiscard_ = false; }
+        if (!lockDepth_) { outMin_ = ~0u; outMax_ = 0; outDiscard_ = false; outSync_ = false; }
         uploadNow = kbOnGLThread() && ibo_
 #if defined(__EMSCRIPTEN__)
                     && !(g_kbCoalesceEnable && (usage_ & D3DUSAGE_DYNAMIC))
 #endif
                     ;
         if (uploadNow) {
-            upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_;
-            pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false;
+            upMin = pendMin_; upMax = pendMax_; upDiscard = pendDiscard_; upSync = pendSync_;
+            pendMin_ = ~0u; pendMax_ = 0; pendDiscard_ = false; pendSync_ = false;
         }
     }
     if (uploadNow && upMax > upMin) {
@@ -425,7 +448,7 @@ HRESULT WINAPI GLIndexBuffer::Unlock() {
         // See GLVertexBuffer::Unlock — orphan on DISCARD to avoid the GPU sync stall.
         if (upDiscard)
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, length_, nullptr, GL_DYNAMIC_DRAW);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, upMin, upMax - upMin, shadow_.data() + upMin);
+        KB_BufferUpload(GL_ELEMENT_ARRAY_BUFFER, upMin, upMax - upMin, shadow_.data() + upMin, upSync);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         g_kbBufBytes += upMax - upMin;
     }
@@ -656,6 +679,18 @@ void GLTexture::uploadLevel(UINT Level) {
         // every web context report S3TC=NO (a long-lived red herring).
         bool s3tc = ext && (strstr(ext, "texture_compression_s3tc") ||
                             strstr(ext, "compressed_texture_s3tc"));
+#if !defined(__EMSCRIPTEN__)
+        // A core profile (macOS) has no GL_EXTENSIONS string; list them one by one.
+        if (!ext) {
+            while (glGetError() != GL_NO_ERROR) {}
+            GLint count = 0;
+            glGetIntegerv(GL_NUM_EXTENSIONS, &count);
+            for (GLint i = 0; i < count && !s3tc; ++i) {
+                const char *e = (const char *)glGetStringi(GL_EXTENSIONS, (GLuint)i);
+                s3tc = e && strstr(e, "texture_compression_s3tc");
+            }
+        }
+#endif
         fprintf(stderr, "[gl] renderer=%s | GL=%s | S3TC=%s\n",
                 glGetString(GL_RENDERER), glGetString(GL_VERSION), s3tc ? "YES" : "NO");
     }

@@ -18,13 +18,13 @@ int g_DripsCountWaterMark;
 
 void __cdecl Flame_Class_Drips_Init()
 {
-    memset(flameDrips, 0, 0x61A8u);
-    Flame_List_Init((flameGeneric_s *)flameDrips, 100, 250);
+    memset(flameDrips, 0, sizeof(flameDrips));
+    Flame_List_Init((flameGeneric_s *)flameDrips, sizeof(flameDrips[0]), ARRAY_COUNT(flameDrips));
     flameDripsFree = flameDrips;
     flameDripsUsed = 0;
 
-    memset(sv_flameDrips, 0, 0x61A8u);
-    Flame_List_Init((flameGeneric_s*)sv_flameDrips, 100, 250);
+    memset(sv_flameDrips, 0, sizeof(sv_flameDrips));
+    Flame_List_Init((flameGeneric_s*)sv_flameDrips, sizeof(sv_flameDrips[0]), ARRAY_COUNT(sv_flameDrips));
     sv_flameDripsFree = sv_flameDrips;
     sv_flameDripsUsed = 0;
 
@@ -146,7 +146,7 @@ flameDrips_t *__cdecl Flame_Class_Drips_Spawn(bool is_server, flameChunk_s *from
     flameVars = fromChunk->gen.stream->flameVars;
     if ( !is_server )
         flameRend = fromChunk->gen.stream->renderList->flameRend;
-    *((unsigned int *)&fire->gen + 23) = *((unsigned int *)&fire->gen + 23) & 0xFFFFFFF8 | 4;
+    fire->gen.type = 4;
     fire->gen.stream = fromChunk->gen.stream;
     if ( (float)((float)(fromChunk->gen.age.lastUpdateTime - fromChunk->gen.age.startTime)
                          / (float)(fromChunk->gen.age.endTime - fromChunk->gen.age.startTime)) <= minLifeFrac )

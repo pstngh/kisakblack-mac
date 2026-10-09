@@ -80,9 +80,11 @@ private:
     UINT                      outMin_      = ~0u; // union of outstanding lock ranges
     UINT                      outMax_      = 0;
     bool                      outDiscard_  = false;
+    bool                      outSync_     = false; // a lock without NOOVERWRITE/DISCARD
     UINT                      pendMin_     = ~0u; // deferred dirty range [pendMin_, pendMax_)
     UINT                      pendMax_     = 0;
     bool                      pendDiscard_ = false;
+    bool                      pendSync_    = false;
 };
 
 class GLIndexBuffer final : public GLObject<IDirect3DIndexBuffer9> {
@@ -127,9 +129,11 @@ private:
     UINT                      outMin_      = ~0u;
     UINT                      outMax_      = 0;
     bool                      outDiscard_  = false;
+    bool                      outSync_     = false; // a lock without NOOVERWRITE/DISCARD
     UINT                      pendMin_     = ~0u;
     UINT                      pendMax_     = 0;
     bool                      pendDiscard_ = false;
+    bool                      pendSync_    = false;
 };
 
 class GLSurface;

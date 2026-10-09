@@ -35,8 +35,8 @@ Glasses *__cdecl GetGlasses()
 
     v1 = fs_gameDirVar && *(_BYTE *)fs_gameDirVar->current.string;
     if ( v1 || !useFastFile->current.enabled )
-        return (Glasses *)Ptr32_Decode(((int (__cdecl *)(Glasses *(__cdecl *)()))GetGlasses_LoadObj)(GetGlasses_LoadObj));
+        return GetGlasses_LoadObj();
     else
-        return (Glasses *)Ptr32_Decode(((int (__cdecl *)(Glasses *(__cdecl *)()))GetGlasses_FastFile)(GetGlasses_FastFile));
+        return GetGlasses_FastFile();
 }
 

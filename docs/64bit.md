@@ -75,7 +75,12 @@ Two encoding details matter in practice:
 8. A function called through a cast function pointer must really return what the
    pointer type says: on arm64 an `int` return does not fill a pointer register
    (the hunk allocators returned encoded ints through `void *(*)()`; they now go
-   through typed adapters).
+   through typed adapters). The reverse breaks too: the FastFile/LoadObj
+   dispatchers called pointer-returning functions as `int (*)()` and decoded the
+   result, i.e. the low half of a native pointer (right only when the image sits
+   at exactly 0x100000000, as under lldb with ASLR off). Call such functions
+   directly. Likewise a native pointer read through another union member
+   (`Ptr32_Decode(dvar->current.integer)` for a string dvar): read the pointer.
 9. The decompiler aliases fields through other fields: negative indices
    (`scene.dynSModelVisBitsCamera[i - 13]` is `scene.dpvs.entVisData[i]`),
    `&objBuf[1758][2]` meaning the constant 0x4000000, `_user[1].flags` meaning a
@@ -83,13 +88,59 @@ Two encoding details matter in practice:
    (`tools/layout_diff.py`, or clang's `-fdump-record-layouts`) and name it.
 10. Pointers kept in enum fields are not caught by `-Wint-to-pointer-cast`
    (`(T *)entry->asset.type` was the asset free list).
+11. Literal sizes and offsets of native structs are i386 values: byte-pointer
+   initialisers (`DObjCreate` wrote `buf[112]`, `*((unsigned int *)buf + 29)`;
+   `tagInfo_s` likewise), field offsets passed as arguments (`G_Find(0, 356, ..)`
+   is `offsetof(gentity_s, classname)`), strides (`SV_LocateGameData(.., 760, ..)`),
+   allocation budgets (`*_AllocateClientMemory_SizeRequired` must cover what the
+   matching allocator takes), pool strides (`/ sizeof(GfxImage)` over pool
+   entries that are unions with an 8-byte `next`). Name the field or use sizeof.
+   `tools/audit_rawofs.py` only sees accesses through struct-typed pointers.
+12. The original compiler folded identical functions, and the decompiled tables
+   kept whichever name survived: the asset size table used `XAnimTreeSize` for
+   the 8-byte asset types. Before changing what such a function returns, check
+   every table that references it.
+13. Session 1's mechanical rewrite turned `*(unsigned int *)slot = (unsigned int)p`
+   and `x.integer = (int)p` into encoded stores. That is right only where the slot
+   is 32-bit memory; where the reader takes a native pointer (`UILocalVar::u.string`,
+   devgui's free list in `label`, `jqGetWorkercmdParam`), make both sides agree.
+   Likewise `(T **)structPtr` out-parameters whose first field is a `Ptr32`
+   (`CreateTexture(.., (IDirect3DTexture9 **)image, ..)`): use a local.
+14. `setjmp`/`longjmp`: locals changed after `setjmp` and read after the `longjmp`
+   are indeterminate. MSVC kept them in memory; clang and GCC keep them in
+   registers at -O1 and up. The script VM resumes its interpreter loop after a
+   script error this way, so `VM_Execute_0` is compiled without optimization
+   (`SCR_VM_SETJMP_SAFE`); it is a small share of server time.
+
+15. Sizes the engine passes to its own queues are i386 sizeofs: render commands
+   (`R_GetCommandBuffer(RC_DRAW_FRAMED, 44)`), worker commands (`jqWorkerCmd`'s data
+   size), `R_ClearScene`'s `132 * sceneDObjCount`, the flame pools' list strides.
+   Use `sizeof`. Their readers often index the data by i386 offsets too
+   (`*((unsigned __int16 *)data + 4)` for a `DpvsDynamicCellCmd`): use the fields.
+16. Bitfield words addressed as `*((unsigned int *)&s + N)` (`flameGeneric_s` type/id,
+   `GfxStaticModelDrawStream::which_lod`): on 64-bit word N is a pointer half. Name
+   the bitfield; the masks match its layout.
+17. Decompiled loops that walk a list typed as the container (`(PhysGlob *)node`,
+   `(phys_free_list<T> *)node` then `->m_ptr_list[244]`) read node data at i386
+   offsets: use the list's iterator and the element's fields.
+18. A non-format variadic function that `va_arg`s pointers (`DDL_MoveTo`) must get
+   pointers, not `operand.internals.intVal`: 4 bytes in, 8 read.
+19. Out-of-range float-to-int conversions are undefined: the decompiled
+   `((int)-fabs(unsignedDiff) >> 31) & (i + 1)` "next index with wrap-around"
+   relied on x87/SSE truncation; clang folded it so a glass loop never ended.
+   Write the wrap explicitly.
 
 Runtime structs that the code addresses by raw 32-bit offsets keep their i386
 layout too: `centity_s` (205 sites) has `Ptr32` pointer fields and a strict size
 assert on every build. `tools/audit_rawofs.py` lists such structs.
 
 The macOS build turns the relevant warnings into errors: pointer <-> 32-bit int
-casts both ways, and `Ptr32` objects passed through varargs (`printf`).
+casts both ways, and `Ptr32` objects passed through varargs. clang does not apply
+that check to functions with a format attribute (`snprintf`, `sprintf`); run
+`tools/audit_format.py` for those. The
+macOS and Linux builds compile with `-fno-strict-aliasing -fwrapv`: the
+decompiled code type-puns through pointer casts and assumes wrapping signed
+arithmetic, as MSVC compiled it.
 
 ## Tools
 
@@ -105,7 +156,9 @@ casts both ways, and `Ptr32` objects passed through varargs (`printf`).
   - `tools/audit_64bit.py`: `*(int *)&ptr`, `(T **)&ptr32Slot`, `(T *)enumValue`.
   - `tools/audit_rawofs.py`: structs addressed as `(int *)p + N`.
   - `tools/audit_allocs.py`, `tools/audit_memlit.py`, `tools/audit_qsort.py`:
-    allocations, memset/memcpy and qsort/bsearch sized with a 32-bit sizeof.
+    allocations, memset/memcpy and qsort/bsearch sized with a 32-bit sizeof
+    (audit_memlit looks through casts on the destination and matches
+    `literal * count`; `64 * sizeof(x)` shows up as a false positive).
   When the dedicated server first booted, all but `audit_rawofs.py` (a listing,
   not a check) were clean apart from three allocation hits in commented-out or
   `#if 0` code (mem_track.cpp, jobqueue_all.cpp).

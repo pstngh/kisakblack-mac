@@ -11,6 +11,7 @@
 // renderer threads around are opaque non-null sentinels onto display 0.
 #include <SDL2/SDL.h>
 #include <windows.h>
+#include "sdl_mainthread.h"
 
 namespace {
 // Non-null opaque sentinels. The renderer only ever tests these for non-null and
@@ -19,8 +20,12 @@ HWND     kSentinelWindow  = (HWND)(intptr_t)1;
 HMONITOR kSentinelMonitor = (HMONITOR)(intptr_t)1;
 HMODULE  kSentinelModule  = (HMODULE)(intptr_t)1;
 
-void EnsureVideo() {
+void InitVideo(void *) {
     if (SDL_WasInit(SDL_INIT_VIDEO) == 0) SDL_InitSubSystem(SDL_INIT_VIDEO);
+}
+
+void EnsureVideo() {
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) Sys_RunOnMainThread(InitVideo, nullptr);  // macOS: main thread only
 }
 
 // Bounds of display 0 (the GL window's display), with a 1080p fallback if SDL video

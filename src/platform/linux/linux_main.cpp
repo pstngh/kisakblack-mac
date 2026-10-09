@@ -13,6 +13,9 @@
 #include <win32/win_stream.h>
 #include <demo/demo_common.h>
 #include <physics/phys_broad_phase.h>
+#include <universal/dvar.h>
+#include <universal/q_parse.h>
+#include <universal/timing.h>
 
 #include <cstring>
 #include <cstdio>
@@ -59,9 +62,16 @@ int main(int argc, char **argv) {
     fprintf(stderr, "[KisakBlack] boot: cmdline=\"%s\"\n", cmdline);
     signal(SIGILL, CrashHandler); signal(SIGSEGV, CrashHandler); signal(SIGABRT, CrashHandler);
     signal(SIGBUS, CrashHandler);   // macOS reports some bad accesses as SIGBUS
+    signal(SIGTRAP, CrashHandler);  // arm64 brk: __debugbreak, and clang's trap on reaching unreachable code
 
     Sys_InitializeCriticalSections();
     Sys_InitMainThread();
+    // As WinMain: Dvar_Init registers sv_cheats and the dvar commands (set, seta,
+    // toggle, ...), InitTiming the raw timer scale, Sys_FindInfo the hardware info.
+    Com_InitParse();
+    Dvar_Init();
+    InitTiming();
+    Sys_FindInfo();
     Sys_SetupTLCallbacks(0x900000);
     Com_Init(cmdline);
 

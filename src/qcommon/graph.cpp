@@ -21,7 +21,7 @@ void __cdecl GraphFloat_Load(GraphFloat *graph, char *fileName, float scale)
         __debugbreak();
     if ( !fileName && !Assert_MyHandler("C:\\projects_pc\\cod\\codsrc\\src\\qcommon\\graph.cpp", 83, 0, "%s", "fileName") )
         __debugbreak();
-    Com_Memset((unsigned int *)graph, 0, 360);
+    Com_Memset((unsigned int *)graph, 0, sizeof(*graph));
     buffer = Com_LoadInfoString(fileName, "graph", "GRAPH_FLOAT_FILE", loadBuffer);
     GraphFloat_ParseBuffer(graph, buffer, fileName);
     graph->scale = scale;

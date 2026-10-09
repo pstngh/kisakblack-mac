@@ -22,6 +22,8 @@ cmd_function_s PrintHwmCmd_VAR;
 
 float MIN_SHARD_GROUP_VOLUME_SIZE = 32.0;
 
+static const unsigned int GLASS_SMALL_BLOCK_SIZE = 4 * sizeof(void *);
+
 
 void *GlassRenderer::operator new(size_t size)
 {
@@ -76,11 +78,13 @@ GlassRenderer::GlassRenderer(const Glasses *glasses)
     p_smallAllocator = &this->smallAllocator;
     this->smallAllocator.memory = 0;
     smallAllocatorBlocks = glasses->smallAllocatorBlocks;
+    // 16-byte blocks hold the std::list nodes (two links and a pointer) on 32-bit;
+    // 64-bit nodes are 24 bytes.
     v2 = GlassesClient::Allocate(
-                 16 * smallAllocatorBlocks,
+                 GLASS_SMALL_BLOCK_SIZE * smallAllocatorBlocks,
                  "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp",
                  70);
-    this->smallAllocator.Init(v2, 0x10u, smallAllocatorBlocks);
+    this->smallAllocator.Init(v2, GLASS_SMALL_BLOCK_SIZE, smallAllocatorBlocks);
 
 
     //v23 = GlassesClient::Allocate(28, "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_renderer.cpp", 72);

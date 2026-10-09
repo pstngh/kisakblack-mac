@@ -11923,7 +11923,7 @@ void __cdecl GetCACItemIndex(int localClientNum, itemDef_s *item, OperandStack *
         {
             v3 = va(
                          "custom_killstreak_%c",
-                         *(char *)(strlen(list.operands[1].internals.string) + list.operands[1].internals.intVal - 1));
+                         ((const char *)list.operands[1].internals.string)[strlen(list.operands[1].internals.string) - 1]);
             Var = Dvar_FindVar(v3);
             result.internals.intVal = atoi(Var->current.string);
             AddOperandToStack(dataStack, &result);
@@ -11939,8 +11939,8 @@ void __cdecl GetCACItemIndex(int localClientNum, itemDef_s *item, OperandStack *
                          &searchState,
                          &searchState,
                          2,
-                         list.operands[0].internals.intVal,
-                         list.operands[1].internals.intVal) )
+                         (const char *)list.operands[0].internals.string,
+                         (const char *)list.operands[1].internals.string) )
             {
                 if ( !searchState.member
                     && !Assert_MyHandler(
@@ -13830,7 +13830,7 @@ void Expression_Error(const char *str, ...)
     va_start(va, str);
     if ( !Expression_Throttle() )
     {
-        _snprintf(buf, 0x400u, "^1Expression Error (%s:%d): ", s_currentStatement->filename, s_currentStatement->line);
+        _snprintf(buf, 0x400u, "^1Expression Error (%s:%d): ", (const char *)s_currentStatement->filename, s_currentStatement->line);
         offset = &buf[strlen(buf) + 1] - &buf[1];
         _vsnprintf(&buf[offset], 0x400u, str, va);
         buf[1023] = 0;
@@ -13848,7 +13848,7 @@ void Expression_Warn(const char *str, ...)
     va_start(va, str);
     if ( !Expression_Throttle() )
     {
-        _snprintf(buf, 0x400u, "^3Expression Warning (%s:%d): ", s_currentStatement->filename, s_currentStatement->line);
+        _snprintf(buf, 0x400u, "^3Expression Warning (%s:%d): ", (const char *)s_currentStatement->filename, s_currentStatement->line);
         offset = &buf[strlen(buf) + 1] - &buf[1];
         _vsnprintf(&buf[offset], 0x400u, str, va);
         buf[1023] = 0;

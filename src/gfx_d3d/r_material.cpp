@@ -1608,7 +1608,7 @@ void __cdecl R_MaterialParameterTweak_f()
                 v2->domain.value.max = max;
                 //*(_QWORD *)&v2->domain.value.max = dvarDomain_4;
                 //*((unsigned int *)&v2->domain.vector + 3) = dvarDomain_12;
-                sprintf(desc, "%s . %s parameter tweak", Current_Edit_Material->info.name, param);
+                sprintf(desc, "%s . %s parameter tweak", (const char *)Current_Edit_Material->info.name, param);
                 hack->description = desc;
                 MaterialParameterConstantEntry = cte;
                 memcpy(&MaterialParameterConstantEntry_save, cte, sizeof(MaterialParameterConstantEntry_save));

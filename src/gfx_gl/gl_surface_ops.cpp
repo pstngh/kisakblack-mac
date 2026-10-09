@@ -10,6 +10,8 @@
 #include "gl_format.h"
 
 #include <GL/glew.h>
+#include <cstdio>
+#include <cstdlib>
 extern "C" void KB_FlushBatchedDraws();
 extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched-draw flush (gl_d3d9_draw.cpp)
 
@@ -148,6 +150,24 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
     if (pSourceRect) { sx0 = pSourceRect->left; sy0 = pSourceRect->top; sx1 = pSourceRect->right; sy1 = pSourceRect->bottom; }
     if (pDestRect)   { dx0 = pDestRect->left;   dy0 = pDestRect->top;   dx1 = pDestRect->right;   dy1 = pDestRect->bottom; }
 
+    {
+        extern int g_kbTrace;
+        if (g_kbTrace) {
+            fprintf(stderr, "[trace] StretchRect src=%p bb=%d tex=%u %dx%d -> dst=%p bb=%d tex=%u %dx%d\n",
+                    (void *)src, (int)src->isBackbuffer(), src->texName(), sx1 - sx0, sy1 - sy0,
+                    (void *)dst, (int)dst->isBackbuffer(), dst->texName(), dx1 - dx0, dy1 - dy0);
+#if !defined(__EMSCRIPTEN__)
+            static int dumped;
+            const char *dir = getenv("KB_SCREENSHOT");
+            if (src->isBackbuffer() && dir && dumped < 3) {
+                extern void KB_WriteBackbufferTGA(const char *path, int w, int h);
+                char path[1024];
+                snprintf(path, sizeof(path), "%s/resolve_%d.tga", dir, dumped++);
+                KB_WriteBackbufferTGA(path, (int)src->width(), (int)src->height());
+            }
+#endif
+        }
+    }
     GLuint fbos[2] = {0, 0};
     if (src->isBackbuffer()) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

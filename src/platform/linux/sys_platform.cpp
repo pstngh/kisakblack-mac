@@ -14,6 +14,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
 #include <dirent.h>
 #include <cmath>
 #include <cstdarg>
@@ -21,6 +24,7 @@
 #include <cstring>
 
 #include "../sdl/sdl_events.h"   // Sys_PumpSDLEvents
+#include "../sdl/sdl_mainthread.h"  // Sys_ServiceMainThreadWork (NET_Sleep)
 #include <SDL2/SDL.h>            // SDL_GetMouseState / relative-mouse mode (IN_Frame)
 
 // Client mouse entry point (src/client_mp/cl_input_mp.cpp). Declared directly to
@@ -85,20 +89,116 @@ void Sys_OutOfMemErrorInternal(const char *file, int line) { fprintf(stderr, "ou
 void Sys_DirectXFatalError() { fprintf(stderr, "graphics init failed\n"); _exit(1); }
 
 // ---- System info -----------------------------------------------------------
-const dvar_t *sys_SSE = nullptr;   // CPU-SSE dvar (engine builds with -msse)
+// win_main.cpp fills sys_info in Sys_FindInfo and registers the info dvars in
+// Sys_RegisterInfoDvars; neither is compiled here. The renderer caps texture detail
+// from sys_sysMB (0 MB forced picmip 2), and autoconfigure picks its configure_mp.csv
+// row from configureGHz and sysMB. The engine dereferences sys_SSE without a null
+// check (e.g. R_SkinXModelCmd's SSE-skinning gate).
+const dvar_t *sys_configureGHz;
+const dvar_t *sys_sysMB;
+const dvar_t *sys_gpu;
+const dvar_t *sys_configSum;
+const dvar_t *sys_SSE = nullptr;
+static SysInfo sys_info;
+static bool sys_infoFound;
+
+void Sys_FindInfo() {
+    sys_infoFound = true;
+    memset(&sys_info, 0, sizeof(sys_info));
+    long cpus = sysconf(_SC_NPROCESSORS_ONLN);
+    sys_info.logicalCpuCount = cpus > 0 ? (int)cpus : 1;
+    sys_info.physicalCpuCount = sys_info.logicalCpuCount;
+    unsigned long long memBytes = (unsigned long long)sysconf(_SC_PHYS_PAGES) * (unsigned long long)sysconf(_SC_PAGE_SIZE);
+    double ghz = 0.0;
+#if defined(__APPLE__)
+    int physical = 0;
+    size_t len = sizeof(physical);
+    if (sysctlbyname("hw.physicalcpu", &physical, &len, nullptr, 0) == 0 && physical > 0)
+        sys_info.physicalCpuCount = physical;
+    unsigned long long value = 0;
+    len = sizeof(value);
+    if (sysctlbyname("hw.memsize", &value, &len, nullptr, 0) == 0 && value)
+        memBytes = value;
+    value = 0;
+    len = sizeof(value);
+    if (sysctlbyname("hw.cpufrequency", &value, &len, nullptr, 0) == 0 && value)   // absent on Apple Silicon
+        ghz = (double)value / 1.0e9;
+    len = sizeof(sys_info.cpuName);
+    if (sysctlbyname("machdep.cpu.brand_string", sys_info.cpuName, &len, nullptr, 0) != 0)
+        sys_info.cpuName[0] = 0;
+    sys_info.cpuName[sizeof(sys_info.cpuName) - 1] = 0;
+#else
+    if (FILE *f = fopen("/proc/cpuinfo", "r")) {
+        char line[512];
+        while (fgets(line, sizeof(line), f)) {
+            const char *colon = strchr(line, ':');
+            if (!colon) continue;
+            const char *v = colon + 1;
+            while (*v == ' ' || *v == '\t') ++v;
+            if (!sys_info.cpuName[0] && !strncmp(line, "model name", 10))
+                snprintf(sys_info.cpuName, sizeof(sys_info.cpuName), "%.*s", (int)strcspn(v, "\n"), v);
+            else if (!sys_info.cpuVendor[0] && !strncmp(line, "vendor_id", 9))
+                snprintf(sys_info.cpuVendor, sizeof(sys_info.cpuVendor), "%.*s", (int)strcspn(v, "\n"), v);
+            else if (ghz == 0.0 && !strncmp(line, "cpu MHz", 7))
+                ghz = atof(v) / 1000.0;
+        }
+        fclose(f);
+    }
+#endif
+    sys_info.sysMB = (int)(memBytes >> 20);
+    // Sys_BenchmarkGHz is a stub on Windows too ("swag", 2.4); scale it the same way
+    // Sys_SetAutoConfigureGHz does.
+    if (ghz == 0.0) ghz = 2.4;
+    sys_info.cpuGHz = ghz;
+    double multiCpuFactor = sys_info.physicalCpuCount == 1 ? 1.0 : sys_info.physicalCpuCount == 2 ? 1.75 : 2.0;
+    sys_info.configureGHz = ghz * multiCpuFactor;
+    sys_info.SSE = true;
+}
+
+// Windows calls Sys_FindInfo from WinMain; here autoconfigure (Com_SetRecommended)
+// reads the info before Sys_Init runs.
+static void Sys_EnsureInfo() { if (!sys_infoFound) Sys_FindInfo(); }
+
+void Sys_RegisterInfoDvars() {
+    Sys_EnsureInfo();
+    sys_configureGHz = _Dvar_RegisterFloat("sys_configureGHz", 0.0f, -3.4028235e38f, 3.4028235e38f, 0x11u,
+                                           "Normalized total CPU power, based on cpu type, count, and speed; used in autoconfigure");
+    sys_sysMB = _Dvar_RegisterInt("sys_sysMB", 0, 0x80000000, 0x7FFFFFFF, 0x11u, "Physical memory in the system");
+    sys_gpu = _Dvar_RegisterString("sys_gpu", (char *)"", 0x11u, "GPU description");
+    sys_configSum = _Dvar_RegisterInt("sys_configSum", 0, 0x80000000, 0x7FFFFFFF, 0x11u, "Configuration checksum");
+    sys_SSE = _Dvar_RegisterBool("sys_SSE", sys_info.SSE, 0x40u, "Operating system allows Streaming SIMD Extensions");
+    _Dvar_RegisterFloat("sys_cpuGHz", (float)sys_info.cpuGHz, -3.4028235e38f, 3.4028235e38f, 0x40u, "Measured CPU speed");
+    _Dvar_RegisterString("sys_cpuName", sys_info.cpuName, 0x40u, "CPU name description");
+}
+
 void Sys_Init() {
     EnsureCritInit();
-    // Windows registers the system-info dvars in Sys_RegisterInfoDvars (win_main.cpp),
-    // which is not compiled on Linux. The engine dereferences sys_SSE without a null
-    // check (e.g. R_SkinXModelCmd's SSE-skinning gate), so register it here. We always
-    // build with SSE/SSE2, so report it available. Com_InitDvars() has already run.
-    sys_SSE = _Dvar_RegisterBool("sys_SSE", true, 0x40u,
-                                 "Operating system allows Streaming SIMD Extensions");
+    Sys_RegisterInfoDvars();   // Com_InitDvars() has already run
 }
-void Sys_GetInfo(SysInfo *info) { if (info) memset(info, 0, sizeof(*info)); }
-bool Sys_HasConfigureChecksumChanged(int) { return false; }
-bool Sys_HasInfoChanged() { return false; }
-void Sys_ArchiveInfo(int) {}
+void Sys_GetInfo(SysInfo *info) { Sys_EnsureInfo(); if (info) memcpy(info, &sys_info, sizeof(SysInfo)); }
+// Windows asks with a message box before re-running autoconfigure for a changed
+// configure_mp.csv or changed hardware; there is no dialog here, so it re-runs.
+bool Sys_HasConfigureChecksumChanged(int checksum) {
+    Sys_RegisterInfoDvars();
+    bool changed = sys_configSum->current.integer && sys_configSum->current.integer != checksum;
+    if (sys_configSum->current.integer != checksum) Dvar_SetInt((dvar_s *)sys_configSum, checksum);
+    return changed;
+}
+bool Sys_HasInfoChanged() {
+    Sys_RegisterInfoDvars();
+    return sys_configureGHz->current.value > sys_info.configureGHz * 1.100000023841858
+        || sys_info.configureGHz * 0.8999999761581421 > sys_configureGHz->current.value
+        || sys_sysMB->current.integer > sys_info.sysMB + 32
+        || sys_sysMB->current.integer < sys_info.sysMB - 32
+        || strcmp(sys_gpu->current.string, sys_info.gpuDescription);
+}
+void Sys_ArchiveInfo(int checksum) {
+    Sys_RegisterInfoDvars();
+    Dvar_SetFloat((dvar_s *)sys_configureGHz, (float)sys_info.configureGHz);
+    Dvar_SetInt((dvar_s *)sys_sysMB, sys_info.sysMB);
+    Dvar_SetString((dvar_s *)sys_gpu, sys_info.gpuDescription);
+    Dvar_SetInt((dvar_s *)sys_configSum, checksum);
+}
 bool Sys_IsMiniDumpStarted() { return false; }
 
 // ---- Event queue: SDL-fed ring buffer --------------------------------------
@@ -167,7 +267,9 @@ void  Sys_UpdateHotkeyBlock() {}
 
 // ---- Networking: minimal (offline) -----------------------------------------
 void NET_Init() {}
-void NET_Sleep(unsigned int msec) { if (msec) usleep(msec * 1000u); }
+// The main thread's idle waits (R_BeginRegistration waiting for the render thread)
+// run here, so it also runs work the render thread posted for it (macOS windows).
+void NET_Sleep(unsigned int msec) { Sys_ServiceMainThreadWork(); if (msec) usleep(msec * 1000u); }
 void NET_RestartDebug() {}
 void NET_ShutdownDebug() {}
 char Sys_SendPacket(unsigned int, unsigned char *, netadr_t) { return 1; }

@@ -176,7 +176,7 @@ int __cdecl R_GetPointLightPartitions(GfxLight *visibleLights)
     for ( lightIndex = 0; lightIndex < visibleCount; ++lightIndex )
     {
         memcpy(&visibleLights[lightIndex], addedLights[lightIndex], sizeof(GfxLight));
-        scene.visLightShadow[lightIndex - 4].drawSurfCount = 0;
+        scene.visLight[lightIndex].drawSurfCount = 0;
     }
     for ( lightShadowIndex = 0; (unsigned int)lightShadowIndex < 2; ++lightShadowIndex )
         scene.visLightShadow[lightShadowIndex].drawSurfCount = 0;
@@ -445,6 +445,9 @@ void __cdecl R_GetBspSpotLightSurfs(const GfxLight *light, int lightIndex, GfxBs
     BspSpotLightCallback bspLightCallback; // [esp+A4h] [ebp-34h] BYREF
     unsigned __int8 *surfaceVisData; // [esp+A8h] [ebp-30h]
     GfxSurface **surfaces[2]; // [esp+ACh] [ebp-2Ch] BYREF
+    // The original kept this list in the second half of the light's drawSurfs,
+    // which holds 0x400 4-byte pointers but only 512 8-byte ones.
+    GfxSurface *surfaceList[0x400];
     float maxs[3]; // [esp+B4h] [ebp-24h] BYREF
     GfxDrawSurf *drawSurfs[2]; // [esp+C0h] [ebp-18h]
     GfxDrawSurf *surfaceMaterials; // [esp+C8h] [ebp-10h]
@@ -470,11 +473,11 @@ void __cdecl R_GetBspSpotLightSurfs(const GfxLight *light, int lightIndex, GfxBs
     maxs[1] = light->origin[1] + light->radius;
     maxs[2] = light->origin[2] + light->radius;
     drawSurfs[1] = scene.visLightShadow[lightIndex].drawSurfs;
-    surfaces[1] = (GfxSurface **)&drawSurfs[1][512];
+    surfaces[1] = surfaceList;
     surfCounts[1] = 0;
     bspLightCallback.surfaceVisData = surfaceVisData;
     R_BoxSurfaces(mins, maxs, &allowSurf_0[1], &bspLightCallback, &surfaces[1], 0x400u, &surfCounts[1], 1u);
-    scene.visLightShadow[lightIndex - 4].drawSurfCount = 0;
+    scene.visLight[lightIndex].drawSurfCount = 0;
     if ( surfCounts[1] )
     {
         scene.visLightShadow[lightIndex].drawSurfCount = surfCounts[1];
@@ -1269,7 +1272,7 @@ int __cdecl R_EmitPointLightPartitionSurfs(
     for ( lightIndex = 0; lightIndex < visibleCount; ++lightIndex )
     {
         light = &visibleLights[lightIndex];
-        lightDrawSurfCount = scene.visLightShadow[lightIndex - 4].drawSurfCount;
+        lightDrawSurfCount = scene.visLight[lightIndex].drawSurfCount;
         R_ReverseSortDrawSurfs(scene.visLight[lightIndex].drawSurfs, lightDrawSurfCount);
         partition = &partitions[partitionCount];
         R_InitDrawSurfListInfo(&partition->info);

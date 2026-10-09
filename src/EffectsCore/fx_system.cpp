@@ -26,7 +26,8 @@ int fx_serverVisClient;
 
 int __cdecl FX_AllocateClientMemory_SizeRequired(int maxLocalClients)
 {
-    return 405536 * maxLocalClients + 127 + 155688 * maxLocalClients + 254;
+    // 405536 and 155688 on 32-bit; both structs are larger on 64-bit.
+    return (int)((sizeof(FxSystemContainer) + 402560) * maxLocalClients + 127 + sizeof(FxMarksSystem) * maxLocalClients + 254);
 }
 
 void __cdecl FX_AllocateClientMemory(HunkUser *hunk, int maxLocalClients)

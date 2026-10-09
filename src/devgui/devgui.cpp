@@ -556,7 +556,7 @@ void __cdecl DevGui_FreeMenu_r(unsigned __int16 handle)
             DevGui_FreeMenu_r(menu->menus[0].child.menu);
         }
         DevGui_FreeMenu_r(menu->menus[0].nextSibling);
-        *(unsigned int *)menu->menus[0].label = (unsigned int)Ptr32_Encode(devguiGlob.nextFreeMenu);
+        *(DevMenuItem **)menu->menus[0].label = devguiGlob.nextFreeMenu; // free-list link, read back natively
         devguiGlob.nextFreeMenu = (DevMenuItem *)menu;
     }
 }
@@ -1564,8 +1564,8 @@ void __cdecl DevGui_Init()
     screen_xPad = RETURN_ZERO32();
     screen_yPad = RETURN_ZERO32();
     for ( menuIndex = 0; menuIndex < 0x7FF; ++menuIndex )
-        *(unsigned int *)devguiGlob.menus[menuIndex].label = (unsigned int)Ptr32_Encode(&devguiGlob.menus[menuIndex + 1]);
-    *(unsigned int *)devguiGlob.menus[menuIndex].label = 0;
+        *(DevMenuItem **)devguiGlob.menus[menuIndex].label = (DevMenuItem *)&devguiGlob.menus[menuIndex + 1];
+    *(DevMenuItem **)devguiGlob.menus[menuIndex].label = 0;
     devguiGlob.nextFreeMenu = (DevMenuItem *)&devguiGlob;
     devguiGlob.topmostMenu.childType = 0;
     devguiGlob.topmostMenu.childMenuMemory = 0;

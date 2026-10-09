@@ -46,6 +46,10 @@ target_compile_definitions(${BIN_NAME} PRIVATE KISAK_MP)
 target_compile_options(${BIN_NAME} PRIVATE
     -m32
     -fpermissive
+    # The decompiled code type-puns through pointer casts and relies on wrapping
+    # signed arithmetic, as MSVC compiled it.
+    -fno-strict-aliasing
+    -fwrapv
     $<$<COMPILE_LANGUAGE:CXX>:-malign-double;-mmmx;-msse;-msse2;-fms-extensions;-Wno-narrowing;-include;${SRC_DIR}/platform/compat/msvc_compat.h>
     $<$<COMPILE_LANGUAGE:C>:-D__cdecl=;-D__stdcall=;-D__fastcall=;-D__int8=char;-D__int16=short;-D__int32=int>
     -w

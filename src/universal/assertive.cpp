@@ -10,6 +10,11 @@
 #include <qcommon/common.h>
 #include <win32/win_mini_dumper.h>
 
+#ifndef _WIN32
+#include <execinfo.h>
+#include <cstdlib>
+#endif
+
 HWND__ *g_hwndGame[4];
 int g_hiddenCount;
 bool g_inStackTrace;
@@ -639,6 +644,32 @@ bool Assert_MyHandler(const char *filename, int line, int type, const char *fmt,
         va_end(ap);
         Com_Printf(16, "ASSERT (ignored) %s (%d): %s\n", filename, line, assertMsg);
     }
+#ifndef _WIN32
+    // KB_ASSERT_BT=1: a backtrace on stderr the first time each assert fires.
+    {
+        static const bool wantBacktrace = getenv("KB_ASSERT_BT") != nullptr;
+        static const char *seenFile[256];
+        static int seenLine[256];
+        static int seenCount;
+        if (wantBacktrace)
+        {
+            Sys_EnterCriticalSection(CRITSECT_ASSERT);
+            int i;
+            for (i = 0; i < seenCount && (seenFile[i] != filename || seenLine[i] != line); ++i)
+                ;
+            if (i == seenCount && seenCount < 256)
+            {
+                seenFile[seenCount] = filename;
+                seenLine[seenCount++] = line;
+                void *bt[32];
+                int n = backtrace(bt, 32);
+                fprintf(stderr, "--- backtrace for %s (%d)\n", filename, line);
+                backtrace_symbols_fd(bt, n, 2);
+            }
+            Sys_LeaveCriticalSection(CRITSECT_ASSERT);
+        }
+    }
+#endif
     (void)type;
     return 1;
 #endif

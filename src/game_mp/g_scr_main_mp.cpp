@@ -5139,7 +5139,7 @@ void Scr_Objective_OnEntity()
     ClearObjective_OnEntity(&level.objectives[objNum]);
     Entity = Scr_GetEntity(1u);
     Entity->r.svFlags |= 0x10u;
-    level.objectivesClientMask[6 * objNum - 189][0] = Entity->s.number;
+    level.objectives[objNum].entNum = Entity->s.number;
 }
 
 void Scr_Objective_Current()
@@ -5321,7 +5321,7 @@ void Scr_Objective_SetColor()
     color[3] = 1.0f;
     if ( Scr_GetNumParam(SCRIPTINSTANCE_SERVER) == 5 )
         color[3] = Scr_GetFloat(4u, SCRIPTINSTANCE_SERVER);
-    Byte4PackRgba(color, (unsigned __int8 *)level.objectivesClientMask[6 * objectiveIndex - 187]);
+    Byte4PackRgba(color, (unsigned __int8 *)&level.objectives[objectiveIndex].color);
 }
 
 void GScr_Objective_Team()

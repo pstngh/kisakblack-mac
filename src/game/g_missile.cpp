@@ -3067,9 +3067,9 @@ int __cdecl StickMissile(
             return isStuck;
         entnum = other->s.number;
         if ( other->client->ps.pm_type == 9
-            && (int)Ptr32_Encode(g_scr_data.actorXAnimTrees[376 * other->client->ps.corpseIndex - 1495]) >= 0 )
+            && g_scr_data.playerCorpseInfo[other->client->ps.corpseIndex].entnum >= 0 )
         {
-            entnum = (int)Ptr32_Encode(g_scr_data.actorXAnimTrees[376 * other->client->ps.corpseIndex - 1495]);
+            entnum = g_scr_data.playerCorpseInfo[other->client->ps.corpseIndex].entnum;
         }
         ent->flags |= 0x1000u;
         boneName = 0;

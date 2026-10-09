@@ -181,11 +181,13 @@ struct GfxWorldDpvsPlanes // sizeof=0x10
     Ptr32<unsigned int> sceneEntCellBits;     // XREF: R_LoadWorldRuntime+2A8/w
 };
 
+// Packed into frontEndDataOut->surfsBuffer with a 20-byte stride (surfId counts
+// 4-byte units), so the pointers are Ptr32.
 struct BModelSurface // sizeof=0x14
 {
-    GfxScaledPlacement *placement;
-    GfxSurface *surf;
-    struct ShaderConstantSet *shaderConstSet;
+    Ptr32<GfxScaledPlacement> placement;
+    Ptr32<GfxSurface> surf;
+    Ptr32<struct ShaderConstantSet> shaderConstSet;
     float bmodelBurnAmt;
     float bmodelFadeAmt;
 };

@@ -771,7 +771,7 @@ int __cdecl G_EntLinkToInternal(gentity_s *ent, gentity_s *parent, unsigned int 
 {
     char *v4; // eax
     int pm_type; // [esp+0h] [ebp-10h]
-    char *tagInfo; // [esp+4h] [ebp-Ch]
+    tagInfo_s *tagInfo; // [esp+4h] [ebp-Ch]
     gentity_s *checkEnt; // [esp+8h] [ebp-8h]
     int index; // [esp+Ch] [ebp-4h]
 
@@ -820,9 +820,9 @@ int __cdecl G_EntLinkToInternal(gentity_s *ent, gentity_s *parent, unsigned int 
         if ( !checkEnt->tagInfo )
             break;
     }
-    tagInfo = MT_Alloc(sizeof(tagInfo_s), 17, SCRIPTINSTANCE_SERVER);
-    *(unsigned int *)tagInfo = (unsigned int)Ptr32_Encode(parent);
-    *((_WORD *)tagInfo + 4) = 0;
+    tagInfo = (tagInfo_s *)MT_Alloc(sizeof(tagInfo_s), 17, SCRIPTINSTANCE_SERVER);
+    tagInfo->parent = parent;
+    tagInfo->name = 0;
     if ( tagName )
     {
         if ( !SL_IsLowercaseString(tagName, SCRIPTINSTANCE_SERVER) )
@@ -838,13 +838,13 @@ int __cdecl G_EntLinkToInternal(gentity_s *ent, gentity_s *parent, unsigned int 
                 __debugbreak();
         }
     }
-    Scr_SetString((unsigned __int16 *)tagInfo + 4, tagName, SCRIPTINSTANCE_SERVER);
-    *((unsigned int *)tagInfo + 1) = (unsigned int)Ptr32_Encode(parent->tagChildren);
-    *((unsigned int *)tagInfo + 3) = index;
-    memset(tagInfo + 16, 0, 0x30u);
+    Scr_SetString(&tagInfo->name, tagName, SCRIPTINSTANCE_SERVER);
+    tagInfo->next = parent->tagChildren;
+    tagInfo->index = index;
+    memset(tagInfo->axis, 0, sizeof(tagInfo->axis));
     parent->tagChildren = ent;
-    ent->tagInfo = (tagInfo_s *)tagInfo;
-    memset(tagInfo + 64, 0, 0x30u);
+    ent->tagInfo = tagInfo;
+    memset(tagInfo->parentInvAxis, 0, sizeof(tagInfo->parentInvAxis));
     ent->s.clientLinkInfo.parentEnt = 0;
     ent->s.clientLinkInfo.tagIndex = 0;
     if ( ent->client )
@@ -1615,7 +1615,7 @@ gentity_s *__cdecl G_Spawn()
             Com_Error(ERR_DROP, "G_Spawn: no free entities");
         }
         e = &level.gentities[level.num_entities++];
-        SV_LocateGameData(level.gentities, level.num_entities, 760, &level.clients->ps, 10720);
+        SV_LocateGameData(level.gentities, level.num_entities, sizeof(gentity_s), &level.clients->ps, sizeof(gclient_s));
     }
     G_InitGentity(e);
     return e;

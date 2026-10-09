@@ -1,6 +1,8 @@
 #include "glass_allocator.h"
 #include "glass_client.h"
 #include <universal/assertive.h>
+#include <cstddef>
+#include <cstdint>
 
 void __thiscall SmallAllocator::Init(void *buffer, unsigned int bs, unsigned int nb)
 {
@@ -16,10 +18,10 @@ void __thiscall SmallAllocator::Init(void *buffer, unsigned int bs, unsigned int
     ptr = (char *)this->memory;
     for ( i = 0; i < this->numBlocks - 1; ++i )
     {
-        *(unsigned int *)ptr = (unsigned int)Ptr32_Encode(&ptr[this->blockSize]);
+        *(void **)ptr = &ptr[this->blockSize];   // Allocate/Free use native links
         ptr += this->blockSize;
     }
-    *(unsigned int *)ptr = 0;
+    *(void **)ptr = 0;
 }
 
 void **__thiscall SmallAllocator::Allocate(unsigned int size)
@@ -125,14 +127,18 @@ char __thiscall Allocator::Memory::MakeFree()
     return 1;
 }
 
+// Allocate hands out &mem->prevFree (the free-list links are unused while a block
+// is allocated); 16 bytes into the header on 32-bit, 32 on 64-bit.
+#define ALLOCATOR_USER_OFFSET offsetof(Allocator::Memory, prevFree)
+
 void __thiscall Allocator::Init(void *buf, int size)
 {
     int v4; // [esp+4h] [ebp-Ch]
     Allocator::Memory *end; // [esp+Ch] [ebp-4h]
 
     this->buffer = buf;
-    end = (Allocator::Memory *)Ptr32_Decode(((int)Ptr32_Encode(this->buffer) + size - 21) & 0xFFFFFFF0);
-    this->head = (Allocator::Memory *)Ptr32_Decode(((int)Ptr32_Encode(this->buffer) + 15) & 0xFFFFFFF0);
+    end = (Allocator::Memory *)(((uintptr_t)this->buffer + size - (sizeof(Allocator::Memory) + 1)) & ~(uintptr_t)15);
+    this->head = (Allocator::Memory *)(((uintptr_t)this->buffer + 15) & ~(uintptr_t)15);
     //Allocator::Memory::Init(this->head);
     this->head->Init();
     this->tail = end;
@@ -172,7 +178,7 @@ Allocator::Memory **__thiscall Allocator::Allocate(int size, void *userData)
     if ( this->freeHead == this->tail )
         return 0;
     bestFit = 0;
-    sizea = (size + 31) & 0xFFFFFFF0;
+    sizea = (size + ALLOCATOR_USER_OFFSET + 15) & 0xFFFFFFF0;
     for ( free = this->freeHead; free != this->tail; free = free->nextFree )
     {
         if ( free->next )
@@ -237,8 +243,8 @@ void __thiscall Allocator::Free(unsigned int *ptr)
 
     if ( ptr )
     {
-        mem = (Allocator::Memory *)(ptr - 4);
-        if ( *(ptr - 1)
+        mem = (Allocator::Memory *)((char *)ptr - ALLOCATOR_USER_OFFSET);
+        if ( mem->nextFree
             && !Assert_MyHandler(
                         "C:\\projects_pc\\cod\\codsrc\\src\\glass\\glass_allocator.cpp",
                         233,
@@ -250,7 +256,7 @@ void __thiscall Allocator::Free(unsigned int *ptr)
         }
         if ( this->freeHead == this->tail )
         {
-            *ptr = 0;
+            mem->prevFree = 0;
             mem->nextFree = this->tail;
             this->freeHead = mem;
         }
@@ -266,7 +272,7 @@ void __thiscall Allocator::Free(unsigned int *ptr)
             {
                 __debugbreak();
             }
-            if ( !*ptr )
+            if ( !mem->prevFree )
                 this->freeHead = mem;
         }
         while ( mem->prev && mem->prev == mem->prevFree )
@@ -278,10 +284,13 @@ void __thiscall Allocator::Free(unsigned int *ptr)
 
 unsigned int __thiscall Allocator::GetMemorySize(unsigned int *ptr)
 {
+    Allocator::Memory *mem; // [esp+0h] [ebp-4h]
+
     if ( !ptr )
         return -1;
-    if ( *(ptr - 4) )
-        return *(ptr - 4) - (unsigned int)Ptr32_Encode(ptr - 4);
+    mem = (Allocator::Memory *)((char *)ptr - ALLOCATOR_USER_OFFSET);
+    if ( mem->next )
+        return (char *)mem->next - (char *)mem;
     else
         return 0;
 }

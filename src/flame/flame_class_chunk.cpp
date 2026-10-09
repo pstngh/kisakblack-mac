@@ -20,13 +20,13 @@ int g_ChunkCountWaterMark;
 
 void __cdecl Flame_Class_Chunk_Init()
 {
-    memset(flameChunks, 0, 0x15E00u);
-    Flame_List_Init((flameGeneric_s*)flameChunks, 112, 800);
+    memset(flameChunks, 0, sizeof(flameChunks));
+    Flame_List_Init((flameGeneric_s*)flameChunks, sizeof(flameChunks[0]), ARRAY_COUNT(flameChunks));
     flameChunksFree = flameChunks;
     flameChunksUsed = 0;
 
-    memset(sv_flameChunks, 0, 0x15E00u);
-    Flame_List_Init((flameGeneric_s *)sv_flameChunks, 112, 800);
+    memset(sv_flameChunks, 0, sizeof(sv_flameChunks));
+    Flame_List_Init((flameGeneric_s *)sv_flameChunks, sizeof(sv_flameChunks[0]), ARRAY_COUNT(sv_flameChunks));
     sv_flameChunksFree = sv_flameChunks;
     sv_flameChunksUsed = 0;
 
@@ -148,7 +148,7 @@ void __cdecl Flame_Class_Chunk_Age(bool is_server, int time)
         {
             curTime = trav->spawnFireInterval + trav->lastSpawnFire;
         }
-        if ( ((*((unsigned int *)&trav->gen + 23) >> 3) & 1) != 0
+        if ( trav->gen.delete_chunk != 0
             || trav->gen.age.lastUpdateTime - trav->gen.age.startTime >= (int)(float)(1000.0
                                                                                                                                                             * trav->gen.stream->flameVars->flameVar_streamChunkSpawnFireMaxLifeFrac) )
         {
@@ -206,9 +206,9 @@ flameChunk_s *__cdecl Flame_Class_Chunk_Spawn(
     chunk = Flame_Class_Chunk_Alloc(is_server);
     if ( !chunk )
         return 0;
-    *((unsigned int *)&chunk->gen + 23) = *((unsigned int *)&chunk->gen + 23) & 0xFFFFFFF8 | 1;
-    *((unsigned int *)&chunk->gen + 23) = (16 * flame_spawn_id++) | *((unsigned int *)&chunk->gen + 23) & 0xF;
-    *((unsigned int *)&chunk->gen + 23) &= ~8u;
+    chunk->gen.type = 1;
+    chunk->gen.id = flame_spawn_id++;
+    chunk->gen.delete_chunk = 0;
     chunk->gen.age.startTime = spawnVars->time;
     chunk->gen.age.endTime = spawnVars->duration + spawnVars->time;
     chunk->gen.age.lastUpdateTime = spawnVars->time;

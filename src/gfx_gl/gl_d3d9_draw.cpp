@@ -1424,6 +1424,27 @@ HRESULT WINAPI GLDevice::DrawIndexedPrimitive(D3DPRIMITIVETYPE Type, INT BaseVer
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elem);
             if (curVaoEnt_) curVaoEnt_->elem = elem;
         }
+    {
+            extern int g_kbTrace;
+            if (g_kbTrace) {
+                GLint vp[4] = {}; glGetIntegerv(GL_VIEWPORT, vp);
+                GLfloat dr[2] = {}; glGetFloatv(GL_DEPTH_RANGE, dr);
+                GLint df = 0, prog = 0, fb = 0; glGetIntegerv(GL_DEPTH_FUNC, &df); glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+                glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
+                GLboolean cm[4] = {}, dm = 0; glGetBooleanv(GL_COLOR_WRITEMASK, cm); glGetBooleanv(GL_DEPTH_WRITEMASK, &dm);
+                fprintf(stderr, "[trace] GL dt=%d df=%x dm=%d dr=%g..%g cm=%d%d%d%d blend=%d prog=%d fb=%d stencil=%d scissor=%d\n",
+                        (int)glIsEnabled(GL_DEPTH_TEST), df, (int)dm, dr[0], dr[1], cm[0], cm[1], cm[2], cm[3],
+                        (int)glIsEnabled(GL_BLEND), prog, fb, (int)glIsEnabled(GL_STENCIL_TEST), (int)glIsEnabled(GL_SCISSOR_TEST));
+                fprintf(stderr, "[trace] DIP prims=%u start=%u base=%d fbo=%d vp=%d,%d,%d,%d z=%u/%u/%u cull=%u cw=%x vs=%d ps=%d "
+                                "c0=%g,%g,%g,%g c1=%g,%g,%g,%g c2=%g,%g,%g,%g c3=%g,%g,%g,%g\n",
+                        primCount, startIndex, BaseVertexIndex, (int)fboActive_, vp[0], vp[1], vp[2], vp[3],
+                        (unsigned)rsCache_[D3DRS_ZENABLE], (unsigned)rsCache_[D3DRS_ZFUNC], (unsigned)rsCache_[D3DRS_ZWRITEENABLE],
+                        (unsigned)rsCache_[D3DRS_CULLMODE], (unsigned)rsCache_[D3DRS_COLORWRITEENABLE],
+                        vs_ ? (int)vs_->ok() : -1, ps_ ? (int)ps_->ok() : -1,
+                        vsConst_[0], vsConst_[1], vsConst_[2], vsConst_[3], vsConst_[4], vsConst_[5], vsConst_[6], vsConst_[7],
+                        vsConst_[8], vsConst_[9], vsConst_[10], vsConst_[11], vsConst_[12], vsConst_[13], vsConst_[14], vsConst_[15]);
+            }
+        }
         kbDrawElementsBV(mode, verts, idxType, offset, BaseVertexIndex);
         return D3D_OK;
     }
