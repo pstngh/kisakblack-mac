@@ -498,10 +498,13 @@ void __cdecl CG_RegisterDvars()
                                                     0x7FFFFFFF,
                                                     1u,
                                                     "Time in milliseconds for the seat hint to fade");
-    cg_fov = _Dvar_RegisterFloat("cg_fov", 65.0, 1.0, 160.0, 0x80u, "The field of view angle in degrees");
+    // 80 (the options' maximum) rather than the original 65; the view takes
+    // cg_fov_default at each spawn (CG_SetThirdPerson), and the scripts' cg_fov
+    // writes become it too (CG_SetClientDvarFromServer).
+    cg_fov = _Dvar_RegisterFloat("cg_fov", 80.0, 1.0, 160.0, 0x80u, "The field of view angle in degrees");
     cg_fov_default = _Dvar_RegisterFloat(
                                          "cg_fov_default",
-                                         65.0,
+                                         80.0,
                                          65.0,
                                          80.0,
                                          1u,

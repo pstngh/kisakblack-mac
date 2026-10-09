@@ -32,11 +32,15 @@ void Sys_RunOnMainThread(void (*fn)(void *), void *arg) {
 }
 
 void Sys_ServiceMainThreadWork() {
-    if (!pthread_main_np())
+    // Not from inside posted work (a wait in it would lock g_mutex again).
+    static bool servicing;
+    if (!pthread_main_np() || servicing)
         return;
     pthread_mutex_lock(&g_mutex);
     if (g_pending) {
+        servicing = true;
         g_fn(g_arg);
+        servicing = false;
         g_fn = nullptr;
         g_arg = nullptr;
         g_pending = false;

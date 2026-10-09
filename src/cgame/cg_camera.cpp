@@ -778,6 +778,14 @@ double __cdecl CG_GetViewFov(int localClientNum)
     weapIndex = CG_GetPlayerWeapon(&cgameGlob->predictedPlayerState, localClientNum);
     weapVariantDef = BG_GetWeaponVariantDef(weapIndex);
     weapDef = BG_GetWeaponDef(weapIndex);
+    // The options' field of view applies at once; the original took it at the next
+    // spawn only (CG_SetThirdPerson).
+    if ( cg_fov_default->modified || cg_fov_default_thirdperson->modified )
+    {
+        Dvar_ClearModified(cg_fov_default);
+        Dvar_ClearModified(cg_fov_default_thirdperson);
+        CG_UpdateFov(CG_GetDefaultFovForView());
+    }
     viewFov = cg_fov->current.value;
     if ( (viewFov < 1.0 || viewFov > 160.0)
         && !Assert_MyHandler(

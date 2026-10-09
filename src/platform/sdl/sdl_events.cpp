@@ -11,6 +11,8 @@
 void Sys_QueEvent(unsigned int time, sysEventType_t type, int value, int value2,
                   int ptrLength, void *ptr);
 bool Sys_IsMainThread();
+// The GL backend's copy of the window size (glcontext_sdl.cpp).
+void KB_GLNoteWindowSize(SDL_Window *win);
 
 int Sys_SDLKeyToKeyNum(int sym) {
     // Printable ASCII maps straight through (Quake convention: letter/number/symbol
@@ -69,6 +71,10 @@ void Sys_PumpSDLEvents(unsigned t) {
                 Sys_QueEvent(t, SE_KEY, K_MOUSE1 + btn, e.type == SDL_MOUSEBUTTONDOWN ? 1 : 0, 0, nullptr);
                 break;
             }
+            case SDL_WINDOWEVENT:
+                if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+                    KB_GLNoteWindowSize(SDL_GetWindowFromID(e.window.windowID));
+                break;
             case SDL_MOUSEWHEEL: {
                 int k = e.wheel.y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
                 Sys_QueEvent(t, SE_KEY, k, 1, 0, nullptr);  // wheel = press + release

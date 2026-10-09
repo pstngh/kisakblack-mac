@@ -591,10 +591,33 @@ extern "C" void KB_RenderThreadYield() {}
 
 #include "../platform/sdl/sdl_mainthread.h"
 
+#include <atomic>
+
 // Per-present counter (gl_query.cpp). The program cache's per-frame link budget
 // resets when it changes; without the increment here only the first 4 programs ever
 // linked and every other draw was skipped as "still linking".
 extern unsigned long g_kbPresentEnter;
+
+namespace {
+// The window's size in pixels for Present, which scales the back buffer to it.
+// macOS answers window queries only on the main thread, so that thread records it
+// (KB_GLNoteWindowSize) and the render thread reads the copy.
+std::atomic<int> g_drawableWidth{0}, g_drawableHeight{0};
+} // namespace
+
+// Main thread: the window was created, resized or changed fullscreen state (the
+// event pump calls this for SDL's size events too).
+void KB_GLNoteWindowSize(SDL_Window *win) {
+    static bool wasFullscreen;
+    int w = 0, h = 0;
+    if (win) SDL_GL_GetDrawableSize(win, &w, &h);
+    const bool fullscreen = win && (SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN);
+    if (w != g_drawableWidth || h != g_drawableHeight || fullscreen != wasFullscreen)
+        fprintf(stderr, "[gl] window %dx%d%s\n", w, h, fullscreen ? " fullscreen" : "");
+    wasFullscreen = fullscreen;
+    g_drawableWidth = w;
+    g_drawableHeight = h;
+}
 
 namespace {
 
@@ -608,6 +631,7 @@ public:
         Sys_RunOnMainThread([](void *self) { static_cast<SDLGLContext *>(self)->created_ = static_cast<SDLGLContext *>(self)->create(); }, this);
         if (!created_) return false;
         SDL_GL_MakeCurrent(win_, ctx_);
+        SetVSync(desc.vsync);
 
         glewExperimental = GL_TRUE;
         GLenum ge = glewInit();
@@ -627,13 +651,42 @@ public:
     void  SwapBuffers() override        { ++g_kbPresentEnter; SDL_GL_SwapWindow(win_); }
     void  Resize(int w, int h) override {
         size_[0] = w; size_[1] = h;
-        Sys_RunOnMainThread([](void *self) { auto *c = static_cast<SDLGLContext *>(self); SDL_SetWindowSize(c->win_, c->size_[0], c->size_[1]); }, this);
+        Sys_RunOnMainThread([](void *self) {
+            auto *c = static_cast<SDLGLContext *>(self);
+            // A fullscreen window keeps covering the display; Present scales.
+            if (!c->fullscreen_) SDL_SetWindowSize(c->win_, c->size_[0], c->size_[1]);
+            KB_GLNoteWindowSize(c->win_);
+        }, this);
     }
+    void  SetFullscreen(bool on) override {
+        if (on == fullscreen_) return;
+        fullscreen_ = on;
+        Sys_RunOnMainThread([](void *self) {
+            auto *c = static_cast<SDLGLContext *>(self);
+            if (c->fullscreen_) {
+                SDL_SetWindowFullscreen(c->win_, SDL_WINDOW_FULLSCREEN_DESKTOP);
+            } else {
+                SDL_SetWindowFullscreen(c->win_, 0);
+                SDL_SetWindowSize(c->win_, c->size_[0], c->size_[1]);
+                SDL_SetWindowPosition(c->win_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+            }
+            KB_GLNoteWindowSize(c->win_);
+        }, this);
+    }
+    // The context is current on this (the render) thread.
+    void  SetVSync(bool on) override    { SDL_GL_SetSwapInterval(on ? 1 : 0); }
+    void  GetDrawableSize(int *w, int *h) override { *w = g_drawableWidth; *h = g_drawableHeight; }
     void *GetProcAddress(const char *n) override { return SDL_GL_GetProcAddress(n); }
 
 private:
     bool create() {
         const GLContextDesc &desc = *desc_;
+#if defined(__APPLE__)
+        // As sdl_window.cpp's InitVideo (whichever starts video first): fullscreen
+        // without a Space animation, and swaps that don't wait for the main thread.
+        SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "0");
+        SDL_SetHint(SDL_HINT_MAC_OPENGL_ASYNC_DISPATCH, "1");
+#endif
         if (SDL_WasInit(SDL_INIT_VIDEO) == 0 && SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
             fprintf(stderr, "[gl] SDL_InitSubSystem(VIDEO): %s\n", SDL_GetError());
             return false;
@@ -654,9 +707,13 @@ private:
 #endif
 
         Uint32 flags = SDL_WINDOW_OPENGL | (desc.visible ? 0u : Uint32(SDL_WINDOW_HIDDEN));
+        if (desc.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+        fullscreen_ = desc.fullscreen;
+        size_[0] = desc.width; size_[1] = desc.height;
         win_ = SDL_CreateWindow("KisakBlack", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                 desc.width, desc.height, flags);
         if (!win_) { fprintf(stderr, "[gl] SDL_CreateWindow: %s\n", SDL_GetError()); return false; }
+        KB_GLNoteWindowSize(win_);
         // Request raise + keyboard focus so menu/game input (which needs X input
         // focus, unlike the polled mouse position) reaches the window.
         if (desc.visible) SDL_RaiseWindow(win_);
@@ -674,7 +731,8 @@ private:
 
     const GLContextDesc *desc_ = nullptr;
     bool          created_ = false;
-    int           size_[2] = {};
+    bool          fullscreen_ = false;
+    int           size_[2] = {};       // the windowed size (the back buffer's)
     SDL_Window   *win_ = nullptr;
     SDL_GLContext ctx_ = nullptr;
 };

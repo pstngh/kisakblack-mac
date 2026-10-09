@@ -10,6 +10,7 @@ extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched
 
 #include <SDL2/SDL.h>   // adapter display-mode queries (EnumAdapterModes etc.)
 #include <cstdio>
+#include <atomic>
 #include <cstdlib>
 #include <vector>
 extern int g_kbTrace;   // KB_TRACEFRAME (defined below, before Present)
@@ -421,7 +422,11 @@ HRESULT WINAPI GLDevice::Reset(D3DPRESENT_PARAMETERS *pp) {
         glBindFramebuffer(GL_FRAMEBUFFER, backbufferFbo());
         fbWidth_ = bbWidth_; fbHeight_ = bbHeight_;
         resetViewportToTarget();
-        if (ctx_) ctx_->Resize(fbWidth_, fbHeight_);
+        if (ctx_) {
+            ctx_->Resize(fbWidth_, fbHeight_);
+            ctx_->SetFullscreen(!pp->Windowed);
+            ctx_->SetVSync(pp->PresentationInterval != D3DPRESENT_INTERVAL_IMMEDIATE);
+        }
     }
     return D3D_OK;
 }
@@ -477,6 +482,32 @@ static void KB_MaybeScreenshot(unsigned fbo, int w, int h) {
 }
 #endif
 
+// The back buffer's rectangle in the window at the last Present (x, y from the top
+// left, width, height) and the back buffer's size: the window's cursor position maps
+// back through it (IN_Frame), as the window can be larger than the back buffer.
+static std::atomic<int> g_kbPresentRect[6];
+
+static bool KB_PresentRect(int r[6]) {
+    for (int i = 0; i < 6; ++i) r[i] = g_kbPresentRect[i];
+    return r[2] > 0 && r[3] > 0 && r[4] > 0 && r[5] > 0;
+}
+
+void KB_WindowToBackbuffer(int *x, int *y) {
+    int r[6];
+    if (!KB_PresentRect(r)) return;
+    *x = (int)((long long)(*x - r[0]) * r[4] / r[2]);
+    *y = (int)((long long)(*y - r[1]) * r[5] / r[3]);
+    *x = *x < 0 ? 0 : (*x >= r[4] ? r[4] - 1 : *x);
+    *y = *y < 0 ? 0 : (*y >= r[5] ? r[5] - 1 : *y);
+}
+
+void KB_BackbufferToWindow(int *x, int *y) {
+    int r[6];
+    if (!KB_PresentRect(r)) return;
+    *x = r[0] + (int)((long long)*x * r[2] / r[4]);
+    *y = r[1] + (int)((long long)*y * r[3] / r[5]);
+}
+
 HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA *) {
     KB_FlushTagged(11);
     unsigned bb = backbufferFbo();
@@ -507,7 +538,32 @@ HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA
     glDrawBuffer(GL_BACK);
 #endif
     if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // blits are scissored
-    glBlitFramebuffer(0, 0, bbWidth_, bbHeight_, 0, bbHeight_, bbWidth_, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    // A fullscreen window covers the display whatever the back buffer's size: scale
+    // to fit, keeping the aspect ratio, black around it (KB_WindowToBackbuffer maps
+    // the cursor back through the same rectangle).
+    int winW = 0, winH = 0;
+    if (ctx_) ctx_->GetDrawableSize(&winW, &winH);
+    int x0 = 0, y0 = 0, x1 = bbWidth_, y1 = bbHeight_;
+    const bool scaled = winW > 0 && winH > 0 && (winW != bbWidth_ || winH != bbHeight_);
+    if (scaled) {
+        if ((long long)winW * bbHeight_ > (long long)winH * bbWidth_) {
+            const int w = (int)((long long)winH * bbWidth_ / bbHeight_);
+            x0 = (winW - w) / 2; x1 = x0 + w; y1 = winH;
+        } else {
+            const int h = (int)((long long)winW * bbHeight_ / bbWidth_);
+            y0 = (winH - h) / 2; y1 = y0 + h; x1 = winW;
+        }
+        GLboolean mask[4];
+        glGetBooleanv(GL_COLOR_WRITEMASK, mask);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glColorMask(mask[0], mask[1], mask[2], mask[3]);
+    }
+    g_kbPresentRect[0] = x0; g_kbPresentRect[1] = winH > 0 ? winH - y1 : 0;   // top-left origin
+    g_kbPresentRect[2] = x1 - x0; g_kbPresentRect[3] = y1 - y0;
+    g_kbPresentRect[4] = bbWidth_; g_kbPresentRect[5] = bbHeight_;
+    glBlitFramebuffer(0, 0, bbWidth_, bbHeight_, x0, y1, x1, y0, GL_COLOR_BUFFER_BIT, scaled ? GL_LINEAR : GL_NEAREST);
     if (scissorOn_) glEnable(GL_SCISSOR_TEST);
     if (ctx_) ctx_->SwapBuffers();
     glBindFramebuffer(GL_FRAMEBUFFER, curFbo());
@@ -649,6 +705,8 @@ HRESULT WINAPI GLD3D9::CreateDevice(UINT /*Adapter*/, D3DDEVTYPE /*DeviceType*/,
     desc.doubleBuffer = true;
     desc.depthStencil = pp->EnableAutoDepthStencil ? true : true;
     desc.visible      = pp->Windowed ? true : true;
+    desc.fullscreen   = !pp->Windowed;
+    desc.vsync        = pp->PresentationInterval != D3DPRESENT_INTERVAL_IMMEDIATE;
 
     GLContext *ctx = GLContext::Create(desc);
     if (!ctx) { fprintf(stderr, "[gl] CreateDevice: GL context creation failed\n"); return E_FAIL; }

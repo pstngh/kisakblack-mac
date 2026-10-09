@@ -71,6 +71,13 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   screenshots only inside the folder; a scan of the home and temp folders after a
   match and a main-menu session found nothing else from the game except the
   system's Metal shader cache.
+- **Graphics options** (session 8): Apply (`vid_restart`) froze the game; fixed.
+  Fullscreen and vsync work now (they did nothing before): fullscreen on/off
+  from the main menu and six times in a match (also under ASan, no report),
+  starting fullscreen, and the user's own Apply (AA 1, fullscreen, 16:9, vsync
+  off). Antialiasing (`r_aaSamples`) is still ignored by the GL backend, and the
+  resolution list holds only the display modes SDL reports (on the user's
+  1920x1080 display: 1920x1080 alone).
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters;
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
@@ -141,6 +148,10 @@ Seen in session 8:
   built from garbage.
 - The system's Metal shader cache (`$(getconf DARWIN_USER_CACHE_DIR)com.apple.metal`)
   is written by Apple's GL driver for any GL program, outside the game folder.
+- GL backend: no MSAA (`r_aaSamples` is accepted and ignored); the resolution list
+  (`r_mode`'s domain) is the display's SDL modes only, though fullscreen covers
+  the display and scales any back buffer. The scaled Present path (window size !=
+  back buffer) is untested: on the user's display both are 1920x1080.
 
 Seen in session 7:
 - Contracts have no data offline (`LiveStorage_DoWeHaveContracts` is 0) though
@@ -253,6 +264,40 @@ Pre-existing (wrong on every build):
   directory: `quickprint.log` (cg_draw_debug), `dx.log` (`r_logFile`), and the
   `KB_*` dumps (their own paths). Bink's video path (`r_cinematic.cpp`) is the
   current directory too, but Bink is stubbed.
+- **Main-thread deadlocks (macOS)**: the render thread asks the main thread for
+  window work (`Sys_RunOnMainThread`: context creation, resize) and SDL3 asks it
+  for GL context updates in the buffer swap after a window change
+  (`dispatch_sync` to the main queue), while the main thread can be blocked
+  waiting for the render thread. Applying graphics settings hung both ways:
+  `R_CheckResizeWindow` waits in `Sys_WaitD3DDeviceOKEvent` for the reset whose
+  `GLDevice::Reset` resizes the window, and in a match the main thread waits for
+  each frame (`Sys_WaitRenderer`) whose swap dispatches the update. Fixes:
+  `WaitForSingleObject` on the macOS main thread waits on events and semaphores
+  in 2 ms slices and runs posted main-thread work between them (a signal still
+  wakes it at once); `SDL_HINT_MAC_OPENGL_ASYNC_DISPATCH` 1, SDL's documented
+  switch for a GL render thread whose main thread waits on it.
+- **Fullscreen/vsync in the GL backend**: `D3DPRESENT_PARAMETERS::Windowed` and
+  `PresentationInterval` are honoured at CreateDevice and Reset. Fullscreen is
+  SDL's desktop fullscreen (covers the display, no mode switch; no Spaces
+  animation, `SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES` 0); Present scales the back
+  buffer to the window keeping its aspect ratio (black bars) when their sizes
+  differ, and `IN_Frame`/`IN_SetCursorPos` map the cursor through the same
+  rectangle. The window's pixel size is read on the main thread (creation,
+  resize, fullscreen switch, SDL size events: `KB_GLNoteWindowSize`) and logged
+  as `[gl] window WxH [fullscreen]`. Vsync: `SDL_GL_SetSwapInterval` (it was
+  never set: always off).
+- **Field of view 80** (the user's request): `cg_fov_default` (the options slider,
+  65-80) and `cg_fov` default to 80 instead of 65, so fresh configs and the
+  options' reset give 80. The view took `cg_fov_default` only at each spawn
+  (`CG_SetThirdPerson`); `CG_GetViewFov` applies a change at once now. The PC
+  scripts never send `cg_fov` in play (`setThirdPerson` returns unless
+  `level.console`), so nothing else overrides it.
+- **Sound lock order** (every build): `SND_FindAliasFromId` took
+  `CRITSECT_SOUND_LOOKUP_CACHE` (the sound log's name cache) around a bank
+  lookup, then `CRITSECT_SOUND_BANK`; `SND_AddBank` holds the bank lock and
+  re-applies patches through `SND_FindAliasFromId`. A menu sound while a
+  fastfile added a bank deadlocked the render and loader threads at startup
+  (seen once). The lookup no longer takes the log's lock.
 
 ## Decisions (session 7)
 

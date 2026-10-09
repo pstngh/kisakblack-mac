@@ -14,6 +14,8 @@ struct GLContextDesc {
     bool doubleBuffer = true;
     bool depthStencil = true;  // request a 24/8 depth-stencil
     bool visible      = true;  // false → offscreen-style (used by headless tests)
+    bool fullscreen   = false; // cover the display (no display mode change)
+    bool vsync        = false;
 };
 
 class GLContext {
@@ -26,6 +28,11 @@ public:
     virtual void  MakeCurrent()                 = 0;
     virtual void  SwapBuffers()                 = 0;
     virtual void  Resize(int width, int height) = 0;
+    // Windowed, or covering the display; Present scales the back buffer to fit.
+    virtual void  SetFullscreen(bool) {}
+    virtual void  SetVSync(bool) {}
+    // The window's size in pixels; 0 when unknown (Present then copies 1:1).
+    virtual void  GetDrawableSize(int *width, int *height) { *width = *height = 0; }
     // Resolve a GL entry point for the loader (modern GL beyond 1.x).
     virtual void *GetProcAddress(const char *name) = 0;
 };

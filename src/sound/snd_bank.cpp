@@ -248,10 +248,11 @@ snd_alias_list_t *__cdecl SND_FindAliasFromId(unsigned int hash)
     if ( !SND_Active() || !hash )
         return NULL;
 
-    Sys_EnterCriticalSection(CRITSECT_SOUND_LOOKUP_CACHE);
-    snd_alias_list_t *list = SND_BankAliasLookup(hash);
-    Sys_LeaveCriticalSection(CRITSECT_SOUND_LOOKUP_CACHE);
-    return list;
+    // SND_BankAliasLookup takes CRITSECT_SOUND_BANK itself. Taking
+    // CRITSECT_SOUND_LOOKUP_CACHE (the log's name cache, snd_log.cpp) around it too
+    // reversed SND_AddBank's order (bank lock, then patches -> here): a menu sound
+    // while a fastfile added a bank deadlocked the render and loader threads.
+    return SND_BankAliasLookup(hash);
 }
 
 snd_alias_list_t *__cdecl SND_BankAliasLookup(unsigned int key)

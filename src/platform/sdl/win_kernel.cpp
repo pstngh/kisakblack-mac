@@ -11,6 +11,7 @@
 #include <mach-o/dyld.h>
 #endif
 #include <windows.h>
+#include "sdl_mainthread.h"   // Sys_ServiceMainThreadWork (WaitKObject)
 
 #include <pthread.h>
 #include <unistd.h>
@@ -94,6 +95,45 @@ void deadline(struct timespec *ts, DWORD ms) {
     ts->tv_sec  += ms / 1000;
     ts->tv_nsec += (long)(ms % 1000) * 1000000L;
     if (ts->tv_nsec >= 1000000000L) { ts->tv_sec++; ts->tv_nsec -= 1000000000L; }
+}
+
+bool before(const struct timespec &a, const struct timespec &b) {
+    return a.tv_sec < b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec < b.tv_nsec);
+}
+
+// Waits on k->cond (k->mtx held) until ready() or `ms` pass. On the macOS main
+// thread the wait also runs the work other threads post there
+// (Sys_RunOnMainThread): the render thread posts window and GL context calls,
+// e.g. the window resize of a device reset, while the main thread can be waiting
+// for that very thread (vid_restart waits for the reset in
+// Sys_WaitD3DDeviceOKEvent), which deadlocked when applying graphics settings.
+template <class Ready> void WaitKObject(KObject *k, DWORD ms, Ready ready) {
+    struct timespec end;
+    if (ms != INFINITE) deadline(&end, ms);
+#if defined(__APPLE__)
+    const bool service = pthread_main_np();
+#else
+    const bool service = false;
+#endif
+    int rc = 0;
+    while (!ready() && rc == 0) {
+        if (!service) {
+            rc = (ms == INFINITE) ? pthread_cond_wait(&k->cond, &k->mtx)
+                                  : pthread_cond_timedwait(&k->cond, &k->mtx, &end);
+            continue;
+        }
+        struct timespec slice;
+        deadline(&slice, 2);
+        const bool last = ms != INFINITE && !before(slice, end);
+        rc = pthread_cond_timedwait(&k->cond, &k->mtx, last ? &end : &slice);
+        if (rc != 0 && !last) {
+            // The work may signal this object, so it runs without its lock.
+            pthread_mutex_unlock(&k->mtx);
+            Sys_ServiceMainThreadWork();
+            pthread_mutex_lock(&k->mtx);
+            rc = 0;
+        }
+    }
 }
 
 void *thread_thunk(void *arg) {
@@ -200,21 +240,15 @@ DWORD WaitForSingleObject(HANDLE h, DWORD ms) {
     case K_MUTEX: pthread_mutex_lock(&k->mtx); return WAIT_OBJECT_0;
     case K_THREAD: pthread_join(k->thread, nullptr); return WAIT_OBJECT_0;
     case K_EVENT: {
-        pthread_mutex_lock(&k->mtx); int rc = 0;
-        struct timespec ts; if (ms != INFINITE) deadline(&ts, ms);
-        while (!k->signaled && rc == 0)
-            rc = (ms == INFINITE) ? pthread_cond_wait(&k->cond, &k->mtx)
-                                  : pthread_cond_timedwait(&k->cond, &k->mtx, &ts);
+        pthread_mutex_lock(&k->mtx);
+        WaitKObject(k, ms, [k] { return k->signaled; });
         DWORD r = WAIT_OBJECT_0;
         if (!k->signaled) r = WAIT_TIMEOUT; else if (!k->manualReset) k->signaled = false;
         pthread_mutex_unlock(&k->mtx); return r;
     }
     case K_SEM: {
-        pthread_mutex_lock(&k->mtx); int rc = 0;
-        struct timespec ts; if (ms != INFINITE) deadline(&ts, ms);
-        while (k->count <= 0 && rc == 0)
-            rc = (ms == INFINITE) ? pthread_cond_wait(&k->cond, &k->mtx)
-                                  : pthread_cond_timedwait(&k->cond, &k->mtx, &ts);
+        pthread_mutex_lock(&k->mtx);
+        WaitKObject(k, ms, [k] { return k->count > 0; });
         DWORD r = WAIT_OBJECT_0;
         if (k->count <= 0) r = WAIT_TIMEOUT; else k->count--;
         pthread_mutex_unlock(&k->mtx); return r;

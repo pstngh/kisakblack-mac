@@ -35,6 +35,10 @@
 // avoid pulling the whole client header into the platform layer; __cdecl is the
 // default on x86-32 so this resolves to the same symbol.
 int CL_MouseEvent(int x, int y, int dx, int dy);
+// The window can be larger than the back buffer (fullscreen), which Present scales
+// into it (gl_d3d9.cpp): the engine's cursor positions are back-buffer pixels.
+void KB_WindowToBackbuffer(int *x, int *y);
+void KB_BackbufferToWindow(int *x, int *y);
 
 // ---- The window-vars global (normally in win_wndproc.cpp) ------------------
 WinVars_t g_wv;
@@ -281,6 +285,7 @@ void IN_Frame() {
         SDL_GetMouseState(&x, &y);             // position (unused in-game, but harmless)
     } else {
         SDL_GetMouseState(&x, &y);             // absolute window-relative cursor (menu)
+        KB_WindowToBackbuffer(&x, &y);
         static int oldX = 0, oldY = 0;
         static bool primed = false;
         if (!primed) { oldX = x; oldY = y; primed = true; }
@@ -294,7 +299,11 @@ void IN_Frame() {
         if (relative) SDL_GetRelativeMouseState(nullptr, nullptr);  // drop the entry-frame jump
     }
 }
-void IN_SetCursorPos(unsigned int x, unsigned int y) { SDL_WarpMouseInWindow(nullptr, (int)x, (int)y); }
+void IN_SetCursorPos(unsigned int x, unsigned int y) {
+    int wx = (int)x, wy = (int)y;
+    KB_BackbufferToWindow(&wx, &wy);
+    SDL_WarpMouseInWindow(nullptr, wx, wy);
+}
 void IN_ShowSystemCursor(bool show) { SDL_ShowCursor(show ? SDL_ENABLE : SDL_DISABLE); }
 
 // ---- Misc Windows extras: no-ops on Linux ----------------------------------

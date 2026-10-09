@@ -21,6 +21,15 @@ HMONITOR kSentinelMonitor = (HMONITOR)(intptr_t)1;
 HMODULE  kSentinelModule  = (HMODULE)(intptr_t)1;
 
 void InitVideo(void *) {
+#if defined(__APPLE__)
+    // Set before video starts, as in glcontext_sdl.cpp (which may start it first):
+    // fullscreen covers the display at once rather than animating into its own
+    // Space, and the render thread's buffer swap after a window change posts the GL
+    // context update to the main thread instead of waiting for it, as the main
+    // thread can be waiting for that frame (the swap hung after a fullscreen switch).
+    SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "0");
+    SDL_SetHint(SDL_HINT_MAC_OPENGL_ASYNC_DISPATCH, "1");
+#endif
     if (SDL_WasInit(SDL_INIT_VIDEO) == 0) SDL_InitSubSystem(SDL_INIT_VIDEO);
 }
 
