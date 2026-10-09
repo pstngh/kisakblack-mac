@@ -534,7 +534,9 @@ int __cdecl R_GetDeviceType()
     _D3DADAPTER_IDENTIFIER9 id; // [esp+4h] [ebp-458h] BYREF
     unsigned int Adapter; // [esp+458h] [ebp-4h]
 
-    dx.adapterIndex = 0;
+    // Keeps dx.adapterIndex (R_ChooseAdapter's monitor) unless PerfHUD is found; it
+    // was reset to 0 here, which also left R_CreateDeviceInternal's fallback to
+    // adapter 0 dead.
     for ( Adapter = 0; ; ++Adapter )
     {
         v0 = dx.d3d9->GetAdapterCount();
@@ -1315,7 +1317,8 @@ int __stdcall R_MonitorEnumCallback(HMONITOR__ *monitorHandle, HDC__ *hdc, tagRE
     }
     else
     {
-        userData[1] = (unsigned int)Ptr32_Encode(monitorHandle);
+        // GfxEnumMonitors::foundMonitor, a native pointer (8 bytes in on 64-bit).
+        ((GfxEnumMonitors *)userData)->foundMonitor = monitorHandle;
         return 0;
     }
 }

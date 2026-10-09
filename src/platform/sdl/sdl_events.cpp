@@ -72,7 +72,9 @@ void Sys_PumpSDLEvents(unsigned t) {
                 break;
             }
             case SDL_WINDOWEVENT:
-                if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+                // A move to a display of another pixel density changes the pixels only.
+                if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED || e.window.event == SDL_WINDOWEVENT_MOVED
+                    || e.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED)
                     KB_GLNoteWindowSize(SDL_GetWindowFromID(e.window.windowID));
                 break;
             case SDL_MOUSEWHEEL: {

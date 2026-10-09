@@ -59,7 +59,10 @@ Without Steam any client is accepted (stubs_online.cpp). The engine keeps at mos
 
 Offline stats (rank, unlocks, custom classes) live in `<home>/players/mpstats.dat`;
 the home path dvar is `fs_h` (defaults to the base path, i.e. the user's real
-profile). Test runs that touch stats should pass `+set fs_h <scratch dir>`.
+profile). Test runs that touch stats should pass `+set fs_h <scratch dir>`. That
+only moves writes: with no config in it, the game folder's `players/config_mp.cfg`
+(the user's settings) is still read. A fresh profile: `+set fs_b <dir>` where
+`<dir>/main` links to the game's `main`.
 Everything is unlocked and owned, rank 50/prestige 15, by default (HANDOFF,
 session 8); to test the progression underneath, pass `+set allItemsUnlocked 0
 +set allItemsPurchased 0 +set allEmblemsUnlocked 0 +set allEmblemsPurchased 0`.
@@ -80,9 +83,14 @@ KB_CMDS='8:openscriptmenu team_marinesopfor autoassign|11:openscriptmenu changec
 custom class. `KB_MENU_CMDS` takes the same list but times it from startup and runs it once,
 in a map or not: the main menu (`12:openmenu cac_main|30:quit`).
 
+With vsync on (the default), a client started while the display sleeps hangs in
+its first buffer swap (SDL3 waits for a display refresh that never comes): wake
+the display first (`caffeinate -u -t 2`) or pass `+set r_vsync 0`.
+
 Seeing the client: `screencapture` lacks Screen Recording permission and the
 console is unreachable, so `KB_SCREENSHOT=<dir> KB_SCREENSHOT_EVERY=<n>` writes the
-back buffer as `<dir>/present_N.tga` every n presents (with draw counters on stderr).
+back buffer as `<dir>/present_N.tga` every n presents (with draw counters on stderr);
+`KB_SCREENSHOT_WINDOW=1` adds `window_N.tga`, what the window shows after scaling.
 `KB_TRACEFRAME=n1,n2` logs those frames' render-target/viewport/clear/blit/draw
 calls and, with KB_SCREENSHOT, dumps the back buffer at the first resolves.
 

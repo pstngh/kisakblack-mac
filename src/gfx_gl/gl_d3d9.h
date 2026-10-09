@@ -60,7 +60,7 @@ struct GLAlphaTestState {
 // ---- IDirect3DDevice9 -> OpenGL -------------------------------------------
 class GLDevice final : public GLObject<IDirect3DDevice9> {
 public:
-    explicit GLDevice(GLContext *ctx, int width, int height);
+    GLDevice(GLContext *ctx, int width, int height, int samples, bool fullscreen);
     ~GLDevice() override;
 
     // --- Frame / target (gl_d3d9.cpp) ---
@@ -208,6 +208,9 @@ private:
     // window: every target is rendered with D3D's row order (row 0 = top), so render
     // targets sample the right way up with D3D texture coordinates and blits between
     // them need no flip. Present copies it to the window upside down.
+    // With D3D multisampling (the engine's r_aaSamples) the back buffer's
+    // renderbuffers are multisampled; anything that reads it (Present, StretchRect,
+    // screenshots) reads a single-sample copy, resolvedBackbufferFbo().
     GLSurface   *backBuffer_ = nullptr;  // owned
     GLSwapChain *swapChain_  = nullptr;  // owned
     unsigned bbFbo_     = 0;
@@ -215,9 +218,23 @@ private:
     unsigned bbDepthRb_ = 0;
     int      bbFboW_    = 0;
     int      bbFboH_    = 0;
+    int      bbSamples_ = 0;          // back-buffer samples (0 = single-sample)
+    int      bbFboSamples_ = 0;       // ... the FBO's renderbuffers were allocated with
+    unsigned bbResolveFbo_ = 0;       // single-sample copy of a multisampled back buffer
+    unsigned bbResolveRb_  = 0;
+    int      bbResolveW_   = 0;
+    int      bbResolveH_   = 0;
+    bool     fullscreen_   = false;   // D3DPRESENT_PARAMETERS::Windowed == FALSE
+    void     ensureResolveFbo();      // size bbResolveFbo_ to the back buffer
 public:
     unsigned backbufferFbo();     // create or resize the back-buffer FBO; returns its name
     unsigned curFbo() { return fboActive_ ? fbo_ : backbufferFbo(); }   // the live render target's FBO
+    // The back buffer's contents in a single-sample FBO (resolving multisampling
+    // first); leaves the live render target bound.
+    unsigned resolvedBackbufferFbo();
+    // Copy a colour rectangle of the bound read framebuffer into the back buffer,
+    // which can't be the scaled target of a blit when multisampled.
+    void     blitToBackbuffer(int sx0, int sy0, int sx1, int sy1, int dx0, int dy0, int dx1, int dy1, unsigned filter);
 private:
 
     unsigned vao_                 = 0;
@@ -306,6 +323,11 @@ private:
     unsigned appliedBlendOp_    = 0xFFFFFFFFu;
     void   commitBlendState();
 
+    // Transparency anti-aliasing (the engine's r_aaAlpha, D3DRS_ADAPTIVETESS_Y): the
+    // sample shading applied, 0 off, 1 half the samples, 2 all. Once per draw.
+    int    sampleShading_ = 0;
+    void   commitSampleShading();
+
     // Alpha test (func + ref are set separately but applied together via glAlphaFunc).
     DWORD alphaFunc_ = D3DCMP_ALWAYS;
     DWORD alphaRef_  = 0;
@@ -383,12 +405,13 @@ private:
 // ---- IDirect3D9 -> OpenGL (the factory object) ----------------------------
 class GLD3D9 final : public GLObject<IDirect3D9> {
 public:
-    UINT    WINAPI GetAdapterCount() override { return 1; }
+    // One adapter per SDL display (sdl_window.cpp's monitors).
+    UINT    WINAPI GetAdapterCount() override;
     HRESULT WINAPI GetAdapterIdentifier(UINT, DWORD, D3DADAPTER_IDENTIFIER9 *pIdentifier) override;
-    UINT    WINAPI GetAdapterModeCount(UINT, D3DFORMAT) override;
-    HRESULT WINAPI EnumAdapterModes(UINT, D3DFORMAT, UINT Mode, D3DDISPLAYMODE *pMode) override;
-    HMONITOR WINAPI GetAdapterMonitor(UINT) override { return (HMONITOR)(intptr_t)1; }
-    HRESULT WINAPI GetAdapterDisplayMode(UINT, D3DDISPLAYMODE *pMode) override;
+    UINT    WINAPI GetAdapterModeCount(UINT Adapter, D3DFORMAT) override;
+    HRESULT WINAPI EnumAdapterModes(UINT Adapter, D3DFORMAT, UINT Mode, D3DDISPLAYMODE *pMode) override;
+    HMONITOR WINAPI GetAdapterMonitor(UINT Adapter) override { return (HMONITOR)(intptr_t)(Adapter + 1); }
+    HRESULT WINAPI GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode) override;
     HRESULT WINAPI GetDeviceCaps(UINT, D3DDEVTYPE, D3DCAPS9 *pCaps) override;
     HRESULT WINAPI CheckDeviceType(UINT, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, BOOL) override { return D3D_OK; }
     HRESULT WINAPI CheckDeviceFormat(UINT, D3DDEVTYPE, D3DFORMAT, DWORD, D3DRESOURCETYPE,
@@ -397,12 +420,18 @@ public:
         // it pick vendor FOURCC hacks ('NULL', INTZ, ...) this layer cannot back. Reject
         // unknown FOURCCs (DXT1/3/5 excepted) so the probe falls through to a real format.
         unsigned f = (unsigned)CheckFormat;
+#if !defined(__EMSCRIPTEN__)
+        // NVIDIA's transparency supersampling, which the engine asks for with
+        // r_aaAlpha: sample shading here (GLDevice::commitSampleShading).
+        if (f == MAKEFOURCC('S', 'S', 'A', 'A'))
+            return D3D_OK;
+#endif
         if (KB_ShadowsEnabled() && f > 0x200 &&
             f != 827611204u /*DXT1*/ && f != 861165636u /*DXT3*/ && f != 894720068u /*DXT5*/)
             return D3DERR_NOTAVAILABLE;
         return D3D_OK;
     }
-    HRESULT WINAPI CheckDeviceMultiSampleType(UINT, D3DDEVTYPE, D3DFORMAT, BOOL, D3DMULTISAMPLE_TYPE, DWORD *pQ) override { if (pQ) *pQ = 1; return D3D_OK; }
+    HRESULT WINAPI CheckDeviceMultiSampleType(UINT, D3DDEVTYPE, D3DFORMAT, BOOL, D3DMULTISAMPLE_TYPE Type, DWORD *pQ) override;
     HRESULT WINAPI CheckDepthStencilMatch(UINT, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT) override { return D3D_OK; }
     HRESULT WINAPI CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow,
                                 DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pp,

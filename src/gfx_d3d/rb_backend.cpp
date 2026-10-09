@@ -4827,6 +4827,8 @@ void RB_SwapBuffers()
 
 void RB_UpdateBackEndDvarOptions()
 {
+    unsigned int stateBits0;
+
     if ( !dx.device->TestCooperativeLevel() )
     {
         if ( R_CheckDvarModified(r_texFilterAnisoMax)
@@ -4842,7 +4844,16 @@ void RB_UpdateBackEndDvarOptions()
         if ( R_CheckDvarModified(r_aaAlpha) )
         {
             if ( gfxMetrics.hasTransparencyMsaa )
-                R_SetAlphaAntiAliasingState(gfxCmdBufState.prim.device, gfxCmdBufState.activeStateBits[0]);
+            {
+                // Off when switched off (R_ChangeState_0 stops updating it), else as
+                // R_ChangeState_0 decides: the active bits keep the last blend's.
+                stateBits0 = gfxCmdBufState.activeStateBits[0];
+                if ( !r_aaAlpha->current.integer )
+                    stateBits0 |= 0x800;
+                else if ( (gfxCmdBufState.refStateBits[0] & 0x700) == 0 )
+                    stateBits0 &= 0xF8FF;
+                R_SetAlphaAntiAliasingState(gfxCmdBufState.prim.device, stateBits0);
+            }
         }
     }
 }

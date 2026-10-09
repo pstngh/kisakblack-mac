@@ -291,6 +291,7 @@ bool GLDevice::useDrawProgram() {
     // Resolve any staged blend render-states once here — the single choke point every draw
     // path funnels through (builtin + programmable + instanced + batched). See commitBlendState.
     commitBlendState();
+    commitSampleShading();
     if (!(vs_ && ps_ && vs_->ok() && ps_->ok())) {
         bindBuiltinForDraw();
         return true;

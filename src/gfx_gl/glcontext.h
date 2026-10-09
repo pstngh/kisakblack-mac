@@ -16,6 +16,7 @@ struct GLContextDesc {
     bool visible      = true;  // false → offscreen-style (used by headless tests)
     bool fullscreen   = false; // cover the display (no display mode change)
     bool vsync        = false;
+    int  display      = 0;     // the display (D3D adapter) the window opens on
 };
 
 class GLContext {

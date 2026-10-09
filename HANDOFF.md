@@ -10,11 +10,11 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-09, session 8)
+## Status (2026-10-09, session 9)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
-  `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ files: only
-  the known header artefacts).
+  `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ and
+  platform/sdl/ files: only the known GLEW/SDL header artefacts).
 - **Dedicated server** with 4 bots: deaths, killstreaks, ragdolls, no asserts; also
   clean under ASan with heap redzones (120 s).
 - **Client**: main menu, team menu over the blurred world, local matches that render
@@ -75,11 +75,28 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   Fullscreen and vsync work now (they did nothing before): fullscreen on/off
   from the main menu and six times in a match (also under ASan, no report),
   starting fullscreen, and the user's own Apply (AA 1, fullscreen, 16:9, vsync
-  off). Antialiasing (`r_aaSamples`) is still ignored by the GL backend, and the
-  resolution list holds only the display modes SDL reports (on the user's
-  1920x1080 display: 1920x1080 alone).
+  off).
+- **Antialiasing, resolutions, Retina** (session 9): `r_aaSamples` works (MSAA
+  back buffer; Apple GPUs allow 2x and 4x, 8x/16x give 4x), and so does
+  transparency AA (`r_aaAlpha`, on by default with MSAA: alpha-tested foliage and
+  fences). 1080p, fixed view on mp_nuked, vsync off: 97 fps without AA, 90 with
+  4x, transparency AA free there. The resolution list is the display's (the user's
+  main display: 12 sizes from 800x600 to 1920x1080; refresh rate: the desktop's,
+  240 Hz), and fullscreen at a smaller size fills the display with the engine's
+  geometry (1280x720, 1024x768 checked against native 1920x1080). Each display is
+  an adapter: `r_monitor 2` goes fullscreen on the user's 4K display at native
+  3840x2160 (27 fps with 4x AA), a window on it (`vid_xpos` there) gets a pixel per
+  back-buffer pixel (2560x1440 in a 1280x720-point window). Runtime changes as the
+  menu applies them (`vid_restart`: AA 4x/2x/off, fullscreen 1280x720, windowed
+  1600x900) and the `screenshot` command work with MSAA. A 4.5-minute soak (4
+  bots, scripted player, 3 maps) and the ASan client (4 maps, each with AA,
+  fullscreen and resolution changes) ran without an assert or report. The menu
+  cursor's mapping through a scaled or Retina window is computed, not tried by
+  hand (no input here).
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
-  buffer as a top-down TGA every n presents with per-interval draw counters;
+  buffer as a top-down TGA every n presents with per-interval draw counters
+  (`KB_SCREENSHOT_WINDOW=1` adds `window_N.tga`, what the window shows after
+  scaling, at its pixel size);
   `KB_TRACEFRAME=n1,n2,..` logs the frames' SetRenderTarget/SetViewport/Clear/
   StretchRect calls and every draw (GL state, GL error after the draw, bound
   textures) and, with KB_SCREENSHOT, dumps the back buffer at the first 16 resolves
@@ -88,17 +105,19 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-Done in session 8 (see Status and Decisions): everything unlocked and owned by
-default with rank 50/prestige 15, `sv_cheats` on for `map`, a portable game
-folder (`tools/make_portable.sh`; the user's `codbo/` has it: rerun after each
-build), graphics Apply without freezing, fullscreen and vsync, FOV 80.
+Done in session 9 (see Status and Decisions): antialiasing (MSAA and
+transparency AA), the display's resolution list, fullscreen at any resolution
+filling the display, one adapter per display (`r_monitor`), Retina windows and
+fullscreen. The user's `codbo/` has the build (`tools/make_portable.sh`: rerun
+after each build).
 
-1. **Graphics gaps**: antialiasing (`r_aaSamples`) is ignored by the GL backend
-   (MSAA back buffer + resolve in Present); the resolution list (`r_mode`) holds
-   only the display modes SDL reports (the user's display: 1920x1080 alone),
-   though fullscreen covers the display and scales any back buffer, so smaller
-   resolutions could be offered; the scaled Present path is untested; Retina
-   (`SDL_WINDOW_ALLOW_HIGHDPI`).
+1. **Graphics leftovers**: try the menu cursor by hand in fullscreen at a smaller
+   resolution and in a window on the Retina display (the mapping is computed:
+   points -> pixels -> back buffer); the options menu's Apply with AA, resolution
+   and fullscreen together (the console's `vid_restart` path is tested). Changing
+   `r_monitor` takes effect at the next start (a reset keeps the window's
+   display). A fresh profile starts at 1024x768 with 4x AA: `configure_mp.csv`'s
+   row for unknown GPUs, as on Windows (1024x768 used to be missing from the list).
 2. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
    on the server thread after the demo client was freed twice). Soak match ends
    with `KB_CMDS` and `scr_tdm_timelimit 1` to reproduce it.
@@ -148,6 +167,23 @@ Seen in session 4:
   sharedUiInfo_t): any raw offset into them is wrong on every build. The
   cg_ents_mp.cpp corpse lookup was one (fixed).
 
+Seen in session 9:
+- Started while the display sleeps (e.g. from a remote shell), with vsync on, the
+  game hangs for good in its first buffer swap: SDL3 waits there for a
+  CVDisplayLink tick that never comes, even after the display wakes (no display
+  link thread). A display that sleeps during play is fine. Test runs wake the
+  display first (`caffeinate -u`, then check `CGDisplayIsAsleep`) or use
+  `r_vsync 0`.
+- SDL (sdl2-compat over SDL3) reports a high-density window's drawable at 2x on
+  a 1x display when another display is Retina (`SDL_GL_GetDrawableSize`
+  3840x2160, GL surface 1920x1080). glcontext_sdl.cpp computes points x the
+  display's density instead (SDL's DPI / 96 on macOS).
+- `R_SetAlphaAntiAliasingState` decides from merged state bits whose blend op is
+  the last blended draw's (Decisions); if that was the original's own behaviour,
+  transparency AA barely ever ran on Windows either.
+- Apple's GL has no fractional sample shading: "dither (fast)" and "supersample
+  (nice)" look and cost the same (every sample shaded).
+
 Seen in session 8:
 - One crash in ~10 match ends (listen server, scripted player, 4 bots): at the end
   of the match `G_FreeEntity: Player 0 is being freed.` without the usual
@@ -165,10 +201,6 @@ Seen in session 8:
   built from garbage.
 - The system's Metal shader cache (`$(getconf DARWIN_USER_CACHE_DIR)com.apple.metal`)
   is written by Apple's GL driver for any GL program, outside the game folder.
-- GL backend: no MSAA (`r_aaSamples` is accepted and ignored); the resolution list
-  (`r_mode`'s domain) is the display's SDL modes only, though fullscreen covers
-  the display and scales any back buffer. The scaled Present path (window size !=
-  back buffer) is untested: on the user's display both are 1920x1080.
 
 Seen in session 7:
 - Contracts have no data offline (`LiveStorage_DoWeHaveContracts` is 0) though
@@ -218,6 +250,69 @@ Pre-existing (wrong on every build):
   string copies through a struct pointer.
 - `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
   sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 9)
+
+- **MSAA** (gl_d3d9.cpp): the engine draws the scene straight into the back buffer
+  (`R_RENDERTARGET_SCENE` shares `R_RENDERTARGET_FRAME_BUFFER`), so the back-buffer
+  FBO's colour and depth-stencil renderbuffers are multisampled
+  (`D3DPRESENT_PARAMETERS::MultiSampleType`, at CreateDevice and Reset). A
+  multisampled buffer only blits 1:1 into a single-sample one of the same format
+  and refuses glReadPixels (probed on the M4), so its readers go through a resolve:
+  `resolvedBackbufferFbo()` (Present, screenshots, `KB_SCREENSHOT`) and
+  `blitToBackbuffer()` for StretchRect into it. StretchRect from it into an RGBA8
+  texture of the same rectangle (the scene resolves, six a frame) resolves
+  directly: going through the copy cost 81 fps vs 90. Render-target textures
+  stay single-sample, with their own depth, as before. `CheckDeviceMultiSampleType`
+  refuses counts above `GL_MAX_SAMPLES` once a context has existed; the first
+  device creation (before any context) clamps, and logs `[gl] N samples asked`.
+- **Transparency AA** (`r_aaAlpha`): the engine asks NVIDIA's driver for it with
+  the FOURCC 'ATOC' or 'SSAA' in `D3DRS_ADAPTIVETESS_Y` (after
+  `CheckDeviceFormat('SSAA')`, now accepted). The GL device turns it into sample
+  shading (`glMinSampleShading` 0.5 / 1.0) on alpha-tested draws into the
+  multisampled back buffer (`commitSampleShading`, per draw beside the blend
+  commit): the alpha-test discard runs per sample. Engine (every build):
+  `R_ChangeState_0` keeps the last blend's bits in the state while blending is off,
+  and `R_SetAlphaAntiAliasingState` tested them (`& 0xF00`), so after the first
+  blended draw it was always off. It now judges the requested blend and re-checks
+  when blending toggles; the `r_aaAlpha` change handler likewise, and switches it
+  off when set to 0.
+- **Fullscreen fills the display** (replaces session 8's black bars): D3D's
+  fullscreen mode switched the display to the back buffer's size, and the
+  engine's automatic aspect ratio in fullscreen is the monitor's
+  (`R_StoreWindowSettings`), so a 4:3 back buffer on a 16:9 display holds a
+  picture squeezed to be stretched (seen in the 1024x768 back buffer). A window
+  keeps the back buffer's shape when they differ (moved to a display of another
+  density).
+- **Resolution list**: `R_EnumDisplayModes` ran before anything had started SDL
+  video, so the GL adapter offered its 1920x1080@60 fallback alone. The adapter
+  queries start video (`Sys_EnsureSDLVideo`). The list is the display's SDL mode
+  sizes plus its own size in pixels (a Retina display doesn't list it), all at
+  the desktop's refresh rate, as fullscreen never changes the display mode: other
+  rates did nothing (`r_displayRefresh` "60 Hz" in the user's config falls back to
+  240 Hz).
+- **One adapter per display** (gl_d3d9.cpp, sdl_window.cpp): an HMONITOR is the
+  SDL display index + 1 and so is `GetAdapterMonitor`. `R_ChooseMonitor` picks
+  `r_monitor` (1-based) in fullscreen, else the display holding
+  `vid_xpos`/`vid_ypos` (MonitorFromPoint; the defaults 3,22 are the main display),
+  and the window opens centred on it. Engine fixes (every build):
+  `R_GetDeviceType` (the PerfHUD probe right before CreateDevice) reset
+  `dx.adapterIndex` to 0, which lost that choice and left
+  `R_CreateDeviceInternal`'s fall-back-to-adapter-0 dead; `R_MonitorEnumCallback`
+  stored the monitor 4 bytes into `GfxEnumMonitors`, whose pointer is 8 bytes in
+  on 64-bit. Monitor rectangles are reported at 0,0 (the screenshot code compares
+  them with window-relative positions), sized in pixels; `MonitorFromWindow` is
+  the game window's display.
+- **Retina** (macOS): the window has `SDL_WINDOW_ALLOW_HIGHDPI` and is sized in
+  points to give one pixel per back-buffer pixel (`fitWindow`, at creation,
+  resize and leaving fullscreen); resolutions, monitor and desktop sizes are in
+  pixels. SDL's drawable size is wrong on a 1x display in a mixed setup (Open
+  items), so the pixel size is points x the display's density, re-read on SDL's
+  size, move and display-change events. The cursor maps points -> pixels
+  (`KB_GLWindowToPixels`) -> back buffer.
+- A fresh profile's resolution comes from `configure_mp.csv` (1024x768, 4x AA for
+  an unknown GPU such as the M4), as on Windows; the engine's own `r_mode`
+  default (the smallest mode) is unchanged.
 
 ## Decisions (session 8)
 

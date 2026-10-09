@@ -36,9 +36,13 @@
 // default on x86-32 so this resolves to the same symbol.
 int CL_MouseEvent(int x, int y, int dx, int dy);
 // The window can be larger than the back buffer (fullscreen), which Present scales
-// into it (gl_d3d9.cpp): the engine's cursor positions are back-buffer pixels.
+// into it (gl_d3d9.cpp): the engine's cursor positions are back-buffer pixels. SDL's
+// are the window's points, which on a Retina display are 2x2 pixels
+// (glcontext_sdl.cpp).
 void KB_WindowToBackbuffer(int *x, int *y);
 void KB_BackbufferToWindow(int *x, int *y);
+void KB_GLWindowToPixels(int *x, int *y);
+void KB_GLPixelsToWindow(int *x, int *y);
 
 // ---- The window-vars global (normally in win_wndproc.cpp) ------------------
 WinVars_t g_wv;
@@ -285,6 +289,7 @@ void IN_Frame() {
         SDL_GetMouseState(&x, &y);             // position (unused in-game, but harmless)
     } else {
         SDL_GetMouseState(&x, &y);             // absolute window-relative cursor (menu)
+        KB_GLWindowToPixels(&x, &y);
         KB_WindowToBackbuffer(&x, &y);
         static int oldX = 0, oldY = 0;
         static bool primed = false;
@@ -302,6 +307,7 @@ void IN_Frame() {
 void IN_SetCursorPos(unsigned int x, unsigned int y) {
     int wx = (int)x, wy = (int)y;
     KB_BackbufferToWindow(&wx, &wy);
+    KB_GLPixelsToWindow(&wx, &wy);
     SDL_WarpMouseInWindow(nullptr, wx, wy);
 }
 void IN_ShowSystemCursor(bool show) { SDL_ShowCursor(show ? SDL_ENABLE : SDL_DISABLE); }

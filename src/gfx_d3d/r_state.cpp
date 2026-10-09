@@ -1086,6 +1086,7 @@ void __cdecl R_SetAlphaAntiAliasingState(IDirect3DDevice9 *device, __int16 state
 
 void __cdecl R_ChangeState_0(GfxCmdBufState *state, unsigned int stateBits0)
 {
+    bool blendOpRgbIsEnabled;
     bool blendOpRgbWasEnabled; // [esp+43h] [ebp-Dh]
     int changedBits; // [esp+44h] [ebp-Ch]
     IDirect3DDevice9 *device; // [esp+4Ch] [ebp-4h]
@@ -1150,7 +1151,8 @@ void __cdecl R_ChangeState_0(GfxCmdBufState *state, unsigned int stateBits0)
         if ( changedBits < 0 )
             R_HW_SetPolygonMode(device, stateBits0);
         blendOpRgbWasEnabled = (state->refStateBits[0] & 0x700) != 0;
-        if ( (stateBits0 & 0x700) != 0 )
+        blendOpRgbIsEnabled = (stateBits0 & 0x700) != 0;
+        if ( blendOpRgbIsEnabled )
         {
             if ( (stateBits0 & 0x7000000) == 0 )
             {
@@ -1196,8 +1198,16 @@ void __cdecl R_ChangeState_0(GfxCmdBufState *state, unsigned int stateBits0)
             if ( blendOpRgbWasEnabled )
                 R_HW_DisableBlend(device);
         }
-        if ( gfxMetrics.hasTransparencyMsaa && r_aaAlpha->current.integer && (changedBits & 0xF00) != 0 )
-            R_SetAlphaAntiAliasingState(device, stateBits0);
+        // Transparency anti-aliasing is for alpha-tested draws that don't blend. While
+        // blending is off, stateBits0 keeps the last blend's bits (merged above), and
+        // the test of them turned it off for good after the first blended draw: judge
+        // the requested blend instead, and re-check when blending toggles.
+        if ( gfxMetrics.hasTransparencyMsaa
+            && r_aaAlpha->current.integer
+            && ((changedBits & 0x800) != 0 || blendOpRgbIsEnabled != blendOpRgbWasEnabled) )
+        {
+            R_SetAlphaAntiAliasingState(device, blendOpRgbIsEnabled ? stateBits0 : stateBits0 & 0xF8FF);
+        }
         state->activeStateBits[0] = stateBits0;
     }
 }

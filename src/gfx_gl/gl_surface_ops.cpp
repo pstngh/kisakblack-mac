@@ -58,7 +58,7 @@ HRESULT WINAPI GLSwapChain::GetFrontBufferData(IDirect3DSurface9 *pDestSurface) 
     std::vector<unsigned char> &shadow = dst->shadow();
     if (shadow.size() < (size_t)w * h * 4) shadow.assign((size_t)w * h * 4, 0);
     GLDevice *dev = static_cast<GLDevice *>(device_);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, dev->backbufferFbo());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, dev->resolvedBackbufferFbo());
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     extern unsigned long g_kbReadbacks; ++g_kbReadbacks;
@@ -154,7 +154,7 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
                 extern void KB_WriteBackbufferTGA(unsigned fbo, const char *path, int w, int h);
                 char path[1024];
                 snprintf(path, sizeof(path), "%s/resolve_%d.tga", dir, dumped++);
-                KB_WriteBackbufferTGA(backbufferFbo(), path, (int)src->width(), (int)src->height());
+                KB_WriteBackbufferTGA(resolvedBackbufferFbo(), path, (int)src->width(), (int)src->height());
             }
 #endif
         }
@@ -162,7 +162,12 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
     // Both sides hold D3D row order, so D3D rects map straight onto GL rows.
     GLuint fbos[2] = {0, 0};
     if (src->isBackbuffer()) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, backbufferFbo());
+        // A multisampled back buffer resolves straight into an RGBA8 target of a 1:1
+        // rectangle (the scene resolves, several a frame); anything else reads the
+        // single-sample copy.
+        const bool direct = !dst->isBackbuffer() && sx0 == dx0 && sy0 == dy0 && sx1 == dx1 && sy1 == dy1 &&
+                            (dst->format() == D3DFMT_A8R8G8B8 || dst->format() == D3DFMT_A8B8G8R8);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, direct ? backbufferFbo() : resolvedBackbufferFbo());
         glReadBuffer(GL_COLOR_ATTACHMENT0);
     } else {
         glGenFramebuffers(1, &fbos[0]);
@@ -170,18 +175,17 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
         glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, src->texName(), src->level());
         glReadBuffer(GL_COLOR_ATTACHMENT0);
     }
+    if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // D3D's StretchRect ignores the scissor; GL blits don't
     if (dst->isBackbuffer()) {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, backbufferFbo());
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        blitToBackbuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, Filter == D3DTEXF_NONE ? GL_NEAREST : GL_LINEAR);
     } else {
         glGenFramebuffers(1, &fbos[1]);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[1]);
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, dst->texName(), dst->level());
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glBlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT,
+                          Filter == D3DTEXF_NONE ? GL_NEAREST : GL_LINEAR);
     }
-    if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // D3D's StretchRect ignores the scissor; GL blits don't
-    glBlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT,
-                      Filter == D3DTEXF_NONE ? GL_NEAREST : GL_LINEAR);
     if (scissorOn_) glEnable(GL_SCISSOR_TEST);
     // RESTORE the device's ACTIVE render target (binds both READ and DRAW): leaving the
     // draw framebuffer at 0 sent every draw between a mid-pass resolve and the next

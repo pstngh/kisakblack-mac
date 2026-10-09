@@ -238,6 +238,30 @@ void GLDevice::commitBlendState() {
     }
 }
 
+// Transparency anti-aliasing (r_aaAlpha). The engine asks NVIDIA's driver for it with
+// a FOURCC in D3DRS_ADAPTIVETESS_Y on opaque alpha-tested draws: 'ATOC' (alpha to
+// coverage, "dither (fast)") or 'SSAA' (supersampling, "supersample (nice)"); it is
+// on only while multisampling (R_CheckTransparencyMsaa). Both become sample-rate
+// shading of the multisampled back buffer: the pixel shader, and with it the
+// alpha-test discard, runs per sample, so a cut-out edge (foliage, fences) covers
+// part of a pixel instead of all or none. The fast setting shades half the samples.
+void GLDevice::commitSampleShading() {
+#if !defined(__EMSCRIPTEN__)
+    const DWORD fourcc = rsSet_[D3DRS_ADAPTIVETESS_Y] ? rsCache_[D3DRS_ADAPTIVETESS_Y] : 0;
+    int want = 0;
+    if (bbSamples_ && !fboActive_ && alphaTestOn_ && glMinSampleShading)
+        want = fourcc == MAKEFOURCC('S', 'S', 'A', 'A') ? 2 : fourcc == MAKEFOURCC('A', 'T', 'O', 'C') ? 1 : 0;
+    if (want == sampleShading_) return;
+    if (want) {
+        glEnable(GL_SAMPLE_SHADING);
+        glMinSampleShading(want == 2 ? 1.0f : 0.5f);
+    } else {
+        glDisable(GL_SAMPLE_SHADING);
+    }
+    sampleShading_ = want;
+#endif
+}
+
 HRESULT WINAPI GLDevice::SetSamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value) {
     if (Sampler >= (DWORD)kMaxStages) return D3D_OK;
     GLSamplerState &s = samplers_[Sampler];

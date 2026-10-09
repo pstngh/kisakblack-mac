@@ -9,6 +9,9 @@ extern "C" void KB_FlushBatchedDraws();
 extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched-draw flush (gl_d3d9_draw.cpp)
 
 #include <SDL2/SDL.h>   // adapter display-mode queries (EnumAdapterModes etc.)
+#if !defined(__EMSCRIPTEN__)
+#include "../platform/sdl/sdl_display.h"
+#endif
 #include <cstdio>
 #include <atomic>
 #include <cstdlib>
@@ -98,11 +101,42 @@ static void FillDefaultCaps(D3DCAPS9 *c) {
     }
 }
 
+// The most samples a multisampled renderbuffer may have (GL_MAX_SAMPLES; Apple
+// silicon: 4). Known once a context has been current; until the device exists
+// (the engine checks its anti-aliasing setting before creating it) any count up to
+// D3D's 16 is accepted, and the back buffer gets as many as the GPU allows.
+static int g_kbMaxSamples;
+
+static int KB_MaxSamples() {
+#if !defined(__EMSCRIPTEN__)
+    if (!g_kbMaxSamples && SDL_GL_GetCurrentContext())
+#else
+    if (!g_kbMaxSamples && emscripten_webgl_get_current_context() > 0)
+#endif
+    {
+        GLint n = 0;
+        glGetIntegerv(GL_MAX_SAMPLES, &n);
+        g_kbMaxSamples = n > 0 ? (int)n : 1;
+    }
+    return g_kbMaxSamples ? g_kbMaxSamples : 16;
+}
+
+// The back buffer's GL sample count for a D3D multisample type: 0 (single-sample)
+// for none and for D3DMULTISAMPLE_NONMASKABLE, which counts in quality levels
+// (the engine asks for it only to build reflection probes).
+static int KB_BackbufferSamples(D3DMULTISAMPLE_TYPE type) {
+    if ((int)type < 2) return 0;
+    const int maxSamples = KB_MaxSamples();
+    const int n = (int)type < maxSamples ? (int)type : maxSamples;
+    return n >= 2 ? n : 0;
+}
+
 // ---------------------------------------------------------------------------
 // GLDevice
 // ---------------------------------------------------------------------------
-GLDevice::GLDevice(GLContext *ctx, int width, int height)
-    : ctx_(ctx), fbWidth_(width), fbHeight_(height), bbWidth_(width), bbHeight_(height) {
+GLDevice::GLDevice(GLContext *ctx, int width, int height, int samples, bool fullscreen)
+    : ctx_(ctx), fbWidth_(width), fbHeight_(height), bbWidth_(width), bbHeight_(height),
+      bbSamples_(samples), fullscreen_(fullscreen) {
     // The context is current here (GLD3D9::CreateDevice): start on the back buffer,
     // as a D3D device does.
     glBindFramebuffer(GL_FRAMEBUFFER, backbufferFbo());
@@ -119,11 +153,13 @@ GLDevice::~GLDevice() {
     if (bbFbo_)       glDeleteFramebuffers(1, &bbFbo_);
     if (bbColorRb_)   glDeleteRenderbuffers(1, &bbColorRb_);
     if (bbDepthRb_)   glDeleteRenderbuffers(1, &bbDepthRb_);
+    if (bbResolveFbo_) glDeleteFramebuffers(1, &bbResolveFbo_);
+    if (bbResolveRb_)  glDeleteRenderbuffers(1, &bbResolveRb_);
     delete ctx_;
 }
 
 unsigned GLDevice::backbufferFbo() {
-    if (bbFbo_ && bbFboW_ == bbWidth_ && bbFboH_ == bbHeight_)
+    if (bbFbo_ && bbFboW_ == bbWidth_ && bbFboH_ == bbHeight_ && bbFboSamples_ == bbSamples_)
         return bbFbo_;
     GLint prevFbo = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFbo);
@@ -132,21 +168,82 @@ unsigned GLDevice::backbufferFbo() {
         glGenRenderbuffers(1, &bbColorRb_);
         glGenRenderbuffers(1, &bbDepthRb_);
     }
+    // Multisampled: the engine draws the scene straight into the back buffer
+    // (R_RENDERTARGET_SCENE shares R_RENDERTARGET_FRAME_BUFFER), as on D3D.
     glBindRenderbuffer(GL_RENDERBUFFER, bbColorRb_);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, bbWidth_, bbHeight_);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, bbSamples_, GL_RGBA8, bbWidth_, bbHeight_);
     glBindRenderbuffer(GL_RENDERBUFFER, bbDepthRb_);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, bbWidth_, bbHeight_);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, bbSamples_, GL_DEPTH24_STENCIL8, bbWidth_, bbHeight_);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, bbFbo_);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bbColorRb_);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, bbDepthRb_);
     unsigned st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    GLint samples = 0;
+    glGetIntegerv(GL_SAMPLES, &samples);
     if (st != GL_FRAMEBUFFER_COMPLETE)
-        fprintf(stderr, "[gl] back-buffer FBO %dx%d incomplete: 0x%x\n", bbWidth_, bbHeight_, st);
-    bbFboW_ = bbWidth_; bbFboH_ = bbHeight_;
+        fprintf(stderr, "[gl] back-buffer FBO %dx%d (%d samples) incomplete: 0x%x\n", bbWidth_, bbHeight_, bbSamples_, st);
+    else
+        fprintf(stderr, "[gl] back buffer %dx%d, %s%d samples\n", bbWidth_, bbHeight_,
+                samples > 1 ? "multisampled, " : "", samples > 1 ? (int)samples : 1);
+    bbFboW_ = bbWidth_; bbFboH_ = bbHeight_; bbFboSamples_ = bbSamples_;
     // A resize while the back buffer is bound must leave it bound.
     glBindFramebuffer(GL_FRAMEBUFFER, (unsigned)prevFbo == bbFbo_ || !fboActive_ ? bbFbo_ : (unsigned)prevFbo);
     return bbFbo_;
+}
+
+void GLDevice::ensureResolveFbo() {
+    if (bbResolveFbo_ && bbResolveW_ == bbWidth_ && bbResolveH_ == bbHeight_)
+        return;
+    if (!bbResolveFbo_) {
+        glGenFramebuffers(1, &bbResolveFbo_);
+        glGenRenderbuffers(1, &bbResolveRb_);
+    }
+    glBindRenderbuffer(GL_RENDERBUFFER, bbResolveRb_);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, bbWidth_, bbHeight_);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, bbResolveFbo_);
+    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bbResolveRb_);
+    bbResolveW_ = bbWidth_; bbResolveH_ = bbHeight_;
+}
+
+// A multisampled read framebuffer can only be blitted 1:1 into a single-sample one
+// of the same format (no scaling, no format conversion; glReadPixels refuses it), so
+// readers of the back buffer take this copy.
+unsigned GLDevice::resolvedBackbufferFbo() {
+    unsigned bb = backbufferFbo();
+    if (!bbSamples_)
+        return bb;
+    ensureResolveFbo();
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, bb);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, bbResolveFbo_);
+    if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // blits are scissored
+    glBlitFramebuffer(0, 0, bbWidth_, bbHeight_, 0, 0, bbWidth_, bbHeight_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    if (scissorOn_) glEnable(GL_SCISSOR_TEST);
+    glBindFramebuffer(GL_FRAMEBUFFER, curFbo());
+    return bbResolveFbo_;
+}
+
+// The caller has bound the source as the read framebuffer (and disabled the scissor).
+// A multisampled back buffer only takes 1:1 blits of its own format: go through the
+// single-sample copy, scaling into it, then copy the same rectangle across.
+void GLDevice::blitToBackbuffer(int sx0, int sy0, int sx1, int sy1, int dx0, int dy0, int dx1, int dy1, unsigned filter) {
+    unsigned bb = backbufferFbo();
+    if (!bbSamples_) {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, bb);
+        glBlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+        return;
+    }
+    ensureResolveFbo();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, bbResolveFbo_);
+    glBlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+    const int x0 = dx0 < dx1 ? dx0 : dx1, x1 = dx0 < dx1 ? dx1 : dx0;
+    const int y0 = dy0 < dy1 ? dy0 : dy1, y1 = dy0 < dy1 ? dy1 : dy0;
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, bbResolveFbo_);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, bb);
+    glBlitFramebuffer(x0, y0, x1, y1, x0, y0, x1, y1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 void GLDevice::kbEnsureRTComplete(unsigned tex, int w, int h) {
@@ -417,6 +514,8 @@ HRESULT WINAPI GLDevice::Reset(D3DPRESENT_PARAMETERS *pp) {
     if (pp && pp->BackBufferWidth && pp->BackBufferHeight) {
         bbWidth_  = (int)pp->BackBufferWidth;
         bbHeight_ = (int)pp->BackBufferHeight;
+        bbSamples_ = KB_BackbufferSamples(pp->MultiSampleType);
+        fullscreen_ = !pp->Windowed;
         if (backBuffer_) backBuffer_->setSize((UINT)bbWidth_, (UINT)bbHeight_);
         fboActive_ = false;
         glBindFramebuffer(GL_FRAMEBUFFER, backbufferFbo());
@@ -441,12 +540,13 @@ int g_kbTrace = 0;
 // needs the console, and `+wait` on the command line runs out during loading.
 // Write the default framebuffer's back buffer to <path> as a 32-bit TGA (alpha forced
 // opaque). Restores the read framebuffer and read buffer.
+// Framebuffer 0 is the window, whose rows are in GL order (bottom first).
 void KB_WriteBackbufferTGA(unsigned fbo, const char *path, int w, int h) {
     std::vector<unsigned char> px((size_t)w * h * 4);
     GLint oldFbo = 0;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldFbo);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glReadBuffer(fbo ? GL_COLOR_ATTACHMENT0 : GL_BACK);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px.data());
     glBindFramebuffer(GL_READ_FRAMEBUFFER, oldFbo);
@@ -454,22 +554,23 @@ void KB_WriteBackbufferTGA(unsigned fbo, const char *path, int w, int h) {
 
     FILE *f = fopen(path, "wb");
     if (!f) return;
-    unsigned char hdr[18] = {0};   // uncompressed true-colour, 32bpp BGRA, rows top-down
+    unsigned char hdr[18] = {0};   // uncompressed true-colour, 32bpp BGRA
     hdr[2]  = 2;
     hdr[12] = (unsigned char)(w & 0xFF); hdr[13] = (unsigned char)((w >> 8) & 0xFF);
     hdr[14] = (unsigned char)(h & 0xFF); hdr[15] = (unsigned char)((h >> 8) & 0xFF);
-    hdr[16] = 32; hdr[17] = 8 | 0x20;
+    hdr[16] = 32; hdr[17] = fbo ? 8 | 0x20 : 8;   // 0x20: rows top-down
     fwrite(hdr, 1, sizeof(hdr), f);
     fwrite(px.data(), 1, px.size(), f);
     fclose(f);
 }
 
-static void KB_MaybeScreenshot(unsigned fbo, int w, int h) {
+// Returns the present's number when it wrote a screenshot, else 0.
+static unsigned long KB_MaybeScreenshot(unsigned fbo, int w, int h) {
     static const char *dir = getenv("KB_SCREENSHOT");
-    if (!dir || w <= 0 || h <= 0) return;
+    if (!dir || w <= 0 || h <= 0) return 0;
     static int every = [] { const char *e = getenv("KB_SCREENSHOT_EVERY"); int n = e ? atoi(e) : 0; return n > 0 ? n : 300; }();
     static unsigned long presents;
-    if (++presents % every) return;
+    if (++presents % every) return 0;
 
     char path[1024];
     snprintf(path, sizeof(path), "%s/present_%06lu.tga", dir, presents);
@@ -479,6 +580,18 @@ static void KB_MaybeScreenshot(unsigned fbo, int w, int h) {
     fprintf(stderr, "[gl] wrote %s (since last: draws=%lu builtinFall=%lu skipPending=%lu; links=%lu blits=%lu)\n", path,
             g_kbDraws - lastDraws, g_kbBuiltinFall - lastFall, g_kbSkipPending - lastSkip, g_kbProgLinks, g_kbBlits);
     lastDraws = g_kbDraws; lastFall = g_kbBuiltinFall; lastSkip = g_kbSkipPending;
+    return presents;
+}
+
+// KB_SCREENSHOT_WINDOW=1 with KB_SCREENSHOT: also write what the window shows
+// (window_N.tga, the window's pixel size) at the same presents, after scaling.
+static void KB_MaybeScreenshotWindow(unsigned long shot, int w, int h) {
+    static const char *dir = getenv("KB_SCREENSHOT");
+    static const char *window = getenv("KB_SCREENSHOT_WINDOW");
+    if (!shot || !window || *window == '0' || w <= 0 || h <= 0) return;
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/window_%06lu.tga", dir, shot);
+    KB_WriteBackbufferTGA(0, path, w, h);
 }
 #endif
 
@@ -510,9 +623,9 @@ void KB_BackbufferToWindow(int *x, int *y) {
 
 HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA *) {
     KB_FlushTagged(11);
-    unsigned bb = backbufferFbo();
+    unsigned bb = resolvedBackbufferFbo();
 #if !defined(__EMSCRIPTEN__)
-    KB_MaybeScreenshot(bb, bbWidth_, bbHeight_);
+    const unsigned long shot = KB_MaybeScreenshot(bb, bbWidth_, bbHeight_);
     {
         static const char *traceList = getenv("KB_TRACEFRAME");   // comma-separated present numbers
         static long presentNo;
@@ -538,14 +651,21 @@ HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA
     glDrawBuffer(GL_BACK);
 #endif
     if (scissorOn_) glDisable(GL_SCISSOR_TEST);   // blits are scissored
-    // A fullscreen window covers the display whatever the back buffer's size: scale
-    // to fit, keeping the aspect ratio, black around it (KB_WindowToBackbuffer maps
-    // the cursor back through the same rectangle).
+    // The window can differ from the back buffer: a fullscreen window covers the
+    // display whatever the back buffer's size, and a window dragged to a display of
+    // another pixel density (Retina or not) keeps its size in points. Fullscreen
+    // fills the display, as D3D's fullscreen mode did: the engine's automatic aspect
+    // ratio is the monitor's in fullscreen (R_StoreWindowSettings), so a 4:3 back
+    // buffer holds a picture squeezed to be stretched. A window keeps the back
+    // buffer's shape, black around it. KB_WindowToBackbuffer maps the cursor back
+    // through the same rectangle.
     int winW = 0, winH = 0;
     if (ctx_) ctx_->GetDrawableSize(&winW, &winH);
     int x0 = 0, y0 = 0, x1 = bbWidth_, y1 = bbHeight_;
     const bool scaled = winW > 0 && winH > 0 && (winW != bbWidth_ || winH != bbHeight_);
-    if (scaled) {
+    if (scaled && fullscreen_) {
+        x1 = winW; y1 = winH;
+    } else if (scaled) {
         if ((long long)winW * bbHeight_ > (long long)winH * bbWidth_) {
             const int w = (int)((long long)winH * bbWidth_ / bbHeight_);
             x0 = (winW - w) / 2; x1 = x0 + w; y1 = winH;
@@ -565,6 +685,9 @@ HRESULT WINAPI GLDevice::Present(const RECT *, const RECT *, HWND, const RGNDATA
     g_kbPresentRect[4] = bbWidth_; g_kbPresentRect[5] = bbHeight_;
     glBlitFramebuffer(0, 0, bbWidth_, bbHeight_, x0, y1, x1, y0, GL_COLOR_BUFFER_BIT, scaled ? GL_LINEAR : GL_NEAREST);
     if (scissorOn_) glEnable(GL_SCISSOR_TEST);
+#if !defined(__EMSCRIPTEN__)
+    KB_MaybeScreenshotWindow(shot, winW > 0 ? winW : bbWidth_, winH > 0 ? winH : bbHeight_);
+#endif
     if (ctx_) ctx_->SwapBuffers();
     glBindFramebuffer(GL_FRAMEBUFFER, curFbo());
     return D3D_OK;
@@ -654,34 +777,87 @@ HRESULT WINAPI GLD3D9::GetAdapterIdentifier(UINT, DWORD, D3DADAPTER_IDENTIFIER9 
     return D3D_OK;
 }
 
-HRESULT WINAPI GLD3D9::GetAdapterDisplayMode(UINT, D3DDISPLAYMODE *pMode) {
-    if (!pMode) return E_INVALIDARG;
+// The renderer lists modes and monitors before it creates the window, so SDL video
+// is started here if nothing has started it yet.
+static bool KB_VideoReady() {
+#if !defined(__EMSCRIPTEN__)
+    Sys_EnsureSDLVideo();
+#endif
+    return SDL_WasInit(SDL_INIT_VIDEO) != 0;
+}
+
+static int KB_AdapterDensity(UINT adapter) {
+#if !defined(__EMSCRIPTEN__)
+    return Sys_DisplayPixelDensity((int)adapter);
+#else
+    (void)adapter;
+    return 1;
+#endif
+}
+
+UINT WINAPI GLD3D9::GetAdapterCount() {
+    const int n = KB_VideoReady() ? SDL_GetNumVideoDisplays() : 0;
+    return n > 0 ? (UINT)n : 1;
+}
+
+// The desktop's mode, its size in pixels (a Retina display's are 2x its points).
+static void KB_DesktopMode(UINT adapter, D3DDISPLAYMODE *mode) {
     SDL_DisplayMode dm;
-    if (SDL_WasInit(SDL_INIT_VIDEO) && SDL_GetDesktopDisplayMode(0, &dm) == 0) {
-        pMode->Width = (UINT)dm.w; pMode->Height = (UINT)dm.h;
-        pMode->RefreshRate = (UINT)dm.refresh_rate;
+    if (KB_VideoReady() && SDL_GetDesktopDisplayMode((int)adapter, &dm) == 0) {
+        const int density = KB_AdapterDensity(adapter);
+        mode->Width = (UINT)(dm.w * density); mode->Height = (UINT)(dm.h * density);
+        mode->RefreshRate = (UINT)dm.refresh_rate;
     } else {
-        pMode->Width = 1920; pMode->Height = 1080; pMode->RefreshRate = 60;
+        mode->Width = 1920; mode->Height = 1080; mode->RefreshRate = 60;
     }
-    pMode->Format = D3DFMT_X8R8G8B8;
+    mode->Format = D3DFMT_X8R8G8B8;
+}
+
+HRESULT WINAPI GLD3D9::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode) {
+    if (!pMode) return E_INVALIDARG;
+    KB_DesktopMode(Adapter, pMode);
     return D3D_OK;
 }
 
-UINT WINAPI GLD3D9::GetAdapterModeCount(UINT, D3DFORMAT) {
-    int n = SDL_WasInit(SDL_INIT_VIDEO) ? SDL_GetNumDisplayModes(0) : 0;
-    return n > 0 ? (UINT)n : 1;  // always offer at least the fallback desktop mode
+// The resolutions offered (r_mode): the sizes of the display's modes, and its own
+// size in pixels, which a Retina display doesn't list. Fullscreen covers the display
+// without switching its mode (Present scales), so each comes at the desktop's
+// refresh rate: that is the rate the game runs at.
+static std::vector<D3DDISPLAYMODE> g_kbAdapterModes;
+static UINT g_kbAdapterModesOf = ~0u;
+
+static void KB_ListAdapterModes(UINT adapter) {
+    g_kbAdapterModes.clear();
+    g_kbAdapterModesOf = adapter;
+    D3DDISPLAYMODE desktop;
+    KB_DesktopMode(adapter, &desktop);
+    auto add = [](UINT w, UINT h, UINT hz) {
+        for (const D3DDISPLAYMODE &m : g_kbAdapterModes)
+            if (m.Width == w && m.Height == h) return;
+        D3DDISPLAYMODE m = {};
+        m.Width = w; m.Height = h; m.RefreshRate = hz; m.Format = D3DFMT_X8R8G8B8;
+        g_kbAdapterModes.push_back(m);
+    };
+    add(desktop.Width, desktop.Height, desktop.RefreshRate);
+    const int count = KB_VideoReady() ? SDL_GetNumDisplayModes((int)adapter) : 0;
+    for (int i = 0; i < count; ++i) {
+        SDL_DisplayMode dm;
+        if (SDL_GetDisplayMode((int)adapter, i, &dm) == 0 && dm.w > 0 && dm.h > 0)
+            add((UINT)dm.w, (UINT)dm.h, desktop.RefreshRate);
+    }
 }
 
-HRESULT WINAPI GLD3D9::EnumAdapterModes(UINT, D3DFORMAT Format, UINT Mode, D3DDISPLAYMODE *pMode) {
+UINT WINAPI GLD3D9::GetAdapterModeCount(UINT Adapter, D3DFORMAT) {
+    KB_ListAdapterModes(Adapter);
+    return (UINT)g_kbAdapterModes.size();
+}
+
+HRESULT WINAPI GLD3D9::EnumAdapterModes(UINT Adapter, D3DFORMAT Format, UINT Mode, D3DDISPLAYMODE *pMode) {
     if (!pMode) return E_INVALIDARG;
-    SDL_DisplayMode dm;
-    if (SDL_WasInit(SDL_INIT_VIDEO) && SDL_GetDisplayMode(0, (int)Mode, &dm) == 0) {
-        pMode->Width = (UINT)dm.w; pMode->Height = (UINT)dm.h;
-        pMode->RefreshRate = (UINT)dm.refresh_rate;
-    } else {
-        if (Mode != 0) return D3DERR_INVALIDCALL;
-        pMode->Width = 1920; pMode->Height = 1080; pMode->RefreshRate = 60;
-    }
+    if (Adapter != g_kbAdapterModesOf || g_kbAdapterModes.empty())
+        KB_ListAdapterModes(Adapter);
+    if (Mode >= g_kbAdapterModes.size()) return D3DERR_INVALIDCALL;
+    *pMode = g_kbAdapterModes[Mode];
     pMode->Format = Format;
     return D3D_OK;
 }
@@ -692,7 +868,7 @@ HRESULT WINAPI GLD3D9::GetDeviceCaps(UINT, D3DDEVTYPE, D3DCAPS9 *pCaps) {
     return D3D_OK;
 }
 
-HRESULT WINAPI GLD3D9::CreateDevice(UINT /*Adapter*/, D3DDEVTYPE /*DeviceType*/,
+HRESULT WINAPI GLD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE /*DeviceType*/,
                                     HWND /*hFocusWindow*/, DWORD /*BehaviorFlags*/,
                                     D3DPRESENT_PARAMETERS *pp,
                                     IDirect3DDevice9 **ppReturnedDeviceInterface) {
@@ -707,11 +883,25 @@ HRESULT WINAPI GLD3D9::CreateDevice(UINT /*Adapter*/, D3DDEVTYPE /*DeviceType*/,
     desc.visible      = pp->Windowed ? true : true;
     desc.fullscreen   = !pp->Windowed;
     desc.vsync        = pp->PresentationInterval != D3DPRESENT_INTERVAL_IMMEDIATE;
+    desc.display      = (int)Adapter;
 
     GLContext *ctx = GLContext::Create(desc);
     if (!ctx) { fprintf(stderr, "[gl] CreateDevice: GL context creation failed\n"); return E_FAIL; }
 
-    *ppReturnedDeviceInterface = new GLDevice(ctx, desc.width, desc.height);
+    // The context is current: the sample count can be checked against the GPU now.
+    const int samples = KB_BackbufferSamples(pp->MultiSampleType);
+    if ((int)pp->MultiSampleType >= 2 && samples != (int)pp->MultiSampleType)
+        fprintf(stderr, "[gl] %d samples asked, the GPU allows %d\n", (int)pp->MultiSampleType, KB_MaxSamples());
+    *ppReturnedDeviceInterface = new GLDevice(ctx, desc.width, desc.height, samples, desc.fullscreen);
+    return D3D_OK;
+}
+
+// The engine steps its sample count down until this accepts one
+// (R_SetupAntiAliasing). Counts above GL_MAX_SAMPLES are refused once a context
+// has told us the maximum; the first device creation clamps instead.
+HRESULT WINAPI GLD3D9::CheckDeviceMultiSampleType(UINT, D3DDEVTYPE, D3DFORMAT, BOOL, D3DMULTISAMPLE_TYPE Type, DWORD *pQ) {
+    if (pQ) *pQ = 1;
+    if ((int)Type >= 2 && (int)Type > KB_MaxSamples()) return D3DERR_NOTAVAILABLE;
     return D3D_OK;
 }
 
