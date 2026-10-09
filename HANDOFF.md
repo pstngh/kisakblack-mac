@@ -88,22 +88,39 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-1. **Everything maxed out and `sv_cheats` on: done in session 8** (see Decisions),
-   on top of session 7's offline progression. Left over: drive the main-menu menus
-   by hand (keyboard/mouse) beyond the screens `KB_MENU_CMDS` reached (`cac_main`,
-   `cac_weapon`, killstreaks): the attachment/camo/reticle pickers, emblem editor,
-   clan tag, barracks, combat record and after-action report; combat training
-   (`xblive_basictraining`, its own buffer and rank, not maxed) is saved but
-   untested. To show a prestige other than 15, `LiveStorage_SetTopRank` is the
-   place (a dvar would do).
-2. Keep soaking with `KB_CMDS` (longer matches, match end and map rotation, other
-   gametypes) and the ASan client; each fix of this kind so far came from a run.
-   Start the ASan client at the main menu too (session 6's report was in a main
-   menu script that runs only without `+map`).
-3. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+Done in session 8 (see Status and Decisions): everything unlocked and owned by
+default with rank 50/prestige 15, `sv_cheats` on for `map`, a portable game
+folder (`tools/make_portable.sh`; the user's `codbo/` has it: rerun after each
+build), graphics Apply without freezing, fullscreen and vsync, FOV 80.
+
+1. **Graphics gaps**: antialiasing (`r_aaSamples`) is ignored by the GL backend
+   (MSAA back buffer + resolve in Present); the resolution list (`r_mode`) holds
+   only the display modes SDL reports (the user's display: 1920x1080 alone),
+   though fullscreen covers the display and scales any back buffer, so smaller
+   resolutions could be offered; the scaled Present path is untested; Retina
+   (`SDL_WINDOW_ALLOW_HIGHDPI`).
+2. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
+   on the server thread after the demo client was freed twice). Soak match ends
+   with `KB_CMDS` and `scr_tdm_timelimit 1` to reproduce it.
+3. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
+   `KB_MENU_CMDS` reached (`cac_main`, `cac_weapon`, killstreaks): attachment/
+   camo/reticle pickers, emblem editor, clan tag, barracks, combat record,
+   after-action report; combat training (`xblive_basictraining`, its own buffer
+   and rank, not maxed) is untested. To show a prestige other than 15,
+   `LiveStorage_SetTopRank` is the place (a dvar would do).
+4. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
+   client, at the main menu too; each fix of this kind so far came from a run.
+5. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
-4. Later: wire compatibility with a Windows/Linux server, an .app bundle, Retina
-   (SDL_WINDOW_ALLOW_HIGHDPI), controller support.
+6. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
+   double-clickable app; today `codbo/blackops` opens in Terminal), controller
+   support.
+
+Reading game data: the scripts, menus and string tables (e.g. mp/statsTable.csv)
+are inside the fastfiles; session 7-8 extracted them with throwaway scripts that
+are not in the repo (decompress the .ff's zlib stream, then scan for RawFile and
+StringTable assets; table strings shared with earlier assets are references
+that weren't resolved). Item indices are listed in CLAUDE.md.
 
 ## Open items found but not fixed
 
