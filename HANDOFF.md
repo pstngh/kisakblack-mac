@@ -93,6 +93,15 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   fullscreen and resolution changes) ran without an assert or report. The menu
   cursor's mapping through a scaled or Retina window is computed, not tried by
   hand (no input here).
+- **Launcher** (session 9): `Black Ops Launcher.app` in the game folder
+  (tools/launcher, a SwiftUI app; make_portable.sh builds it in) picks map, mode,
+  time and score limit, and bots (enemy and friendly counts, or a free-for-all
+  count; Recruit/Regular/Hardened/Veteran), then starts the game on that match,
+  or plainly at the main menu, without a Terminal window. The menu's PLAY can't
+  start anything: it needs the removed online service (`IsSignedInToLive` is 0,
+  so it shows "No network connection detected"). Tested from the app into the
+  real game (scratch folder): TDM on mp_nuked, the player on allies, 3 friendly
+  and 4 enemy bots, class menu up; bots fight (300-500 after a minute).
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters
   (`KB_SCREENSHOT_WINDOW=1` adds `window_N.tga`, what the window shows after
@@ -121,17 +130,20 @@ after each build).
 2. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
    on the server thread after the demo client was freed twice). Soak match ends
    with `KB_CMDS` and `scr_tdm_timelimit 1` to reproduce it.
-3. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
+3. The main menu's PLAY (Find Match, Private Match, Combat Training) depends on
+   the removed online service; the launcher starts matches against bots instead.
+   Combat Training proper (`xblive_basictraining`, its own rank) is not wired.
+4. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
    `KB_MENU_CMDS` reached (`cac_main`, `cac_weapon`, killstreaks): attachment/
    camo/reticle pickers, emblem editor, clan tag, barracks, combat record,
    after-action report; combat training (`xblive_basictraining`, its own buffer
    and rank, not maxed) is untested. To show a prestige other than 15,
    `LiveStorage_SetTopRank` is the place (a dvar would do).
-4. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
+5. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
    client, at the main menu too; each fix of this kind so far came from a run.
-5. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+6. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now.
-6. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
+7. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
    double-clickable app; today `codbo/blackops` opens in Terminal), controller
    support.
 
@@ -181,6 +193,9 @@ Seen in session 9:
 - `R_SetAlphaAntiAliasingState` decides from merged state bits whose blend op is
   the last blended draw's (Decisions); if that was the original's own behaviour,
   transparency AA barely ever ran on Windows either.
+- The `screenshot` command in a window smaller than the monitor writes a
+  monitor-sized TGA with the picture in a corner (R_GetFrontBufferData sizes its
+  surface by the monitor in windowed mode; seen at 1280x720 on a 1920x1080 display).
 - Apple's GL has no fractional sample shading: "dither (fast)" and "supersample
   (nice)" look and cost the same (every sample shaded).
 
@@ -310,6 +325,19 @@ Pre-existing (wrong on every build):
   items), so the pixel size is points x the display's density, re-read on SDL's
   size, move and display-change events. The cursor maps points -> pixels
   (`KB_GLWindowToPixels`) -> back buffer.
+- **Bots for the launcher**: the PC game's managed bots, `bot_spawner_Once` in
+  maps/mp/gametypes/_bot.gsc, which a PC online game (our `map` sets `onlinegame`)
+  runs instead of Combat Training's: `scr_bots_managed_spawn 1`,
+  `scr_bots_managed_allies`/`_axis` (or `_all` for free-for-all, split between
+  the teams) and `scr_bot_difficulty` (easy, normal, hard, fu), checked every 10 s.
+  The engine registers `sv_botsAllowMovement`, `sv_botsPressAttackBtn` and
+  `sv_botsPressMeleeBtn` off and only the scripts' developer blocks turn them on
+  (which is why `developer_script 1` was needed for `scr_testclients` bots), so the
+  launcher sets them. Friendly bots are allies and the launcher joins the player to
+  allies through `KB_CMDS` (`openscriptmenu team_marinesopfor allies`; the team
+  menu is that on every map). The bot AI doesn't play objectives: in Domination,
+  CTF, S&D and the like the bots only fight. 16 bots at most (18 slots: the host
+  and the demo recorder take two).
 - A fresh profile's resolution comes from `configure_mp.csv` (1024x768, 4x AA for
   an unknown GPU such as the M4), as on Windows; the engine's own `r_mode`
   default (the smallest mode) is unchanged.

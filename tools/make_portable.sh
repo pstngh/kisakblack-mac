@@ -76,3 +76,8 @@ codesign --force --sign - "$game/blackops" 2>/dev/null
 left=$( { external_deps "$game/blackops"; for name in "${copied[@]}"; do external_deps "$lib/$name"; done; } | sort -u)
 [ -z "$left" ] || { echo "still linked outside the folder:" >&2; echo "$left" >&2; exit 1; }
 echo "installed $game/blackops and ${#copied[@]} libraries in $lib: ${copied[*]}"
+
+# The launcher app (tools/launcher: map, mode and bots, then Play).
+if command -v swiftc >/dev/null; then
+    "$(dirname "$0")/launcher/build.sh" "$game"
+fi

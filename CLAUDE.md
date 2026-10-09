@@ -50,6 +50,16 @@ A map with bots: add `+set developer_script 1 +set scr_testclients 4 +map mp_nuk
 menu, there is no input). `KB_ASSERT_BT=1` prints a backtrace the first time each
 assert fires.
 
+The game folder's `Black Ops Launcher.app` (tools/launcher, built by
+make_portable.sh or `tools/launcher/build.sh <game dir>`) starts matches with the
+PC managed bots instead: `+set sv_botsAllowMovement 1 +set sv_botsPressAttackBtn 1
++set sv_botsPressMeleeBtn 1 +set scr_bots_managed_spawn 1 +set
+scr_bots_managed_allies 3 +set scr_bots_managed_axis 4 +set scr_bot_difficulty
+normal` (easy/normal/hard/fu; the bots arrive ~10 s in). `KB_LAUNCHER_TEST=<dir>`
+makes the app save its window as `<dir>/launcher.png` and press Play itself; run it
+in a scratch copy of the game folder (links to `main`, `zone`, `lib` and a copy of
+`blackops`), as the app starts the `blackops` next to it with that folder's profile.
+
 A client and a dedicated server as separate processes (UDP over loopback): start
 the server with `+set net_port 28960` (plus the bots and `+map` above), then, once
 its map is up (~20 s), the client with `+set net_port 28961 +connect 127.0.0.1:28960`.
