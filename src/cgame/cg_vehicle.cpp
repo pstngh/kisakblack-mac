@@ -1,4 +1,5 @@
 #include "cg_vehicle.h"
+#include <new>
 #include <client/splitscreen.h>
 #include <universal/com_math_anglevectors.h>
 #include <gfx_d3d/r_water_sim.h>
@@ -409,6 +410,9 @@ void    CG_Vehicle_PreControllers(
         //v175 = dummy.__vftable;
         //p_proximity_data = &cent->vehicle->vehicle_cache->proximity_data;
         //p_proximity_data->__vftable = dummy.__vftable;
+        // MT_Alloc'd memory: copy dummy in place, vftable included (every build; without a
+        // vtable, intersect_box's visit() calls crashed).
+        new (&cent->vehicle->vehicle_cache->proximity_data) colgeom_visitor_inlined_t<200>(dummy);
 
         //colgeom_visitor_inlined_t<500>::reset(&cent->vehicle->vehicle_cache->proximity_data);
         cent->vehicle->vehicle_cache->proximity_data.reset();

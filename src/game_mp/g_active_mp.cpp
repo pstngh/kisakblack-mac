@@ -361,7 +361,7 @@ void __cdecl SpectatorThink(gentity_s *ent, usercmd_s *ucmd)
             client->ps.speed = 400;
         else
             client->ps.speed = 0;
-        memset(pm, 0, 0x258u);
+        memset(pm, 0, offsetof(pmove_t, proximity_data)); // 0x258 on i386: up to m_gjkcc_input
         pm->localClientNum = -1;
         pm->ps = &client->ps;
         memcpy(&pm->cmd, ucmd, sizeof(pm->cmd));
@@ -1359,7 +1359,7 @@ LABEL_53:
                         v7->array[i2] &= mask_bits.array[i2];
                 }
                 oldEventSequence = client->ps.predictableEventSequence;
-                memset(pm, 0, 0x258u);
+                memset(pm, 0, offsetof(pmove_t, proximity_data)); // 0x258 on i386: up to m_gjkcc_input
                 pm->localClientNum = -1;
                 pm->ps = &client->ps;
                 memcpy(&pm->cmd, ucmd, sizeof(pm->cmd));

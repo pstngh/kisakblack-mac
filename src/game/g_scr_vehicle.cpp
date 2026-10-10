@@ -1,4 +1,5 @@
 #include "g_scr_vehicle.h"
+#include <new>
 #include <universal/q_shared.h>
 #include <clientscript/cscr_vm.h>
 #include <clientscript/scr_const.h>
@@ -2950,7 +2951,9 @@ void __cdecl G_SpawnVehicle(gentity_s *ent, char *typeName, int load)
     static colgeom_visitor_inlined_t<200> dummy_0;
 
     //veh->vehicle_cache.proximity_data.__vftable = dummy_0.__vftable;
-    veh->vehicle_cache.proximity_data = dummy_0;
+    // The memset above zeroed the vtable pointer, and an assignment doesn't copy it: copy
+    // dummy_0 in place, vftable included (every build; intersect_box's visit() calls crashed).
+    new (&veh->vehicle_cache.proximity_data) colgeom_visitor_inlined_t<200>(dummy_0);
 
     //colgeom_visitor_inlined_t<500>::reset(&veh->vehicle_cache.proximity_data);
     veh->vehicle_cache.proximity_data.reset();
@@ -4759,27 +4762,19 @@ void __cdecl VEH_TouchEntities(gentity_s *ent)
 {
     int contentmask; // [esp+30h] [ebp-1088h]
     int var1084; // [esp+34h] [ebp-1084h]
-    float v4; // [esp+40h] [ebp-1078h] BYREF
-    float v5; // [esp+44h] [ebp-1074h]
-    float v6; // [esp+48h] [ebp-1070h]
+    float v4[3]; // [esp+40h] [ebp-1078h] BYREF
     DObj *obj; // [esp+4Ch] [ebp-106Ch]
     scr_vehicle_s *scr_vehicle; // [esp+50h] [ebp-1068h]
-    float mins; // [esp+54h] [ebp-1064h] BYREF
-    float v10; // [esp+58h] [ebp-1060h]
-    float v11; // [esp+5Ch] [ebp-105Ch]
+    float mins[3]; // [esp+54h] [ebp-1064h] BYREF
     void(__cdecl * touch)(gentity_s *, gentity_s *, int); // [esp+60h] [ebp-1058h]
     gentity_s *enta; // [esp+64h] [ebp-1054h]
     float out[3]; // [esp+68h] [ebp-1050h] BYREF
     float v3[3]; // [esp+74h] [ebp-1044h] BYREF
-    float maxs; // [esp+80h] [ebp-1038h] BYREF
-    float v17; // [esp+84h] [ebp-1034h]
-    float v18; // [esp+88h] [ebp-1030h]
+    float maxs[3]; // [esp+80h] [ebp-1038h] BYREF
     void(__cdecl * v19)(gentity_s *, gentity_s *, int); // [esp+8Ch] [ebp-102Ch]
     int entityList[1024]; // [esp+90h] [ebp-1028h] BYREF
     int i; // [esp+1090h] [ebp-28h]
-    float v22; // [esp+1094h] [ebp-24h] BYREF
-    float v23; // [esp+1098h] [ebp-20h]
-    float v24; // [esp+109Ch] [ebp-1Ch]
+    float v22[3]; // [esp+1094h] [ebp-24h] BYREF
     float v25; // [esp+10A0h] [ebp-18h]
     float v26; // [esp+10A4h] [ebp-14h]
     float v27; // [esp+10A8h] [ebp-10h]
@@ -4805,26 +4800,26 @@ void __cdecl VEH_TouchEntities(gentity_s *ent)
     offset[2] = scr_vehicle->phys.origin[2] - scr_vehicle->phys.prevOrigin[2];
     AnglesSubtract(scr_vehicle->phys.angles, scr_vehicle->phys.prevAngles, v3);
     Vec3NormalizeTo(scr_vehicle->phys.vel, out);
-    maxs = ent->r.absmax[0];
-    v17 = ent->r.absmax[1];
-    v18 = ent->r.absmax[2];
-    mins = ent->r.absmin[0];
-    v10 = ent->r.absmin[1];
-    v11 = ent->r.absmin[2];
-    ExtendBounds(&mins, &maxs, offset);
+    maxs[0] = ent->r.absmax[0];
+    maxs[1] = ent->r.absmax[1];
+    maxs[2] = ent->r.absmax[2];
+    mins[0] = ent->r.absmin[0];
+    mins[1] = ent->r.absmin[1];
+    mins[2] = ent->r.absmin[2];
+    ExtendBounds(mins, maxs, offset);
     v25 = predictTime * scr_vehicle->phys.vel[0];
     v26 = predictTime * scr_vehicle->phys.vel[1];
     v27 = predictTime * scr_vehicle->phys.vel[2];
-    mins = mins + v25;
-    v10 = v10 + v26;
-    v11 = v11 + v27;
-    maxs = maxs + v25;
-    v17 = v17 + v26;
-    v18 = v18 + v27;
+    mins[0] = mins[0] + v25;
+    mins[1] = mins[1] + v26;
+    mins[2] = mins[2] + v27;
+    maxs[0] = maxs[0] + v25;
+    maxs[1] = maxs[1] + v26;
+    maxs[2] = maxs[2] + v27;
     contentmask = 0x280E091;
     if (vehicle_riding->current.enabled)
         contentmask = 0x80E091;
-    var1084 = CM_AreaEntities(&mins, &maxs, entityList, 1024, contentmask);
+    var1084 = CM_AreaEntities(mins, maxs, entityList, 1024, contentmask);
     for (i = 0; i < var1084; ++i)
     {
         enta = &g_entities[entityList[i]];
@@ -4838,31 +4833,31 @@ void __cdecl VEH_TouchEntities(gentity_s *ent)
                 if (!enta->model)
                     continue;
                 obj = Com_GetServerDObj(enta->s.number);
-                DObjPhysicsGetBounds(obj, &v22, &v4);
-                v22 = enta->r.currentOrigin[0] + v22;
-                v23 = enta->r.currentOrigin[1] + v23;
-                v24 = enta->r.currentOrigin[2] + v24;
-                v4 = enta->r.currentOrigin[0] + v4;
-                v5 = enta->r.currentOrigin[1] + v5;
-                v6 = enta->r.currentOrigin[2] + v6;
+                DObjPhysicsGetBounds(obj, v22, v4);
+                v22[0] = enta->r.currentOrigin[0] + v22[0];
+                v22[1] = enta->r.currentOrigin[1] + v22[1];
+                v22[2] = enta->r.currentOrigin[2] + v22[2];
+                v4[0] = enta->r.currentOrigin[0] + v4[0];
+                v4[1] = enta->r.currentOrigin[1] + v4[1];
+                v4[2] = enta->r.currentOrigin[2] + v4[2];
             }
             else
             {
-                v22 = enta->r.absmin[0];
-                v23 = enta->r.absmin[1];
-                v24 = enta->r.absmin[2];
-                v4 = enta->r.absmax[0];
-                v5 = enta->r.absmax[1];
-                v6 = enta->r.absmax[2];
+                v22[0] = enta->r.absmin[0];
+                v22[1] = enta->r.absmin[1];
+                v22[2] = enta->r.absmin[2];
+                v4[0] = enta->r.absmax[0];
+                v4[1] = enta->r.absmax[1];
+                v4[2] = enta->r.absmax[2];
             }
-            ExpandBoundsToWidth(&v22, &v4);
-            v22 = v22 - v25;
-            v23 = v23 - v26;
-            v24 = v24 - v27;
-            v4 = v4 - v25;
-            v5 = v5 - v26;
-            v6 = v6 - v27;
-            if (SV_EntityContact(&v22, &v4, ent))
+            ExpandBoundsToWidth(v22, v4);
+            v22[0] = v22[0] - v25;
+            v22[1] = v22[1] - v26;
+            v22[2] = v22[2] - v27;
+            v4[0] = v4[0] - v25;
+            v4[1] = v4[1] - v26;
+            v4[2] = v4[2] - v27;
+            if (SV_EntityContact(v22, v4, ent))
             {
                 if (Scr_IsSystemActive(1u, SCRIPTINSTANCE_SERVER))
                 {

@@ -3585,7 +3585,7 @@ void __cdecl G_SetVehDriverInputs(int localClientNum, int vehEntNum, usercmd_s *
 
 void __cdecl G_ClearVehicleInputs()
 {
-    phys_free_list<NitrousVehicle>::T_internal_base *i; // [esp+24h] [ebp-8h]
+    NitrousVehicle *vehicle;
 
     if ( g_rb_vehicle_list.m_list_count > 0 )
     {
@@ -3593,15 +3593,17 @@ void __cdecl G_ClearVehicleInputs()
 
         Sys_EnterCriticalSection(CRITSECT_PHYSICS_UPDATE);
         Sys_EnterCriticalSection(CRITSECT_PHYSICS);
-        for ( i = g_rb_vehicle_list.m_dummy_head.m_next_T_internal;
-                    &g_rb_vehicle_list != (phys_free_list<NitrousVehicle> *)i;
-                    i = i->m_next_T_internal )
+        // The decompiled loop typed the nodes as T_internal_base and read the vehicle at
+        // its 32-bit offsets: i[70].m_next_T_internal (m_owner), [43].m_prev_T_internal
+        // (gentity_s::scr_vehicle), &i[100] (mVehicleController.m_cmd).
+        for ( phys_free_list<NitrousVehicle>::iterator i = g_rb_vehicle_list.begin(); i != g_rb_vehicle_list.end(); ++i )
         {
-            if ( i[70].m_next_T_internal
-                && i[70].m_next_T_internal[43].m_prev_T_internal
-                && VEH_GetSeatOccupantEntNum((gentity_s *)i[70].m_next_T_internal, 0) == 1023 )
+            vehicle = *i;
+            if ( vehicle->m_owner
+                && vehicle->m_owner->scr_vehicle
+                && VEH_GetSeatOccupantEntNum(vehicle->m_owner, 0) == 1023 )
             {
-                memset(&i[100], 0, 0x34u);
+                memset(&vehicle->mVehicleController.m_cmd, 0, sizeof(vehicle->mVehicleController.m_cmd));
             }
         }
         Sys_LeaveCriticalSection(CRITSECT_PHYSICS);

@@ -1,4 +1,5 @@
 #include "actor_mp.h"
+#include <new>
 #include "g_main_mp.h"
 #include "g_utils_mp.h"
 #include <game/actor_spawner.h>
@@ -2690,7 +2691,9 @@ void __fastcall Actor_InitMove(actor_s *self)
     //}
 
     //self->Physics.proximity_data.__vftable = dummy_3.__vftable;
-    self->Physics.proximity_data = dummy_3;
+    // The memset above zeroed the vtable pointer, and an assignment doesn't copy it: copy
+    // dummy_3 in place, vftable included (every build; intersect_box's visit() calls crashed).
+    new (&self->Physics.proximity_data) colgeom_visitor_inlined_t<200>(dummy_3);
     //colgeom_visitor_inlined_t<500>::reset(&self->Physics.proximity_data);
     self->Physics.proximity_data.reset();
     self->Physics.vOrigin[0] = 0.0f;
