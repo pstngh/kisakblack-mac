@@ -19,7 +19,7 @@
 
 // glibc declares the C library functions noexcept in C++; Apple's libc and
 // musl do not. Redeclarations below must match whichever libc is in use.
-#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
+#if defined(__APPLE__)
 #define KISAK_LIBC_NOEXCEPT
 #else
 #define KISAK_LIBC_NOEXCEPT noexcept

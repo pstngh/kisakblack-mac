@@ -6,14 +6,11 @@
 // downsample) via glBlitFramebuffer.
 #include "gl_d3d9.h"
 #include "gl_resources.h"
-#include "gl_optrace.h"
 #include "gl_format.h"
 
 #include <GL/glew.h>
 #include <cstdio>
 #include <cstdlib>
-extern "C" void KB_FlushBatchedDraws();
-extern "C" void KB_FlushTagged(int cause); // +flush-cause telemetry  // batched-draw flush (gl_d3d9_draw.cpp)
 
 
 // --- Back buffer / swap chain ----------------------------------------------
@@ -61,7 +58,6 @@ HRESULT WINAPI GLSwapChain::GetFrontBufferData(IDirect3DSurface9 *pDestSurface) 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, dev->resolvedBackbufferFbo());
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    extern unsigned long g_kbReadbacks; ++g_kbReadbacks;
     glReadPixels(0, 0, (GLsizei)w, (GLsizei)h, GL_BGRA, GL_UNSIGNED_BYTE, shadow.data());
     glBindFramebuffer(GL_FRAMEBUFFER, dev->curFbo());
     return D3D_OK;
@@ -93,7 +89,6 @@ HRESULT WINAPI GLDevice::CreateDepthStencilSurface(UINT Width, UINT Height, D3DF
 // Read a render target back into a system-memory surface for CPU access.
 HRESULT WINAPI GLDevice::GetRenderTargetData(IDirect3DSurface9 *pRenderTarget,
                                              IDirect3DSurface9 *pDestSurface) {
-    KB_FlushTagged(11);
     GLSurface *src = static_cast<GLSurface *>(pRenderTarget);
     GLSurface *dst = static_cast<GLSurface *>(pDestSurface);
     if (!src || !dst || !src->texName()) return E_FAIL;
@@ -113,7 +108,6 @@ HRESULT WINAPI GLDevice::GetRenderTargetData(IDirect3DSurface9 *pRenderTarget,
                            src->texName(), src->level());
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    extern unsigned long g_kbReadbacks; ++g_kbReadbacks;
     glReadPixels(0, 0, w, h, fmt, type, dst->shadow().data());
     glBindFramebuffer(GL_FRAMEBUFFER, curFbo());   // restore the active RT
     glDeleteFramebuffers(1, &fbo);
@@ -127,8 +121,6 @@ HRESULT WINAPI GLDevice::GetRenderTargetData(IDirect3DSurface9 *pRenderTarget,
 HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRect,
                                      IDirect3DSurface9 *pDestSurface, const RECT *pDestRect,
                                      D3DTEXTUREFILTERTYPE Filter) {
-    KB_FlushTagged(11);
-    KB_OpTag("blit", 0, 0, 0);
     extern unsigned long g_kbBlits; ++g_kbBlits;
     GLSurface *src = static_cast<GLSurface *>(pSourceSurface);
     GLSurface *dst = static_cast<GLSurface *>(pDestSurface);
@@ -147,7 +139,6 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
             fprintf(stderr, "[trace] StretchRect src=%p bb=%d tex=%u %dx%d -> dst=%p bb=%d tex=%u %dx%d\n",
                     (void *)src, (int)src->isBackbuffer(), src->texName(), sx1 - sx0, sy1 - sy0,
                     (void *)dst, (int)dst->isBackbuffer(), dst->texName(), dx1 - dx0, dy1 - dy0);
-#if !defined(__EMSCRIPTEN__)
             static int dumped;
             const char *dir = getenv("KB_SCREENSHOT");
             if (src->isBackbuffer() && dir && dumped < 16) {
@@ -156,7 +147,6 @@ HRESULT WINAPI GLDevice::StretchRect(IDirect3DSurface9 *pSourceSurface, const RE
                 snprintf(path, sizeof(path), "%s/resolve_%d.tga", dir, dumped++);
                 KB_WriteBackbufferTGA(resolvedBackbufferFbo(), path, (int)src->width(), (int)src->height());
             }
-#endif
         }
     }
     // Both sides hold D3D row order, so D3D rects map straight onto GL rows.

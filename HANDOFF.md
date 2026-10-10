@@ -160,7 +160,15 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   Nothing gates them offline (`Content_GetAvailableContentPacks` only filters online
   playlists). The launcher lists the ones whose zone file the folder has. The
   Rezurrection and other zombie maps need the SP executable, which isn't ported.
-- Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
+- **Web-build code removed** (session 11): the D3D9-to-GL layer (src/gfx_gl) and
+  src/platform carried ~3,200 lines for a WebGL/Emscripten target this branch never
+  builds: the `__EMSCRIPTEN__`/GLES branches, the batching and op-trace hooks (no-ops
+  on desktop), lightmap and material texture arrays, world draw merging, instanced
+  XSurface draws, the vertex buffer arena and the `KB_DEVHOT` devirtualisation. Gone;
+  same rendering on mp_nuked (HUD, lighting, killcam DOF, no builtin fallbacks).
+- Diagnostics: `KB_FPS=<seconds>` (1 if empty) prints fps, frame time average and
+  maximum, and the buffer swap's average time to stderr every interval;
+  `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters
   (`KB_SCREENSHOT_WINDOW=1` adds `window_N.tga`, what the window shows after
   scaling, at its pixel size);

@@ -42,12 +42,10 @@ std::string GLAttribName(int usage, int usageIndex);
 // the shader does not declare are simply ignored by GL.
 void        GLBindAttribLocations(unsigned program);
 
-// LAZY GL COMPILE: the engine calls Create{Vertex,Pixel}Shader from loader threads.
-// On the de-proxied web build the GL context is LOCAL to the render worker, so
-// glCreateShader on a loader thread silently returns 0 (empty info log) -> black
-// world. Translation (pure CPU) still happens in the constructor; the GL compile is
-// deferred into glShader(), whose only callers are the program-link path that runs
-// at draw time on the render thread with the context current. ok() reports
+// LAZY GL COMPILE: the engine calls Create{Vertex,Pixel}Shader from loader threads,
+// which have no GL context. Translation (pure CPU) happens in the constructor; the GL
+// compile is deferred into glShader(), whose only callers are the program-link path
+// that runs at draw time on the render thread with the context current. ok() reports
 // translation success so material loading can proceed off-thread.
 class GLVertexShader final : public GLObject<IDirect3DVertexShader9> {
 public:
@@ -56,14 +54,6 @@ public:
     HRESULT WINAPI GetDevice(IDirect3DDevice9 **ppDevice) override;
     HRESULT WINAPI GetFunction(void *, UINT *pSize) override { if (pSize) *pSize = 0; return D3D_OK; }
     unsigned glShader();                       // lazy: compiles on first use (GL thread)
-    // INSTANCED variant: the per-object matrix at vsc[matBase..matBase+matCount-1] is read from
-    // instanced vertex attributes (locations locs[0..matCount-1], divisor 1) instead of the
-    // constant array, so many copies of this mesh draw in ONE glDrawElementsInstanced. Same
-    // bytecode-derived GLSL, textually rewired + recompiled, cached per (matBase,matCount,locs).
-    unsigned glShaderInstanced(unsigned matBase, int matCount, const int *locs);
-    // ?matarray=3: variant carrying the per-instance material layer (instanced attr at `loc` ->
-    // flat varying vMatLayer). Cached per loc. loc 0 falls through to nothing (returns 0).
-    unsigned glShaderMatLayer(int loc);
     bool ok() const { return translatedOk_; }
     const std::string &glsl() const { return glsl_; }
 private:
@@ -73,8 +63,6 @@ private:
     unsigned long     lastTryPres_ = 0;      // present # of the last attempt
     bool              translatedOk_ = false;
     std::string       glsl_;
-    std::map<unsigned long long, unsigned> instVariants_;   // (matBase<<32|matCount<<24|loc0) -> GL shader
-    std::map<int, unsigned> matLayerVariants_;              // ?matarray=3: loc -> GL shader
 };
 
 class GLPixelShader final : public GLObject<IDirect3DPixelShader9> {
@@ -89,11 +77,6 @@ public:
     // cached; the program cache keys on GL shader ids so (vs, ps-variant) pairs link
     // independently.
     unsigned glShader(unsigned shadowMask);
-    // ?matarray stage 2: variant with matMask's sampler stages typed sampler2DArray
-    // sampling layer uMatLayer (the material's bucket layer). Cached per (matMask,
-    // shadowMask); matMask 0 falls through to glShader(shadowMask). Default-inert —
-    // nothing calls this until the stage-3 bind plumbing lands.
-    unsigned glShaderMat(unsigned matMask, unsigned shadowMask, bool instanced = false);
     bool ok() const { return translatedOk_; }
 private:
     IDirect3DDevice9 *device_;
@@ -108,7 +91,6 @@ private:
     // compiles with empty logs; retry with cooldown instead of caching failure forever.
     struct Variant { unsigned gl = 0; int tries = 0; unsigned long lastPres = 0; };
     std::map<unsigned, Variant> variants_;
-    std::map<unsigned long long, Variant> matVariants_;   // (matMask<<32 | shadowMask) -> variant
 };
 
 #endif // KISAK_GL_SHADER_H

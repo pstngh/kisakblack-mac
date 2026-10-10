@@ -48,22 +48,10 @@ KISAK_DECLARE_HANDLE(HGLRC);
 
 static inline DWORD GetCurrentThreadId()  { return (DWORD)(uintptr_t)pthread_self(); }
 static inline DWORD GetCurrentProcessId() { return (DWORD)getpid(); }
-#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
-// Single-OS-thread cooperative build: a real usleep would block the one OS thread and
-// freeze the page. Instead, Sleep/SwitchToThread YIELD to the fiber scheduler so other
-// engine "threads" (fibers) make progress. (WebFiber_Yield lives in web_fibers.cpp;
-// declared here with matching C++ linkage — see web_fibers.h.)
-void WebFiber_Yield(void);
-static inline void  Sleep(DWORD /*ms*/)   { WebFiber_Yield(); }
-static inline BOOL  SwitchToThread()      { WebFiber_Yield(); return TRUE; }
-#else
-// Real-thread build (desktop, or Emscripten WITH -pthread = Web Workers). Each engine
-// thread is its own OS thread/worker, so a real usleep/yield is correct: it parks THIS
-// worker and lets the others run. Under PROXY_TO_PTHREAD + ALLOW_BLOCKING_ON_MAIN_THREAD
-// even the proxied "main" worker may block here without freezing the DOM thread.
+// Each engine thread is its own OS thread, so a real usleep/yield parks THIS thread and
+// lets the others run.
 static inline void  Sleep(DWORD ms)       { if (ms) usleep((useconds_t)ms * 1000u); }
 static inline BOOL  SwitchToThread()      { return sched_yield() == 0; }
-#endif
 
 typedef struct _SYSTEMTIME {
     WORD wYear, wMonth, wDayOfWeek, wDay, wHour, wMinute, wSecond, wMilliseconds;
@@ -368,12 +356,7 @@ static inline void GetSystemTimeAsFileTime(FILETIME *ft) { if (ft) { ft->dwLowDa
 // rather than blocking forever on the APC that will never come.
 static inline DWORD SleepEx(DWORD ms, BOOL alertable) {
     if (alertable) return 0x000000C0;                              // WAIT_IO_COMPLETION
-#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
-    // Cooperative build: yield to the fiber scheduler rather than block the OS thread.
-    if (ms) { extern void WebFiber_Yield(void); WebFiber_Yield(); }
-#else
     if (ms && ms != INFINITE) usleep((useconds_t)ms * 1000u);
-#endif
     return 0;
 }
 static inline void *InterlockedExchangePointer(void **target, void *value) { return __sync_lock_test_and_set(target, value); }
@@ -387,10 +370,10 @@ static inline BOOL      SetThreadPriority(HANDLE, int)                       { r
 // bit would force single-threaded rendering — which is wrong for the GL
 // backend, whose context is bound to the render thread and must receive all
 // draw work via the SMP hand-off rather than inline on the main thread.
-// The engine passes DWORD* (not DWORD_PTR*); on i386 these are identical so it
-// compiled, but on wasm32 DWORD(unsigned int) and DWORD_PTR(uintptr_t) are
-// distinct pointer types and Clang rejects the mismatch. Take DWORD* — the mask
-// is 32-bit and the count is capped at 32, so it fits.
+// The engine passes DWORD* (not DWORD_PTR*); on i386 these are identical, on 64-bit
+// DWORD (unsigned int) and DWORD_PTR (uintptr_t) are distinct pointer types and Clang
+// rejects the mismatch. Take DWORD* — the mask is 32-bit and the count is capped at
+// 32, so it fits.
 static inline BOOL      GetProcessAffinityMask(HANDLE, DWORD *p, DWORD *s) {
     long n = sysconf(_SC_NPROCESSORS_ONLN);
     if (n < 1)  n = 1;

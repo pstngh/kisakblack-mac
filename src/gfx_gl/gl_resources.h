@@ -11,14 +11,9 @@
 #include <vector>
 #include <mutex>
 
-// DEFERRED GL (all resource classes below): the engine creates and Lock/Unlocks
-// resources from loader threads. On the de-proxied web build the GL context is LOCAL
-// to the render worker; Emscripten forwards GL calls from context-less threads to the
-// browser main thread, which has no context there either -> "undefined.createBuffer"
-// crash (the proxied build masked this because the DOM thread held the proxied
-// context). So: when an op runs OFF the GL thread, the GL work (creation + upload) is
+// DEFERRED GL (all resource classes below): uploads that find no GL object yet are
 // recorded as pending against the CPU shadow and replayed by sync(), which glName()
-// triggers at bind time on the render thread. On the GL thread behavior is unchanged.
+// triggers at bind time on the render thread.
 //
 // CONCURRENT LOCKS (the SMP world flicker): the engine's dynamic VB/IB are a SINGLE
 // shared ring (gfxBuf.dynamic*BufferPool[1], D3D9 NOOVERWRITE contract) — the
@@ -53,15 +48,6 @@ public:
     // DISCARD orphan), so a per-(buffer,offset) VAO cache misses every time and thrashes — these
     // take the shared-VAO re-spec path instead (gl_d3d9_draw.cpp applyVertexState).
     bool     isDynamic() const { return (usage_ & D3DUSAGE_DYNAMIC) != 0; }
-    // ?vbarena (web): static buffers live inside a shared arena chunk (gl_resources.cpp).
-    // SetStreamSource records the bind stride BEFORE first sync so placement can be
-    // stride-aligned; the draw layer folds arenaOff into per-draw baseVertex.
-    void     noteStride(UINT stride) { if (!strideHint_) strideHint_ = stride; }
-    bool     inArena() const { return arena_; }
-    UINT     arenaOff() const { return arenaOff_; }
-    // Bind identity for batch-flush compares: pre-placement the object address (unique);
-    // once arena-placed, the shared chunk's GL name — equal across co-resident buffers.
-    size_t   bindIdent() const { return arena_ ? (size_t)vbo_ : (size_t)this; }
     bool     pendingUpload() const { return pendMax_ > pendMin_; }   // unlocked hint (see glName)
 
 private:
@@ -71,9 +57,6 @@ private:
     DWORD                     usage_;
     DWORD                     fvf_;
     D3DPOOL                   pool_;
-    bool                      arena_ = false;   // ?vbarena: vbo_ is the shared chunk name
-    UINT                      arenaOff_ = 0;    // this buffer's byte offset inside the chunk
-    UINT                      strideHint_ = 0;  // first bind stride (placement alignment)
     std::vector<unsigned char> shadow_;  // CPU mirror backing Lock()
     std::mutex                lockMu_;        // guards lock/pend bookkeeping (FE+BE lock concurrently)
     UINT                      lockDepth_   = 0;
@@ -104,14 +87,8 @@ public:
     unsigned glName() { if (!ibo_ || pendMax_ > pendMin_) sync(); return ibo_; }
     void     sync();
     D3DFORMAT format() const { return format_; }
-    const unsigned char *shadowData() const { return shadow_.data(); }   // CPU mirror (merge-flush)
     UINT     length() const { return length_; }
     bool     isDynamic() const { return (usage_ & D3DUSAGE_DYNAMIC) != 0; }
-    // ?vbarena (web): see GLVertexBuffer — same scheme; draw layer adds arenaOff to the
-    // per-draw index byte offset.
-    bool     inArena() const { return arena_; }
-    UINT     arenaOff() const { return arenaOff_; }
-    size_t   bindIdent() const { return arena_ ? (size_t)ibo_ : (size_t)this; }
     bool     pendingUpload() const { return pendMax_ > pendMin_; }
 
 private:
@@ -121,8 +98,6 @@ private:
     DWORD                     usage_;
     D3DFORMAT                 format_;
     D3DPOOL                   pool_;
-    bool                      arena_ = false;
-    UINT                      arenaOff_ = 0;
     std::vector<unsigned char> shadow_;
     std::mutex                lockMu_;
     UINT                      lockDepth_   = 0;
@@ -172,13 +147,6 @@ public:
     UINT      width()  const { return width_; }
     UINT      height() const { return height_; }
     D3DFORMAT format() const { return format_; }
-    // ?lmarray: upload this texture's level-0 pixels into one layer of a GL_TEXTURE_2D_ARRAY,
-    // using its retained CPU shadow + the same D3D->GL format mapping as a normal 2D upload.
-    void      KB_UploadIntoArrayLayer(unsigned arrayTex, int layer);
-    // ?matarray: upload EVERY mip level into a texStorage3D-allocated array layer —
-    // compressed via glCompressedTexSubImage3D (the entry points the lmarray attempt
-    // lacked). Returns false on a missing shadow level. Non-virtual: no layout change.
-    bool      KB_UploadAllLevelsIntoArray(unsigned arrayTex, int layer);
     UINT      levels() const { return levels_; }
 
 private:
@@ -384,7 +352,7 @@ private:
 class GLVertexDeclaration final : public GLObject<IDirect3DVertexDeclaration9> {
 public:
     GLVertexDeclaration(IDirect3DDevice9 *device, const D3DVERTEXELEMENT9 *elements);
-    ~GLVertexDeclaration() override;   // bumps g_kbVaoEpoch (cached VAOs key on the decl address)
+    ~GLVertexDeclaration() override;   // drops its cached VAOs (they key on the decl address)
 
     HRESULT WINAPI GetDevice(IDirect3DDevice9 **ppDevice) override;
     HRESULT WINAPI GetDeclaration(D3DVERTEXELEMENT9 *pElement, UINT *pNumElements) override;

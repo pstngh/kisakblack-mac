@@ -1,7 +1,6 @@
 // gl_shader.cpp — DX9 bytecode → GLSL 120 translator + GL shader objects.
 #include "gl_shader.h"
 #include "gl_platform.h"
-#include "gl_optrace.h"
 
 #include <GL/glew.h>
 #include <map>
@@ -10,9 +9,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#if defined(__EMSCRIPTEN__)
-#include <emscripten.h>   // EM_ASM (raw-JS context probe in compileGL)
-#endif
 
 namespace {
 
@@ -80,7 +76,7 @@ std::string swizStr(int sw) {  // src swizzle as a 4-component selector, "" if i
     return s;
 }
 
-// ---- D3D9 disassembler (?dumpenv) ------------------------------------------
+// ---- D3D9 disassembler (KB_DUMPENV) ------------------------------------------
 // Faithful asm text rebuilt from the SAME token stream the translator consumes, but
 // through NONE of the translation logic — so a translated-GLSL-vs-asm diff exposes
 // translator bugs instead of reflecting them (the envmap over-reflection hunt).
@@ -135,9 +131,9 @@ static std::string kbSrcAsm(const Operand &o) {
     }
 }
 
-// GLSL output dialect. The desktop build emits `#version 120` compat GLSL; the
-// WebGL2 build emits `#version 300 es` (GLSL ES 3.00). The translator is
-// parameterized on this — the 120 path is preserved verbatim, not replaced.
+// GLSL output dialect: `#version 120` compat GLSL (Linux), or `#version 300 es`
+// (GLSL ES 3.00) on the macOS core profile, which KB_GLSLForContext turns into GLSL
+// 4.10 (gl_platform.h).
 #if defined(KB_GL_MODERN_GLSL)
 static const bool kEmitES_default = true;
 #else
@@ -153,30 +149,6 @@ struct Ctx {
     // Texture sampler call: texture2D in 120, overloaded texture() in ES 3.00.
     const char *texFn() const { return emitES ? "texture" : "texture2D"; }
     unsigned shadowMask = 0;   // samplers typed sampler2DShadow (depth-compare lookups)
-    // ?lmarray: sampler stages to emit as sampler2DArray instead of sampler2D, sampling layer
-    // uLmLayer (the per-draw lightmap page). Dissolves the per-surface lightmap BIND (s12/13/14)
-    // into a per-draw layer index so lit-world draws can collapse into one multi-draw. 0 = off.
-    unsigned lmArrayMask = 0;
-    // True only when stage sN is an lmArray stage, a plain 2D sampler (not shadow), AND we emit ES
-    // 3.00 (sampler2DArray needs GLSL ES 3.00 / desktop 130+; the #version 120 path stays untouched).
-    bool lmA(int sN) const {
-        return emitES && ((lmArrayMask >> sN) & 1) && !((shadowMask >> sN) & 1)
-            && (samplerDim.count(sN) ? samplerDim.at(sN) : 2) == 2;
-    }
-    // ?matarray stage 2: sampler stages to emit as sampler2DArray sampling layer uMatLayer —
-    // the per-draw MATERIAL layer in its bucket's stage array (consolidation; the lmarray
-    // mechanism generalized). Per-variant, set via KB_SetMatArrayTranslateMask before the
-    // translate call (mask differs per material bucket, unlike the global lmArrayMask).
-    unsigned matArrayMask = 0;
-    bool matA(int sN) const {
-        return emitES && ((matArrayMask >> sN) & 1) && !((shadowMask >> sN) & 1) && !lmA(sN)
-            && (samplerDim.count(sN) ? samplerDim.at(sN) : 2) == 2;
-    }
-    // ?matarray=3 (stage 3b): deliver the layer as a per-instance flat varying (vMatLayer, fed by
-    // the VS instanced attribute) instead of the uniform uMatLayer — lets one merged multi-draw
-    // carry a different layer per sub-draw via baseInstance. Level 2 keeps the uniform.
-    bool matLayerInstanced = false;
-    const char *matLayerVar() const { return matLayerInstanced ? "vMatLayer" : "uMatLayer"; }
     std::map<int, std::pair<int,int>> inputs;   // reg -> (usage, usageIndex)
     std::map<int, std::pair<int,int>> outputs;  // reg -> (usage, usageIndex)  (vertex)
     std::set<int> samplers;
@@ -309,7 +281,7 @@ void emitInstr(Ctx &c, int op, const Operand *src, int nsrc, const Operand &dst,
         // Screen-space partial derivatives. Dropping these (the dest stayed vec4(0)) broke
         // every pixel shader that uses ddx/ddy — mip selection and distance detail — which
         // is what made distant surfaces blow out to white/blue on mp_mountain. dFdx/dFdy are
-        // core in both GLSL ES 3.00 (WebGL2) and desktop 1.20.
+        // core in both GLSL ES 3.00 and desktop 1.20.
         case OP_DSX:   expr = "dFdx(" + s(0) + ")"; break;
         case OP_DSY:   expr = "dFdy(" + s(0) + ")"; break;
         case OP_TEXLD: {
@@ -328,14 +300,6 @@ void emitInstr(Ctx &c, int op, const Operand *src, int nsrc, const Operand &dst,
                 else
                     expr = c.emitES ? "vec4(texture(" + samp + ", KB_sc(vec4((" + s(0) + ").xyz, 1.0))))"
                                     : "vec4(shadow2D(" + samp + ", KB_sc(vec4((" + s(0) + ").xyz, 1.0))).x)";
-            } else if (c.lmA(sreg)) {
-                // lightmap array: sample layer uLmLayer instead of a bound 2D texture (?lmarray).
-                // (lit lightmap lookups are plain 2D fetches — never projective/biased here.)
-                expr = "texture(" + samp + ", vec3((" + s(0) + ").xy, uLmLayer))";
-            } else if (c.matA(sreg)) {
-                // ?matarray stage 2/3: material stage rides its bucket's texture array; the
-                // per-draw layer comes via uMatLayer (uniform, =2) or vMatLayer (per-instance, =3).
-                expr = "texture(" + samp + ", vec3((" + s(0) + ").xy, " + c.matLayerVar() + "))";
             } else if (ctrl == 1) {
                 expr = std::string(c.emitES ? "textureProj" : "texture2DProj") + "(" + samp + ", " + s(0) + ")";
             } else {
@@ -448,36 +412,12 @@ static bool KB_DumpEnvWanted() {
     return en == 1;
 }
 
-// ?lmarray (KB_LMARRAY=1): which sampler stages to translate as sampler2DArray (layer = uLmLayer).
-// Stage 1a = primary lightmap only (s12); extend to s12|s13|s14 once primary is verified. Cached.
-unsigned KB_LmArrayMask() {
-    static int mask = -1;
-    if (mask < 0) { const char *e = getenv("KB_LMARRAY"); mask = (e && *e == '1') ? (1 << 12) : 0; }
-    return (unsigned)mask;
-}
-
-// ?matarray stage 2: the pending per-variant material-array mask for the NEXT translate
-// call (glShaderMat sets it around its TranslateD3D9Shader invocation; single-threaded
-// translate path — the GL thread). 0 = plain translation.
-static unsigned g_kbMatTranslateMask = 0;
-extern "C" void KB_SetMatArrayTranslateMask(unsigned mask) { g_kbMatTranslateMask = mask; }
-// ?matarray=3: when set, the PS matarray variant emits the layer as a flat varying (vMatLayer)
-// rather than the uMatLayer uniform. Set around the translate by glShaderMat's instanced path.
-static bool s_matInstancedTranslate = false;
-
 bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
                          unsigned shadowSamplerMask, unsigned *outSamplerMask) {
     Ctx c;
-    // Diagnostic/test override: KB_GLSL_ES=1 forces GLSL ES 3.00 emit (=0 forces
-    // #version 120) on any build, so the ES output can be dumped + checked offline
-    // without an Emscripten compile. Defaults to kEmitES_default otherwise.
-    if (const char *e = getenv("KB_GLSL_ES")) c.emitES = (e[0] != '0');
     DWORD ver = *tok++;
     c.isPixel = (ver >> 16) == 0xFFFF;
     c.shadowMask = shadowSamplerMask;
-    if (c.isPixel) c.lmArrayMask = KB_LmArrayMask();   // lightmaps are sampled in the pixel shader
-    if (c.isPixel) c.matArrayMask = g_kbMatTranslateMask;   // ?matarray stage-2 variant (0 = plain)
-    if (c.isPixel) c.matLayerInstanced = s_matInstancedTranslate;   // ?matarray=3 per-instance layer
     if (outIsPixel) *outIsPixel = c.isPixel;
 
     std::ostringstream body;
@@ -514,7 +454,7 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
                 // dcl_2d/dcl_cube/dcl_volume: texture type in usage token bits 27..30.
                 // Ignoring this typed EVERY sampler sampler2D; sampling the bound 3D
                 // model-lighting volume (or a cubemap) through a sampler2D is a
-                // sampler-type conflict that INVALIDATES the draw on WebGL2 — static
+                // sampler-type conflict that INVALIDATES the draw — static
                 // models went black/vanished (cupboard/drapes/paintings).
                 c.samplerDim[reg.reg] = (int)((usageTok >> 27) & 0xF);
             }
@@ -575,7 +515,7 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
     // Assemble the GLSL translation unit. Two dialects, parameterized on c.emitES:
     //   * #version 120 (desktop compat): attribute/varying, gl_FragColor,
     //     texture2D, fixed-function GL_ALPHA_TEST does the cutout.
-    //   * #version 300 es (WebGL2): in/out, a declared fragColor out, texture(),
+    //   * #version 300 es (macOS core profile): in/out, a declared fragColor out, texture(),
     //     explicit precision, and alpha test emulated with discard (no
     //     GL_ALPHA_TEST in ES) against uAlphaTestFunc/uAlphaRef uniforms that the
     //     state layer feeds in place of glAlphaFunc.
@@ -593,22 +533,10 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
             // single line every shadow variant failed to compile (and the affected
             // draws fell to the builtin, which used to fail too -> invisible geometry).
             if (c.shadowMask) o << "precision highp sampler2DShadow;\n";
-            bool anyLmArray = false, anyMatArray = false;
-            for (int sN : c.samplers) { if (c.lmA(sN)) anyLmArray = true; if (c.matA(sN)) anyMatArray = true; }
-            if (anyLmArray || anyMatArray) {
-                // ES 3.00 has no default precision for sampler2DArray (same trap as sampler3D/2DShadow).
-                o << "precision highp sampler2DArray;\n";
-            }
-            if (anyLmArray)  o << "uniform float uLmLayer;\n";    // per-draw lightmap page (state layer)
-            if (anyMatArray) {
-                if (c.matLayerInstanced) o << "flat in float vMatLayer;\n";   // ?matarray=3 per-instance layer (from VS)
-                else                     o << "uniform float uMatLayer;\n";   // ?matarray=2 per-draw bucket layer
-            }
             for (int sN : c.samplers)
             {
                 int dim = c.samplerDim.count(sN) ? c.samplerDim.at(sN) : 2;
                 const char *ty = ((c.shadowMask >> sN) & 1) ? "sampler2DShadow"
-                                 : (c.lmA(sN) || c.matA(sN)) ? "sampler2DArray"
                                  : dim == 4 ? "sampler3D" : dim == 3 ? "samplerCube" : "sampler2D";
                 o << "uniform " << ty << " s" << sN << ";\n";
             }
@@ -659,7 +587,7 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
     // the EXACT same gl_Position.z in both passes. D3D9 guarantees that ("position
     // invariance"); GLSL does NOT unless gl_Position is declared invariant, so the prepass
     // and color shaders' depths drift by a ULP and surfaces fail the depth test and drop out
-    // (the heavy world-geometry flicker on the web build). Declaring it invariant forces the
+    // (heavy world-geometry flicker). Declaring it invariant forces the
     // compiler to compute it identically across shaders/passes.
     if (!c.isPixel) o << "invariant gl_Position;\n";
     if (!c.isPixel) o << "uniform vec4 kbPosFixup;\n";
@@ -668,9 +596,9 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
     if (c.usedA0) o << "  ivec4 a0 = ivec4(0);\n";
     o << body.str();
     // D3D9 -> GL clip-space depth fixup. D3D9 vertex shaders emit clip-space z in [0,w]
-    // (post-divide NDC z in [0,1]); OpenGL/WebGL2 expects [-w,w] (NDC z in [-1,1]). On
-    // desktop GL this is normally handled with glClipControl(GL_ZERO_TO_ONE), but that
-    // entry point does NOT exist in WebGL2/GLES3, so we must remap in the shader. Without
+    // (post-divide NDC z in [0,1]); OpenGL expects [-w,w] (NDC z in [-1,1]). GL 4.5's
+    // glClipControl(GL_ZERO_TO_ONE) would handle it, but macOS stops at GL 4.1 (and
+    // Linux's compat path at 2.1-era GLSL), so we remap in the shader. Without
     // it, every depth value is compressed into the far half [0.5,1.0] of the depth buffer
     // -> half the precision is wasted and distant coplanar surfaces z-fight (buildings
     // flickering in and out). z' = 2z - w maps NDC [0,1] -> [-1,1] exactly.
@@ -711,7 +639,7 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
         *outSamplerMask = m;
     }
     out = o.str();
-    // ?dumpenv=1: print cube-sampling PIXEL shaders (the envmap/specular users) with the
+    // KB_DUMPENV=1: print cube-sampling PIXEL shaders (the envmap/specular users) with the
     // ORIGINAL D3D9 disassembly side-by-side, so the term math can be diffed op-by-op
     // against the translation. world=1 marks lightmap-sampling (lit-world) techniques —
     // the mirror-surfaces class; up to 2 model + 2 world shaders per run.
@@ -734,28 +662,6 @@ bool TranslateD3D9Shader(const DWORD *tok, std::string &out, bool *outIsPixel,
 }
 
 // ---- GL shader objects ----------------------------------------------------
-#if defined(__EMSCRIPTEN__)
-// DIRECT GL getters: the engine's GL calls go through GLEW function pointers, which on
-// wasm are indirect calls wrapped by EMULATE_FUNCTION_POINTER_CASTS thunks — a layer
-// that has already mangled one call shape in this port (see the struct-by-value bug).
-// Status getters through that path read 0 with EMPTY info logs for shaders that a raw
-// JS context compiles fine. emscripten_gl* are ordinary exported functions (the same
-// ones GetProcAddress hands out) — calling them DIRECTLY bypasses GLEW + the thunks.
-extern "C" {
-    void emscripten_glGetShaderiv(unsigned shader, unsigned pname, int *params);
-    void emscripten_glGetShaderInfoLog(unsigned shader, int maxLength, int *length, char *infoLog);
-}
-extern int g_kbCtxIsLocal;   // 1 = direct calls legal; 0 = proxied, use GLEW dispatch
-static inline void KB_glGetShaderiv(unsigned sh, unsigned pn, int *p) {
-    if (g_kbCtxIsLocal) emscripten_glGetShaderiv(sh, pn, p); else glGetShaderiv(sh, pn, p);
-}
-static inline void KB_glGetShaderInfoLog(unsigned sh, int n, int *len, char *log) {
-    if (g_kbCtxIsLocal) emscripten_glGetShaderInfoLog(sh, n, len, log); else glGetShaderInfoLog(sh, n, len, log);
-}
-#else
-#define KB_glGetShaderiv      glGetShaderiv
-#define KB_glGetShaderInfoLog glGetShaderInfoLog
-#endif
 
 static unsigned compileGL(GLenum stage, const std::string &src, const char *label) {
     // Diagnostic: dump every translated shader to $KB_DUMP_GLSL/<n>.<vert|frag>.
@@ -765,7 +671,6 @@ static unsigned compileGL(GLenum stage, const std::string &src, const char *labe
         snprintf(path, sizeof(path), "%s/%04d.%s", dir, n++, stage == GL_VERTEX_SHADER ? "vert" : "frag");
         if (FILE *f = fopen(path, "wb")) { fwrite(src.data(), 1, src.size(), f); fclose(f); }
     }
-    KB_OpTag("compile", stage, (unsigned)src.size(), 0);
     unsigned s = glCreateShader(stage);
     if (!s) {
         // glCreateShader=0 = NO GL CONTEXT on this thread (or context lost) — never a
@@ -779,72 +684,14 @@ static unsigned compileGL(GLenum stage, const std::string &src, const char *labe
     glShaderSource(s, 1, &p, nullptr);
     glCompileShader(s);
     GLint ok = 0;
-    KB_glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
-#if defined(__EMSCRIPTEN__)
-    // One-shot cross-check: does the GLEW/funcptr path agree with the direct call?
-    {
-        static bool checked = false;
-        if (!checked) {
-            checked = true;
-            GLint okGlew = 0;
-            glGetShaderiv(s, GL_COMPILE_STATUS, &okGlew);
-            if (okGlew != ok)
-                fprintf(stderr, "[gl] GETTER MISMATCH: glGetShaderiv direct=%d via-GLEW=%d "
-                                "(GLEW/fpcast path is mangling getter results)\n", ok, okGlew);
-        }
-    }
-#endif
+    glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
     if (!ok) {
         char log[2048];
         log[0] = 0;
-        KB_glGetShaderInfoLog(s, sizeof(log), nullptr, log);
+        glGetShaderInfoLog(s, sizeof(log), nullptr, log);
         if (!log[0]) {
-            // status=0 + EMPTY log = the compile is PENDING, not failed: with
-            // KHR_parallel_shader_compile (auto-enabled; present on real GPUs, absent on
-            // SwiftShader) WebGL's COMPILE_STATUS returns false WITHOUT blocking until the
-            // async compile finishes. The shader is fine — the link path resolves it.
-            // One-time deep probe: force completion with a BLOCKING query (any non-status
-            // getter must wait, via the sync GPU-process path — no event loop needed) and
-            // report what the shader REALLY is once forced.
-#if defined(__EMSCRIPTEN__)
-            // RAW-JS probe, bypassing every wasm/emscripten layer: ask the browser itself.
-            // GL_SHADER_TYPE reading 0 via the C path means the driver returned null for
-            // queries — on a LOST context every GL call silently no-ops exactly like this
-            // (and the webglcontextlost event can never fire here: event delivery needs
-            // this worker's event loop, which the render thread never pumps).
-            static int probes = 0;
-            if (probes < 3) {
-                ++probes;
-                EM_ASM({
-                    try {
-                        var sh = GL.shaders[$0];
-                        var lost = GLctx.isContextLost();
-                        var ty = GLctx.getShaderParameter(sh, 0x8B4F /*SHADER_TYPE*/);
-                        var err = GLctx.getError();
-                        var st = GLctx.getShaderParameter(sh, 0x8B81 /*COMPILE_STATUS*/);
-                        var lg = GLctx.getShaderInfoLog(sh);
-                        console.error('[gl] RAW probe shader=' + $0 + ': contextLost=' + lost +
-                                      ' obj=' + (sh ? sh.constructor.name : 'null') +
-                                      ' type=' + ty + ' err=0x' + (err ? err.toString(16) : '0') +
-                                      ' status=' + st + ' log="' + (lg || '') + '"');
-                        // Fresh recompile of the SAME source: compiles are synchronous now,
-                        // so this status/log is LIVE — if the source genuinely fails on this
-                        // driver, the real error text appears here.
-                        var src = UTF8ToString($1);
-                        var s2 = GLctx.createShader($2);
-                        GLctx.shaderSource(s2, src);
-                        GLctx.compileShader(s2);
-                        var st2 = GLctx.getShaderParameter(s2, 0x8B81);
-                        var ty2 = GLctx.getShaderParameter(s2, 0x8B4F);
-                        var lg2 = GLctx.getShaderInfoLog(s2) || '';
-                        GLctx.deleteShader(s2);
-                        console.error('[gl] RAW2 fresh recompile: type=' + ty2 + ' status=' + st2 +
-                                      ' srcLen=' + src.length + ' log="' + lg2.substring(0, 300) + '"' +
-                                      ' src0="' + src.substring(0, 60).split(String.fromCharCode(10)).join(' / ') + '"');
-                    } catch (e) { console.error('[gl] RAW probe threw: ' + e.message); }
-                }, (int)s, src.c_str(), (int)stage);
-            }
-#endif
+            // status=0 with an EMPTY log is treated as success (on the WebGL target it
+            // meant "still compiling"); a real failure shows up when the program links.
             return s;
         }
         fprintf(stderr, "[gl] %s translate/compile failed (shader=%u glErr=0x%x):\n%s\nGLSL:\n%s\n",
@@ -857,16 +704,14 @@ static unsigned compileGL(GLenum stage, const std::string &src, const char *labe
 
 // Constructors only TRANSLATE (pure CPU, any thread). The GL compile happens lazily
 // in glShader() on the thread that links/draws, which is the one with the GL context
-// current — see the note in gl_shader.h (loader threads have no context on the
-// de-proxied web build; glCreateShader there returns 0 with an empty info log).
+// current — see the note in gl_shader.h (loader threads have no GL context).
 GLVertexShader::GLVertexShader(IDirect3DDevice9 *device, const DWORD *function) : device_(device) {
     bool isPixel = false;
     translatedOk_ = TranslateD3D9Shader(function, glsl_, &isPixel) && !isPixel;
 }
-// Failed compiles RETRY with a cooldown instead of latching: a transiently-distressed
-// GPU process (the de-proxy map-load storm) fails compiles with empty logs; latching
-// turned a bad moment into permanently-black materials. Bounded: 8 tries, 30 presents
-// apart — a real GLSL error just prints a few times and stops.
+// Failed compiles RETRY with a cooldown instead of latching (a transient failure must not
+// leave a material permanently black). Bounded: 8 tries, 30 presents apart — a real GLSL
+// error just prints a few times and stops.
 extern unsigned long g_kbPresentEnter;
 static bool kbCompileGate(unsigned shader, int &tries, unsigned long &lastPres) {
     if (shader) return false;
@@ -882,58 +727,6 @@ unsigned GLVertexShader::glShader() {
         tries_ = shader_ ? 0 : tries_ + 1;
     }
     return shader_;
-}
-// Instanced variant: rewire the per-object matrix (vsc[matBase..matBase+matCount-1]) to read
-// from instanced vertex attributes (kbInstRow0..N at locations locs[], divisor 1 set by the
-// draw path). Pure text transform of the already-validated GLSL — no bytecode re-decode.
-unsigned GLVertexShader::glShaderInstanced(unsigned matBase, int matCount, const int *locs) {
-    if (!translatedOk_ || matCount < 1 || matCount > 8) return 0;   // up to 8 instanced vsc regs
-    unsigned long long key = ((unsigned long long)matBase << 32) | ((unsigned long long)matCount << 24)
-                           | ((unsigned)locs[0] & 0xff);
-    auto it = instVariants_.find(key);
-    if (it != instVariants_.end()) return it->second;
-
-    std::string src = glsl_;
-    // 1) Declare the instanced attributes right after the "#version" line.
-    std::string decls;
-    for (int i = 0; i < matCount; ++i)
-        decls += "layout(location=" + std::to_string(locs[i]) + ") in vec4 kbInstRow"
-               + std::to_string(i) + ";\n";
-    size_t nl = src.find('\n');
-    if (nl == std::string::npos) { instVariants_[key] = 0; return 0; }
-    src.insert(nl + 1, decls);
-    // 2) Replace every vsc[matBase+i] (exact, bracket-terminated -> no false 197 vs 1970 hits)
-    //    with the matching instanced attribute.
-    for (int i = 0; i < matCount; ++i) {
-        std::string from = "vsc[" + std::to_string(matBase + i) + "]";
-        std::string to   = "kbInstRow" + std::to_string(i);
-        for (size_t pos = 0; (pos = src.find(from, pos)) != std::string::npos; )
-        { src.replace(pos, from.size(), to); pos += to.size(); }
-    }
-    unsigned sh = compileGL(GL_VERTEX_SHADER, src, "vertex shader (instanced)");
-    instVariants_[key] = sh;
-    return sh;
-}
-// ?matarray=3: VS variant that carries the per-instance material layer to the PS. Injects an
-// instanced float attribute at `loc` (the caller's free decl slot) + a flat varying, and the
-// passthrough assignment at the top of main(). Cached per loc. Pairs with the PS instanced
-// matarray variant (vMatLayer) and the layer attribute bound in KB_DrawWorldMulti.
-unsigned GLVertexShader::glShaderMatLayer(int loc) {
-    if (!translatedOk_ || loc < 0) return 0;
-    auto it = matLayerVariants_.find(loc);
-    if (it != matLayerVariants_.end()) return it->second;
-    std::string src = glsl_;
-    size_t nl = src.find('\n');
-    if (nl == std::string::npos) { matLayerVariants_[loc] = 0; return 0; }
-    src.insert(nl + 1, "layout(location=" + std::to_string(loc) + ") in float aMatLayer;\n"
-                       "flat out float vMatLayer;\n");
-    size_t mb = src.find("void main()");
-    size_t br = (mb != std::string::npos) ? src.find('{', mb) : std::string::npos;
-    if (br == std::string::npos) { matLayerVariants_[loc] = 0; return 0; }
-    src.insert(br + 1, "\n  vMatLayer = aMatLayer;");
-    unsigned sh = compileGL(GL_VERTEX_SHADER, src, "vertex shader (matlayer)");
-    matLayerVariants_[loc] = sh;
-    return sh;
 }
 GLVertexShader::~GLVertexShader() { if (shader_) glDeleteShader(shader_); }
 HRESULT WINAPI GLVertexShader::GetDevice(IDirect3DDevice9 **pp) { if (!pp) return E_INVALIDARG; *pp = device_; if (device_) device_->AddRef(); return D3D_OK; }
@@ -977,32 +770,6 @@ unsigned GLPixelShader::glShader(unsigned shadowMask) {
         std::string glsl; bool isPix = false;
         if (TranslateD3D9Shader(func_.data(), glsl, &isPix, shadowMask) && isPix)
             v.gl = compileGL(GL_FRAGMENT_SHADER, glsl, "pixel shader (shadow variant)");
-        v.tries = v.gl ? 0 : v.tries + 1;
-    }
-    return v.gl;
-}
-unsigned GLPixelShader::glShaderMat(unsigned matMask, unsigned shadowMask, bool instanced) {
-    matMask &= samplerMask_;             // only samplers this shader actually reads
-    if (matMask == 0 || func_.empty())
-        return glShader(shadowMask);
-    // Key includes the instanced bit so the =2 (uniform) and =3 (per-instance) variants cache
-    // separately. matMask fits in 16 bits (sampler regs) so bit 31 is free for the flag.
-    unsigned long long key = ((unsigned long long)(matMask | (instanced ? 0x80000000u : 0u)) << 32)
-                           | (shadowMask & samplerMask_);
-    Variant &v = matVariants_[key];
-    if (kbCompileGate(v.gl, v.tries, v.lastPres)) {
-        v.lastPres = g_kbPresentEnter;
-        // Retranslate with matMask's stages typed sampler2DArray (layer = uMatLayer uniform, or
-        // the vMatLayer flat varying when instanced) on top of any shadow typing — the pending
-        // globals (defined above) route it into the translator.
-        KB_SetMatArrayTranslateMask(matMask);
-        s_matInstancedTranslate = instanced;
-        std::string glsl; bool isPix = false;
-        bool ok = TranslateD3D9Shader(func_.data(), glsl, &isPix, shadowMask) && isPix;
-        KB_SetMatArrayTranslateMask(0);
-        s_matInstancedTranslate = false;
-        if (ok)
-            v.gl = compileGL(GL_FRAGMENT_SHADER, glsl, "pixel shader (matarray variant)");
         v.tries = v.gl ? 0 : v.tries + 1;
     }
     return v.gl;

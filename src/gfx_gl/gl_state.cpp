@@ -12,29 +12,18 @@
 
 #include <GL/glew.h>
 #include <cstdlib>   // getenv (KB_NOPREPASS)
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>   // EM_ASM_INT (?withprepass override)
-#endif
-extern "C" void KB_FlushBatchedDraws();  // batched-draw flush (gl_d3d9_draw.cpp)
-extern "C" void KB_FlushTagged(int cause); // same, +flush-cause telemetry
 
-// Single-pass (NO depth prepass) is the WEB DEFAULT. The depth prepass re-draws ALL opaque
-// world geometry up front to populate depth so the lit pass can ZFUNC=EQUAL-shade each pixel
-// once — a win only when fill/overdraw-bound. The web build is GL-CALL-bound (every draw
-// crosses the wasm->JS boundary), so the prepass is thousands of pure-overhead draws in dense
-// areas. Skipping it (here: remap the lit pass's EQUAL->LEQUAL so it still depth-tests in one
-// pass; and gate the prepass pass itself off in rb_draw3d.cpp via KB_NoPrepass) removes them
-// at no visible cost. ?withprepass restores the classic two-pass for A/B (or if foliage depth
-// ever looks wrong). Native build keeps the env toggle (default two-pass). -1 = not yet read.
+// KB_NOPREPASS=1: single pass, no depth prepass. The prepass re-draws ALL opaque world
+// geometry up front to populate depth so the lit pass can ZFUNC=EQUAL-shade each pixel
+// once: a win only when fill/overdraw-bound; when draw-call-bound it is thousands of extra
+// draws in dense areas. With the engine's prepass off (r_depthPrepass 0), the lit pass's
+// EQUAL is remapped to LEQUAL below so it still depth-tests in one pass. Default: two-pass.
+// -1 = not yet read.
 int g_kbNoPrepass = -1;
 extern "C" int KB_NoPrepass() {
     if (g_kbNoPrepass < 0) {
-#ifdef __EMSCRIPTEN__
-        { const char *v = getenv("KB_WITHPREPASS"); g_kbNoPrepass = (v && *v == '1') ? 0 : 1; }  // ENV from index.html (worker can't read location.search); default = single-pass
-#else
         const char *v = getenv("KB_NOPREPASS");
         g_kbNoPrepass = (v && *v == '1') ? 1 : 0;
-#endif
     }
     return g_kbNoPrepass;
 }
@@ -92,17 +81,12 @@ GLint glWrap(DWORD d)   { return d == D3DTADDRESS_CLAMP ? GL_CLAMP_TO_EDGE : GL_
 } // namespace
 
 HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
-    // Skip the GL call when this state already holds this value — on the proxied web
-    // context every glEnable/glBlendFunc/glDepthMask is a cross-thread marshaled call, and
-    // the engine re-sets the same blend/depth/cull states constantly between draws.
-    // The redundancy check must run BEFORE the batch flush: an unchanged value has no GL
-    // effect, so flushing for it only breaks an open draw batch for nothing (this used to
-    // flush unconditionally — every redundant engine SetRenderState cost a batch break).
+    // Skip the GL call when this state already holds this value: the engine re-sets the
+    // same blend/depth/cull states constantly between draws.
     if ((unsigned)State < 256) {
         if (rsSet_[State] && rsCache_[State] == Value) return D3D_OK;
         rsSet_[State] = 1; rsCache_[State] = Value;
     }
-    KB_FlushTagged(6);   // real change: pending draws must execute under the OLD state
     switch (State) {
         case D3DRS_ZENABLE:
             if (Value) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
@@ -120,7 +104,6 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
             float bias, slope;
             memcpy(&bias, &bBits, 4); memcpy(&slope, &sBits, 4);
             if (bias != 0.0f || slope != 0.0f) {
-                extern unsigned long g_kbBiasSets; ++g_kbBiasSets;
                 glEnable(GL_POLYGON_OFFSET_FILL);
                 glPolygonOffset(slope, bias * 16777216.0f);
             } else {
@@ -130,7 +113,7 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
             break;
         }
         case D3DRS_ZFUNC: {
-            // PREPASS-OFF FIX (?noprepass): Black Ops runs its lit pass with ZFUNC=EQUAL
+            // PREPASS-OFF FIX (KB_NOPREPASS): Black Ops runs its lit pass with ZFUNC=EQUAL
             // because the depth pre-pass already wrote exact depth. With the prepass
             // disabled (r_depthPrepass 0, the big draw-call win) depth isn't pre-populated,
             // so EQUAL rejects nearly every fragment -> unshaded/black. Remap EQUAL ->
@@ -168,7 +151,7 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
 #ifndef KB_GL_MODERN_GLSL
             if (Value) glEnable(GL_ALPHA_TEST); else glDisable(GL_ALPHA_TEST);
 #endif
-            // On WebGL2/GLES the cutout is done with discard in-shader (the func/ref
+            // On the core profile the cutout is done with discard in-shader (the func/ref
             // become uAlphaTestFunc/uAlphaRef uniforms uploaded in useDrawProgram).
             break;
         case D3DRS_ALPHAFUNC:
@@ -214,7 +197,7 @@ HRESULT WINAPI GLDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
 //   * a material that sets SRCBLEND+DESTBLEND together costs ONE glBlendFunc, not two;
 //   * blend that's unchanged across a run of draws costs zero GL calls;
 //   * factors/equation are skipped entirely while blending is disabled (don't-care).
-// This is the "cache blend state" win — WebGL2/ANGLE charges a steep CPU price per blend call.
+// (Blend calls cost CPU in the driver; most engine changes are redundant.)
 void GLDevice::commitBlendState() {
     if (!blendDirty_) return;
     blendDirty_ = false;
@@ -246,7 +229,6 @@ void GLDevice::commitBlendState() {
 // alpha-test discard, runs per sample, so a cut-out edge (foliage, fences) covers
 // part of a pixel instead of all or none. The fast setting shades half the samples.
 void GLDevice::commitSampleShading() {
-#if !defined(__EMSCRIPTEN__)
     const DWORD fourcc = rsSet_[D3DRS_ADAPTIVETESS_Y] ? rsCache_[D3DRS_ADAPTIVETESS_Y] : 0;
     int want = 0;
     if (bbSamples_ && !fboActive_ && alphaTestOn_ && glMinSampleShading)
@@ -259,7 +241,6 @@ void GLDevice::commitSampleShading() {
         glDisable(GL_SAMPLE_SHADING);
     }
     sampleShading_ = want;
-#endif
 }
 
 HRESULT WINAPI GLDevice::SetSamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value) {
@@ -274,7 +255,6 @@ HRESULT WINAPI GLDevice::SetSamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type
         default: return D3D_OK;
     }
     if (*slot == Value) return D3D_OK;   // no-change fast path: keep batches alive
-    KB_FlushTagged(5);
     *slot = Value;
     unitTex_[Sampler] = 0;   // force rebind+sampler reapply at next draw on this stage
     return D3D_OK;
@@ -324,14 +304,12 @@ HRESULT WINAPI GLDevice::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture
     // texture uploads sync there), but identical bindings need no batch flush.
     if (boundTexName_[Stage] == name && boundTexTarget_[Stage] == target)
         return D3D_OK;
-    KB_FlushTagged(4);
     boundTexName_[Stage]   = name;
     boundTexTarget_[Stage] = target;
     return D3D_OK;
 }
 
 HRESULT WINAPI GLDevice::SetScissorRect(const RECT *pRect) {
-    KB_FlushTagged(11);
     if (pRect) {
         // No Y flip: targets hold D3D's row order (see SetViewport).
         int x = pRect->left;

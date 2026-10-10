@@ -9,9 +9,6 @@
 #include "windows.h"
 
 #include <sys/socket.h>
-#ifdef __EMSCRIPTEN__
-#include <sys/select.h> // fd_set/select: musl does not pull it in via <sys/socket.h>
-#endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>

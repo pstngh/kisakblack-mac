@@ -4,7 +4,7 @@
 #ifndef KISAK_CORECRT_MALLOC_H
 #define KISAK_CORECRT_MALLOC_H
 // The exception spec must match the libc's own prototypes (noexcept on glibc,
-// none on musl/Emscripten and Apple; see KISAK_LIBC_NOEXCEPT). The MSVC
+// none on musl and Apple; see KISAK_LIBC_NOEXCEPT). The MSVC
 // _aligned_* helpers are not in any of them, so declare those ourselves.
 extern "C" {
     void *malloc(size_t) KISAK_LIBC_NOEXCEPT;
