@@ -10,7 +10,7 @@ debugging commands are in CLAUDE.md; the 64-bit design and rules in docs/64bit.m
 A native arm64 macOS build of the multiplayer executable: no Rosetta, no Wine.
 Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port.
 
-## Status (2026-10-09, session 10)
+## Status (2026-10-09, session 11)
 
 - **Builds and links**: `build_macos/blackops`, Mach-O arm64, and the ASan build
   `build_asan`. Every changed file passes the i386 syntax check (gfx_gl/ and
@@ -103,8 +103,26 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   so it shows "No network connection detected"). Tested from the app into the
   real game (scratch folder): TDM on mp_nuked, the player on allies, 3 friendly
   and 4 enemy bots, class menu up; bots fight (300-500 after a minute).
-- **Sound** (session 10): menus and matches have sound, but the user hears only
-  voices in a match, no weapons or footsteps (Next steps 2, first). The main menu's
+- **Sound, weapons and footsteps** (session 11): every weapon, footstep, foley,
+  explosion, bullet impact and whizby alias is xWMA (format 7), which the backend
+  played as silence: that was "only voices" (voices and ambience are MS-ADPCM). A
+  port of FFmpeg's WMA v2 decoder decodes them now (src/audio_openal/wma/,
+  Decisions session 11). Checked per alias group in the final mix, soloing one group
+  at a time with `snd_solo_alias_substring` (Decisions) on mp_mountain, 7 managed
+  bots, scripted player; decoder off -> on: `wpn_` -98 -> -3.4 dBFS peak (-25 RMS,
+  85% of 100 ms windows active), the player's `fire_plr` silent -> -3.4, `fly_step`
+  silent -> -22.5 (99% active), `fly_gear` silent -> -22.6, `prj_` silent -> -3.6,
+  `wpn_grenade` silent -> -5.6, `vox_` (ADPCM) unchanged. Through the portable copy's
+  launcher (re-identified copy, `KB_LAUNCHER_TEST`, TDM 3+4 bots): weapons -1..-8 dBFS,
+  footsteps -16..-40, impacts to -4. 5-minute matches: ~10000 xWMA voices, mixing
+  0.47 ms per 10 ms pass on average (2.7 ms worst; 0.1-0.3 before), no underruns;
+  3 samples over full scale in 5 minutes (the engine's own limiter).
+- **Vehicles** (session 11): script vehicles (most likely the bots' RC-XD) crashed the
+  game ~100 s into a match, then gave NaN bones; the engine bugs behind it are fixed
+  (Decisions session 11).
+  Two 4.5-minute fu-bot matches on mp_nuked (release and ASan client): no crash, no
+  ASan report, no assert (402k NaN-pose asserts before the last fix).
+- **Sound** (session 10): menus and matches have sound. The main menu's
   streamed music plays, through the engine's panning, the maps' reverb, the
   mastering EQ/compressor/limiter and the options' volume. src/audio_openal is a
   software XAudio2 now (Decisions). Session 10's claim of weapons and footsteps came
@@ -117,9 +135,7 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   path; the real device (External Headphones: 100 passes/s, no underruns); the
   ASan client (5 minutes, 3 maps, 2 match ends; 2 minutes at the main menu): no
   report; the launcher's portable copy into a match against its managed bots. The
-  MS-ADPCM decoder matches CoreAudio's bit for bit over a 108-second track. Not
-  decoded: xWMA, about a sixth of a match's voices (the menus' navigation sounds,
-  many weapon and UI sounds): silent, the user's choice for now (Next steps).
+  MS-ADPCM decoder matches CoreAudio's bit for bit over a 108-second track.
 - **Texture streaming** (session 10): the stream thread never ran on macOS/Linux
   (`Stream_Init` was a stub), so no high texture mip ever loaded (world and models
   drew their small in-fastfile mips) and no streamed sound played. It runs now;
@@ -136,10 +152,10 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
 
 ## Next steps (in order)
 
-Done in session 10 (see Status and Decisions): sound output (a software XAudio2
-over OpenAL, the stream thread, five engine bugs on the way), though in a match the
-user hears only voices (step 2), and with it texture streaming. The user's `codbo/` has the build (`tools/make_portable.sh`: rerun after
-each build).
+Done in session 11 (see Status and Decisions): weapons, footsteps and impacts are
+heard (an xWMA decoder), and script vehicles (the bots' RC-XD) no longer crash or
+go NaN. Session 10: sound output and texture streaming. The user's `codbo/` has the
+build (`tools/make_portable.sh`: rerun after each build).
 
 1. **Graphics leftovers**: try the menu cursor by hand in fullscreen at a smaller
    resolution and in a window on the Retina display (the mapping is computed:
@@ -148,50 +164,56 @@ each build).
    `r_monitor` takes effect at the next start (a reset keeps the window's
    display). A fresh profile starts at 1024x768 with 4x AA: `configure_mp.csv`'s
    row for unknown GPUs, as on Windows (1024x768 used to be missing from the list).
-2. **Sound: only voices are heard in a match, no weapons or footsteps** (the user,
-   after session 10, playing from the launcher). Find out per alias what plays: log
-   each started alias with its format and stream flag (a temporary print in
-   `SD_StartAlias`, snd_driver_xaudio2.cpp, gave `[snd-tmp] start <alias> voice N
-   stream S fmt F` in session 10: the menus' `uin_navigation_*` are xWMA, fmt 7) and,
-   in the mixer, each source voice's post-effect peak and send matrices (session 10
-   saw 3D mono ADPCM voices with dry levels 0.04-0.16 and 0.008). Suspects, in order:
-   the weapon and footstep aliases are xWMA (silent by the user's choice; then the
-   WMA decision below is the fix); 3D voices' levels come out too low (distance
-   curves, `Snd_SpeakerMapGetVolume`, the patched group attenuations of session 10's
-   dB SPL fix, the per-voice LPF in `SND_DspFxSourceMono`); the player's own sounds
-   (2D, stereo, often `_plr` aliases) take another path. Listen-check with the wave
-   writer around a scripted `+attack` (CLAUDE.md, "Hearing the client").
-   Other leftovers: (a) xWMA (format 0x161) has no decoder; those voices run
-   silent for their length. Asked on 2026-10-09, the user chose to skip it for now
-   (and asked whether the sounds could be converted): either way FFmpeg's WMA v2
-   decoder is needed once, vendored (wmadec.c and friends, LGPL-2.1+) into
-   src/audio_openal, or as Homebrew ffmpeg converting the fastfiles' loaded sounds
-   offline into a side pack. `ALSourceVoice` already knows the decoded length (the
-   packet table); a decoder goes into `DecodeFrame`. (b) `SND_PatchValue` ignores
-   patches of types NORM_BYTE (`occlusion_level`, ~350 a map, coded as value/65535
-   of the byte), CENTS (pitch) and ENUM_BITS: the decompiled switch has no case, so
-   the original may not have applied them either. (c) One output device, the
-   system default (OpenAL Soft follows it); `sd_xa2_device_name` could list
-   OpenAL's devices. (d) Stereo only: the engine handles 6 and 8 speakers, the
-   mastering voice is 2 channels. (e) Bink video sound (stubbed).
-3. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
+2. **Found while testing session 11, not fixed** (the user was offered both as
+   separate tasks):
+   (a) the ASan client reported a global-buffer-overflow in the texture streamer's
+   sort, `R_StreamUpdate_EndQuerySort` (r_stream.cpp:2318, 17892 bytes past
+   `streamFrontendGlob`), right after a map rotation (mp_mountain -> mp_array,
+   1-minute DM) and "ERROR: image 'images/.iwi' is missing"; session 10's ASan runs
+   (3 maps) didn't hit it. The function reads the sorted list through
+   `*(int *)((char *)&sortedImages[index] + 2)` and `...Bits[x - 4064]`: decompiler
+   aliases over the gap-filled `StreamFrontendGlob` (docs/64bit.md rule 9).
+   (b) Once, under ASan ~1 minute into mp_mountain (before the vehicle NaN fix), the
+   client froze: the main thread spun in `FX_SortEffects`' inlined
+   `FX_WaitBeginIteratingOverEffects_Exclusive` (`FxSystemShared::iteratorCount`,
+   offset 0x830, stayed non-zero with no other thread iterating). Not seen in ~25
+   minutes of matches since; maybe effects bolted to NaN vehicle bones. Every
+   begin/decrement pair in src/EffectsCore is balanced; suspects: a counter leak,
+   the plain `iteratorCount = 0` stores without an arm64 release fence, and
+   `FX_RunGarbageCollectionAndPrioritySort`'s `effect[1].def & 0x3FFF` (an alias of
+   the effect's reference count, rule 9; sizeof(FxEffect) differs on 64-bit).
+3. **Sound leftovers**: (a) streamed ambient loops churn: in a 110 s match on
+   mp_mountain the 10 stream voices started 7675 times (`amb_wind_edge_r` 1704
+   times) and ~33000 loaded-sound requests found no free voice (reason: the engine's
+   priority replacement in `SND_FindFreeVoice`, all ambient); each stream start
+   opens the file again. Compare with Windows before changing anything. (b) The
+   weapons' `*_bass_swt` and `wpn_grenade_explode_sub` aliases are LFE sweeteners:
+   the engine's stereo speaker map sends them nowhere (as it would on Windows with
+   stereo speakers). (c) `SND_PatchValue` ignores patches of types NORM_BYTE
+   (`occlusion_level`, ~350 a map, coded as value/65535 of the byte), CENTS (pitch)
+   and ENUM_BITS: the decompiled switch has no case, so the original may not have
+   applied them either. (d) One output device, the system default (OpenAL Soft
+   follows it); `sd_xa2_device_name` could list OpenAL's devices. (e) Stereo only:
+   the engine handles 6 and 8 speakers, the mastering voice is 2 channels. (f) Bink
+   video sound (stubbed). (g) WMA Pro (0x162) has no decoder; no game asset seen uses it.
+4. **Match-end crash** seen once in session 8 (Open items: `Demo_WritePlayerStates`
    on the server thread after the demo client was freed twice). Soak match ends
    with `KB_CMDS` and `scr_tdm_timelimit 1` to reproduce it.
-4. The main menu's PLAY (Find Match, Private Match, Combat Training) depends on
+5. The main menu's PLAY (Find Match, Private Match, Combat Training) depends on
    the removed online service; the launcher starts matches against bots instead.
    Combat Training proper (`xblive_basictraining`, its own rank) is not wired.
-5. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
+6. Drive the main-menu menus by hand (keyboard/mouse) beyond the screens
    `KB_MENU_CMDS` reached (`cac_main`, `cac_weapon`, killstreaks): attachment/
    camo/reticle pickers, emblem editor, clan tag, barracks, combat record,
    after-action report; combat training (`xblive_basictraining`, its own buffer
    and rank, not maxed) is untested. To show a prestige other than 15,
    `LiveStorage_SetTopRank` is the place (a dvar would do).
-6. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
+7. Keep soaking with `KB_CMDS` (longer matches, other gametypes) and the ASan
    client, at the main menu too; each fix of this kind so far came from a run.
-7. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
+8. Rendering fidelity: compare against a Windows screenshot (shadows, reflections,
    gamma). `vFace`, `vPos` and the half-pixel offset follow D3D9 now; textures
    stream their high mips since session 10.
-8. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
+9. Later: wire compatibility with a Windows/Linux server, an .app bundle (a
    double-clickable app; today `codbo/blackops` opens in Terminal), controller
    support.
 
@@ -202,6 +224,14 @@ StringTable assets; table strings shared with earlier assets are references
 that weren't resolved). Item indices are listed in CLAUDE.md.
 
 ## Open items found but not fixed
+
+Seen in session 11 (details in Next steps 2 and 3):
+- A global-buffer-overflow in `R_StreamUpdate_EndQuerySort` after a map rotation
+  (ASan client), and one client freeze in `FX_SortEffects` waiting for the effects
+  iterator count.
+- "weapon rc_car_weapon_mp not found in weapon table" and "Couldn't find weapon
+  parent 'killstreak_rcbomb' for weapon 'rcbomb_mp' in weaponOptions.csv" at map
+  load; script vehicles still spawn (most likely the bots' RC-XD; not identified).
 
 Seen in session 10:
 - SIGTERM doesn't stop the game (session 9's build neither): SDL turns it into a
@@ -320,6 +350,78 @@ Pre-existing (wrong on every build):
   string copies through a struct pointer.
 - `mem_fixed.cpp` (HU_SCHEME_FIXED) keeps its header in pointer slots with i386
   sizes; nothing creates a hunk user with that scheme.
+
+## Decisions (session 11)
+
+- **xWMA decoder** (src/audio_openal/wma/, README.md there): FFmpeg n7.1's WMA v2
+  decoder (wmadec.c, wma.c, wma_common.c, the tables of wmadata.h, wma_freqs.c and
+  aactab.c's scale factor VLC), downloaded with the user's OK and ported: LGPL-2.1+,
+  FFmpeg's headers and COPYING.LGPLv2.1 kept. FFmpeg's bit reader, VLC builder (same
+  multi-level tables), av_tx IMDCT (a DCT-IV through an n/2-point FFT, av_tx's sign
+  and scale), float DSP and sine windows are local code; the VLC tables, windows and
+  MDCTs are built once and shared. xWMA specifics from libavformat/xwma.c: decoder
+  flags 0x1F (no extradata in xWMA) and its bit rate fix-ups; the engine's
+  `nAvgBytesPerSec` (6000 x channels) and `nBlockAlign` (2230 mono, 4096 stereo)
+  match every asset seen. The user preferred this to converting the sounds, which
+  would mean rebuilding the fastfiles (the sounds are inside them).
+  - `ALSourceVoice` decodes a packet at a time into a per-voice buffer (decoder
+    ~170 KB plus up to 15 frames of PCM per playing xWMA voice), reads in order and
+    restarts the decoder for a loop, another buffer or an earlier frame. It drops
+    the codec delay (2 frames, as FFmpeg's `skip_samples`; gun shots then start at
+    frame 0) and adds the last half frame at the end (FFmpeg's flush): the total is
+    the asset's frame count and the dpds table's. It clips to the 16-bit range:
+    XAudio2 decodes xWMA to 16-bit PCM (the dpds table counts 16-bit bytes), and
+    weapon shots overshoot to +6 dBFS (128 of 352 assets go over full scale).
+  - Checked against FFmpeg 8 (OBS.app's libavcodec/libavformat, loaded with dlopen
+    by a scratch harness that built RIFF XWMA files from assets dumped out of the
+    game): 352 assets, same lengths, 134 dB SNR, no decode errors; ~2400x realtime.
+    The harness and the dump code were temporary; README.md says how.
+- **Finding what plays** (temporary code, removed): `[snd-tmp]` prints in
+  `SND_PlaySoundAlias` (each early `return -1` with a reason), `iSND_CreateVoice`
+  (alias, stream, format, channels, rate, bus, flags) and `SD_StopVoice` (the
+  voice's maximum dry/wet levels, matrices and LPF from `SDXA2_UpdateVoiceSends`,
+  plus the backend's measured peaks after decode, after the per-voice effect and
+  into each send). Result: 2168 of 19065 voices in 110 s were xWMA, all
+  `wpn_`/`fly_`/`prj_`/`dst_` aliases, with normal engine levels (weapons' dry level
+  median 0.24 vs. voices' 0.16) and zero decoded signal.
+- **Hearing specific sounds**: `snd_solo_alias_substring <s>` (a cheat dvar; map
+  games keep `sv_cheats` on) zeroes every alias whose name lacks `<s>`, so a wave
+  writer capture holds only that group. Set it from `KB_CMDS`/`KB_MENU_CMDS` in
+  timed segments separated by `zzz_none` (silence), and timestamp the game's stderr
+  (pipe it through `perl -MTime::HiRes=time -ne 'printf "%.3f %s", time-$t0, $_'`;
+  the WAV starts at the `[al] output` line) to cut the WAV per segment. The wave
+  writer's clock stalls during loading, so line segments up from the stderr times,
+  not from the first frame.
+- **Vehicles** (found while testing; every build unless noted): a bot's RC-XD
+  crashed or froze the game.
+  - `G_ClearVehicleInputs` (64-bit): walked the vehicle list as `T_internal_base`
+    nodes and used i386 offsets: `i[70].m_next_T_internal` (m_owner),
+    `[43].m_prev_T_internal` (gentity_s::scr_vehicle), `memset(&i[100], 0, 0x34)`
+    (mVehicleController.m_cmd), i.e. 52 bytes cleared past the vehicle on 64-bit.
+    The list's iterator and named fields now (docs/64bit.md rule 17).
+  - `colgeom_visitor_inlined_t<200> proximity_data` had no vtable, and
+    `intersect_box`'s `visit()` calls crashed: `G_SpawnVehicle` and
+    `Actor_InitMove` memset the struct and then assigned the static `dummy` (C++
+    assignment never copies the vtable pointer; the original copied the vftable);
+    `CG_Vehicle_PreControllers` left the copy commented out on `MT_Alloc`'d memory.
+    Copy-constructed in place from `dummy` now.
+  - `collide_vehicle_wheels`: the wheel's hit point `v22` was an `int` that
+    `Vec3Lerp` wrote 12 bytes into (the collision context next to it on clang's
+    stack; ASan). A `float[3]` (its i386 slot is 12 bytes).
+  - `VEH_TouchEntities`, `GlassSv_PredictTouch`: IDA split `float[3]` bounds into
+    three floats (`mins`, `v10`, `v11`...) passed by address; MSVC's stack kept them
+    together, clang's doesn't (inverted bounds asserts, ASan). Arrays now. The same
+    pattern is likely elsewhere in the decompile; ASan's stack checks find it when
+    the code runs.
+  - `CG_Vehicle_DoControllers`: upstream's rewrite passed `&steerAnglesYaw[2]`,
+    `&bodyAngles[2]`, `&spin`... as 3-float angles, i.e. MSVC's stack order; on clang
+    the vehicle's bones went NaN (~400k asserts in a 4-minute match, effects bolted
+    to them too). Rewritten from the original's semantics (the `#if 0` version):
+    body/turret/barrel/gunner/minigun angles, and the wheels' suspension, steering
+    and child-bone spin that the rewrite had dropped (session 6's note).
+  - `SpectatorThink`/`ClientThink_real` cleared `pmove_t` with `memset(pm, 0,
+    0x258)`: up to `m_gjkcc_input` on i386, 8 bytes short of it on 64-bit;
+    `offsetof(pmove_t, proximity_data)` now (also covers i386's padding).
 
 ## Decisions (session 10)
 
@@ -619,7 +721,8 @@ Pre-existing (wrong on every build):
   turret, wheel and extra-wheel tags, so a vehicle without those tags (255) indexed
   `partBits[7]` of a 5-word stack array and could call `DObjSetLocalTagInternal` on
   bone 255 (writes past the bone matrices). Guards restored (every build). The rewrite
-  also drops wheel suspension, steering and child-bone rotation (vehicle visuals).
+  also drops wheel suspension, steering and child-bone rotation (vehicle visuals);
+  session 11 rewrote it from the original (its angle vectors made the bones NaN).
 - `Com_Init`: when a startup command fails (`+connect` to a bad address), the error
   cleanup unloads ui_mp right after `Com_InitUIAndCommonXAssets` loaded it, and the UI
   started without `ui_mp/menus.txt` ("Could not find menu 'main'" every frame, no

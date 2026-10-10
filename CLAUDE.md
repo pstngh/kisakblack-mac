@@ -110,8 +110,11 @@ place of the device, in real time: `ALSOFT_CONF=<file>` holding `[general]`
 prints its peak/RMS per s-second window (no sound: -120 dBFS). `KB_SND_STATS=<s>`
 prints the voices (new ones by codec), buffers, output peak and mixing time every s
 seconds; `KB_SND_QUEUE=1` forces the mixer-thread output that OpenAL Soft < 1.22
-gets. xWMA sounds (UI navigation, many weapon sounds) have no decoder and play
-silent. The sound console channel is hidden: `+con_showchannel sound`.
+gets. xWMA sounds (weapons, footsteps, impacts, UI navigation) go through
+src/audio_openal/wma (FFmpeg's WMA decoder, ported). `set snd_solo_alias_substring <s>`
+(a cheat dvar, on in map games) mutes every alias whose name lacks `<s>`, so a capture
+holds one group (`wpn_`, `fly_step`, `prj_`, `vox_`...). The sound console channel is
+hidden: `+con_showchannel sound`.
 
 AddressSanitizer: configure `build_asan` with `-DCMAKE_CXX_FLAGS="-fsanitize=address
 -fno-omit-frame-pointer"` (same for C and the linker). ASan's dlopen interceptor

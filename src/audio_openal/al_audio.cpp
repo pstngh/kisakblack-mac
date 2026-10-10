@@ -1,5 +1,6 @@
 // al_audio.cpp — software XAudio2 voice graph played through OpenAL (see al_audio.h).
 #include "al_audio.h"
+#include "wma/wmadec.h"
 
 #include <algorithm>
 #include <chrono>
@@ -212,9 +213,21 @@ ALSourceVoice::ALSourceVoice(ALXAudio2 *engine, const WAVEFORMATEX *fmt, float m
     }
     case WAVE_FORMAT_WMAUDIO2_:
     case WAVE_FORMAT_WMAUDIO3_:
-        codec_ = CODEC_WMA;     // no decoder: plays as silence of its length
+        // WMA v2 only (WMA Pro, 0x162, stays silent for its length).
+        codec_ = CODEC_WMA;
+        if (fmt->wFormatTag == WAVE_FORMAT_WMAUDIO2_
+            && (wma_ = kisak_wma::Create(fmt->nChannels, fmt->nSamplesPerSec, fmt->nAvgBytesPerSec * 8, fmt->nBlockAlign))) {
+            wmaBlockAlign_ = fmt->nBlockAlign;
+            wmaPcm_ = (float *)malloc(sizeof(float) * kisak_wma::MaxPacketFrames(wma_) * fmt->nChannels);
+            if (!wmaPcm_) { kisak_wma::Destroy(wma_); wma_ = nullptr; }
+        }
         break;
     }
+}
+
+ALSourceVoice::~ALSourceVoice() {
+    if (wma_) kisak_wma::Destroy(wma_);
+    free(wmaPcm_);
 }
 
 bool ALSourceVoice::Init(const XAUDIO2_VOICE_SENDS *sends, const XAUDIO2_EFFECT_CHAIN *chain) {
@@ -298,6 +311,9 @@ void ALSourceVoice::DecodeFrame(const Queued &q, UINT32 frame, float *out) {
     case CODEC_FLOAT:
         memcpy(out, (const float *)q.b.pAudioData + (size_t)frame * ch, ch * sizeof(float));
         return;
+    case CODEC_WMA:
+        if (wma_ && WmaFrame(q, frame, out)) return;
+        break;
     case CODEC_ADPCM: {
         const UINT32 block = frame / samplesPerBlock_, i = frame % samplesPerBlock_;
         const BYTE *b = q.b.pAudioData + (size_t)block * blockAlign_;
@@ -313,6 +329,48 @@ void ALSourceVoice::DecodeFrame(const Queued &q, UINT32 frame, float *out) {
         break;
     }
     memset(out, 0, ch * sizeof(float));
+}
+
+bool ALSourceVoice::WmaFrame(const Queued &q, UINT32 frame, float *out) {
+    if (q.b.pAudioData != wmaData_ || frame < wmaPos_) {
+        // Another buffer, a loop or a frame already passed: decode from the start.
+        kisak_wma::Reset(wma_);
+        wmaData_ = q.b.pAudioData;
+        wmaNextPacket_ = 0;
+        wmaPos_ = 0;
+        wmaPcmFrames_ = wmaPcmRead_ = 0;
+        wmaSkip_ = 2 * kisak_wma::FrameLength(wma_);   // the codec delay, as FFmpeg drops it
+        wmaFlushed_ = false;
+    }
+    float skipped[MAX_CHANNELS];
+    while (wmaPos_ < frame)
+        if (!WmaNext(q, skipped)) return false;
+    return WmaNext(q, out);
+}
+
+bool ALSourceVoice::WmaNext(const Queued &q, float *out) {
+    const UINT32 ch = core.channels;
+    while (wmaPcmRead_ == wmaPcmFrames_) {
+        int n;
+        if (wmaNextPacket_ < q.wmaPackets) {
+            n = kisak_wma::DecodePacket(wma_, q.b.pAudioData + (size_t)wmaNextPacket_++ * wmaBlockAlign_, wmaPcm_);
+            if (n < 0) n = 0;       // corrupt: the decoder drops its bit reservoir and goes on
+        } else if (!wmaFlushed_) {
+            n = kisak_wma::Flush(wma_, wmaPcm_);
+            wmaFlushed_ = true;
+        } else {
+            return false;           // past the decoded end
+        }
+        wmaPcmFrames_ = (UINT32)n;
+        wmaPcmRead_ = std::min(wmaSkip_, wmaPcmFrames_);
+        wmaSkip_ -= wmaPcmRead_;
+    }
+    // XAudio2 decodes xWMA to 16-bit PCM: the codec's overshoot (weapon shots reach
+    // +6 dBFS) clips there.
+    const float *p = wmaPcm_ + (size_t)wmaPcmRead_++ * ch;
+    for (UINT32 c = 0; c < ch; ++c) out[c] = std::min(std::max(p[c], -1.0f), 32767.0f / 32768.0f);
+    ++wmaPos_;
+    return true;
 }
 
 void ALSourceVoice::FinishHead() {
@@ -429,6 +487,7 @@ HRESULT WINAPI ALSourceVoice::SubmitSourceBuffer(const XAUDIO2_BUFFER *buf, cons
     q.end = buf->PlayLength ? std::min(buf->PlayBegin + buf->PlayLength, frames) : frames;
     q.pos = std::min(buf->PlayBegin, q.end);
     q.loopBegin = q.loopEnd = q.loopsLeft = 0;
+    q.wmaPackets = (codec_ == CODEC_WMA && wma && wmaBlockAlign_) ? std::min(wma->PacketCount, buf->AudioBytes / wmaBlockAlign_) : 0;
     if (buf->LoopCount) {
         q.loopBegin = buf->LoopBegin;
         q.loopEnd = buf->LoopLength ? std::min(buf->LoopBegin + buf->LoopLength, q.end) : q.end;

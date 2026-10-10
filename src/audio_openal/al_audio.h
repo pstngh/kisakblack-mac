@@ -6,14 +6,14 @@
 // submix voices ("buses", which run the engine's own XAPO effects: reverb, compressor,
 // EQ/limiter) and on to a mastering voice. This backend runs that graph itself, the way
 // XAudio2 does, in 480-frame passes at 48 kHz:
-//   source voice: decode (PCM, MS-ADPCM) -> resample to 48 kHz x frequency ratio ->
+//   source voice: decode (PCM, MS-ADPCM, xWMA) -> resample to 48 kHz x frequency ratio ->
 //                 effect chain -> output matrix per send (ramped over the pass)
 //   submix voices, by processing stage: effect chain -> output matrix per send
 //   mastering voice -> one stereo float32 OpenAL source (AL_DIRECT_CHANNELS_SOFT).
 // OpenAL pulls the passes through an AL_SOFT_callback_buffer callback; without that
 // extension (OpenAL Soft < 1.22) a mixer thread queues them on a streaming source.
-// xWMA buffers have no decoder here: they play as silence of their decoded length, so
-// the engine's voice bookkeeping (BuffersQueued, OnBufferEnd) still runs as on Windows.
+// xWMA (WMA v2 in fixed-size packets: most weapon, footstep and impact sounds) goes
+// through wma/, FFmpeg's WMA decoder ported here (LGPL-2.1+, wma/README.md).
 //
 // Voice callbacks (OnBufferStart/End, OnLoopEnd, OnStreamEnd) run on the mixing
 // thread, as XAudio2's do on its audio thread, with the engine lock held; the engine's
@@ -32,6 +32,8 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+
+namespace kisak_wma { struct Decoder; }
 
 namespace kisak_al {
 
@@ -117,7 +119,7 @@ public:
 
 private:
     friend class ALXAudio2;
-    ~ALSourceVoice() = default;
+    ~ALSourceVoice();
 
     enum Codec { CODEC_NONE, CODEC_PCM16, CODEC_PCM8, CODEC_FLOAT, CODEC_ADPCM, CODEC_WMA };
 
@@ -125,11 +127,14 @@ private:
         XAUDIO2_BUFFER b;
         UINT32 pos, end;            // next frame to read, end of the play region
         UINT32 loopBegin, loopEnd, loopsLeft;
+        UINT32 wmaPackets;          // xWMA: whole packets in the buffer
         bool begun;
     };
 
     bool ReadFrame(float *out);     // next source frame, false (zeros) when starved
     void DecodeFrame(const Queued &q, UINT32 frame, float *out);
+    bool WmaFrame(const Queued &q, UINT32 frame, float *out);
+    bool WmaNext(const Queued &q, float *out);
     void FinishHead();
     UINT32 BufferFrames(const XAUDIO2_BUFFER *buf, const XAUDIO2_BUFFER_WMA *wma) const;
 
@@ -149,6 +154,18 @@ private:
     const BYTE *cachedBlock_ = nullptr;
     UINT32 cachedFrames_ = 0;
     short pcm_[2048 * 2];
+
+    // xWMA: decoded a packet at a time, read in order (a loop or an earlier frame
+    // restarts the decoder). Buffer frame 0 is the decoder's output after its delay.
+    kisak_wma::Decoder *wma_ = nullptr;
+    UINT32 wmaBlockAlign_ = 0;
+    float *wmaPcm_ = nullptr;           // the last packet's frames, interleaved
+    UINT32 wmaPcmFrames_ = 0, wmaPcmRead_ = 0;
+    UINT32 wmaNextPacket_ = 0;
+    UINT32 wmaPos_ = 0;                 // buffer frame that WmaNext returns next
+    UINT32 wmaSkip_ = 0;                // decoder delay frames still to drop
+    bool wmaFlushed_ = false;
+    const BYTE *wmaData_ = nullptr;     // the buffer being decoded
 
     // Cubic resampler: hist_[0..3] = frames n-1, n, n+1, n+2; frac_ = position past n.
     float hist_[4][MAX_CHANNELS] = {};

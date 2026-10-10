@@ -22,7 +22,7 @@ else()
     find_library(OPENAL_LIB openal REQUIRED)
 endif()
 
-add_library(kisak_al STATIC al_audio.cpp)
+add_library(kisak_al STATIC al_audio.cpp wma/wmadec.cpp)
 target_include_directories(kisak_al PUBLIC
     "${WINSDK_INC}" "${CMAKE_CURRENT_SOURCE_DIR}" ${OPENAL_INC})
 if(APPLE)
