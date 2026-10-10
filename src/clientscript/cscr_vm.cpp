@@ -5494,7 +5494,12 @@ WAIT:
                     waitTime = Q_rint(localFs.top->u.floatValue * (inst != SCRIPTINSTANCE_SERVER ? 60.0f : 20.0f));
                     if (!waitTime)
                     {
-                        waitTime = isnan(localFs.top->u.floatValue) ? 1 : 0;
+                        // SETP after `fcomp 0.0; test ah, 44h` is 1 unless the compare
+                        // was "equal": a nonzero wait shorter than half a frame
+                        // (wait 0.01) still waits one frame. Zero here re-runs the thread
+                        // in the same frame, so a `while (..) wait 0.01;` loop spun until
+                        // the VM killed it ("potential infinite loop", mp_gridlock).
+                        waitTime = !(localFs.top->u.floatValue == 0.0f);
 
                         //v14 = *(float *)&localFs.top->u.intValue < 0.0;
                         //v18 = 0;
@@ -5502,7 +5507,6 @@ WAIT:
                         //v16 = 0;
                         //v17 = 0;
                         //waitTime = __SETP__(v13 & 0x44, 0);
-                        //waitTime = isnan(*(float *)&localFs.top->u.intValue) ? 1 : 0;
                     }
                 }
                 // wait ( 1 ); -- Convert Integer wait
