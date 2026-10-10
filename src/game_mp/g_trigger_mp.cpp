@@ -386,6 +386,36 @@ void __cdecl Die_trigger_damage(gentity_s *pSelf, gentity_s *pInflictor, gentity
 void __cdecl SP_trigger_damage(gentity_s *pSelf, SpawnVar *spawnVar)
 {
     int savedregs; // [esp+0h] [ebp+0h] BYREF
+    float radius;
+    float height;
+
+    if ( !spawnVar )
+    {
+        // spawn( "trigger_damage", <origin>, <spawnflags>, <radius>, <height> ) from a
+        // script (mp_area51's apple). No brush model: a cylinder like trigger_radius,
+        // which bullets and grenades hit as its box (SV_SightTraceCapsuleToEntity ->
+        // SV_ClipHandleForEntity -> CM_TempBoxModel). Otherwise as from the map.
+        if ( (unsigned int)Scr_GetNumParam(SCRIPTINSTANCE_SERVER) < 5 )
+            Scr_Error("USAGE: spawn( \"trigger_damage\", <origin>, <spawnflags>, <radius>, <height> )", 0);
+        radius = Scr_GetFloat(3u, SCRIPTINSTANCE_SERVER);
+        height = Scr_GetFloat(4u, SCRIPTINSTANCE_SERVER);
+        pSelf->r.mins[0] = -radius;
+        pSelf->r.mins[1] = -radius;
+        pSelf->r.mins[2] = 0.0f;
+        pSelf->r.maxs[0] = radius;
+        pSelf->r.maxs[1] = radius;
+        pSelf->r.maxs[2] = height;
+        pSelf->trigger.accumulate = 0;
+        pSelf->trigger.threshold = 0;
+        pSelf->health = 32000;
+        pSelf->takedamage = 1;
+        pSelf->handler = 7;
+        pSelf->r.contents = 1079771144;
+        pSelf->r.svFlags = 33;
+        pSelf->s.lerp.eFlags |= 0x21u;
+        SV_LinkEntity(pSelf);
+        return;
+    }
 
     G_SpawnInt(spawnVar, "accumulate", "0", &pSelf->trigger.accumulate);
     G_SpawnInt(spawnVar, "threshold", "0", &pSelf->trigger.threshold);

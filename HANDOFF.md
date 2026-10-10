@@ -154,6 +154,12 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   (`Stream_Init` was a stub), so no high texture mip ever loaded (world and models
   drew their small in-fastfile mips) and no streamed sound played. It runs now;
   same view on mp_nuked against session 9's build: full-resolution textures.
+- **Map packs (DLC)**: First Strike, Escalation and Annihilation's 12 MP maps
+  (`zone/Common/mp_*.ff` plus `main/iw_26.iwd`-`iw_41.iwd`; the `en_*` zones are in
+  the base install) load with 4 bots on a dedicated server and play in the client.
+  Nothing gates them offline (`Content_GetAvailableContentPacks` only filters online
+  playlists). The launcher lists the ones whose zone file the folder has. The
+  Rezurrection and other zombie maps need the SP executable, which isn't ported.
 - Diagnostics: `KB_SCREENSHOT=<dir>` (+`KB_SCREENSHOT_EVERY=n`) writes the back
   buffer as a top-down TGA every n presents with per-interval draw counters
   (`KB_SCREENSHOT_WINDOW=1` adds `window_N.tga`, what the window shows after
@@ -358,6 +364,15 @@ Pre-existing (wrong on every build):
 
 ## Decisions (session 11)
 
+- **DLC maps against the 7.0.61 executable**: the map packs' data was built for later
+  executables. mp_area51 spawns a `trigger_damage` from script (the apple): it moved
+  from `s_bspOnlySpawns` to `s_bspOrDynamicSpawns`, and `SP_trigger_damage` takes
+  `spawn( classname, origin, flags, radius, height )` as a box (the bullet test,
+  `SV_SightTraceCapsuleToEntity`, uses `CM_TempBoxModel` for an entity without a
+  brush model). The failed spawn had left the server spinning in "potential infinite
+  loop". `wait` shorter than half a frame was a zero-frame wait (the decompile
+  read the x87 `setp` as `isnan`); it lasts a frame now, as in the original, which
+  fixed mp_gridlock's `while (IsTouching) wait 0.01;` air pumps.
 - **xWMA decoder** (src/audio_openal/wma/, README.md there): FFmpeg n7.1's WMA v2
   decoder (wmadec.c, wma.c, wma_common.c, the tables of wmadata.h, wma_freqs.c and
   aactab.c's scale factor VLC), downloaded with the user's OK and ported: LGPL-2.1+,

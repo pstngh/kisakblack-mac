@@ -47,7 +47,7 @@ const ent_field_t fields_1[16] =
   { NULL, 0, { 0 }, F_INT, NULL }
 };
 
-const SpawnFuncEntry s_bspOnlySpawns[15] =
+const SpawnFuncEntry s_bspOnlySpawns[14] =
 {
   { "trigger_use", trigger_use_touch },
   { "trigger_use_touch", trigger_use_touch },
@@ -55,7 +55,6 @@ const SpawnFuncEntry s_bspOnlySpawns[15] =
   { "trigger_disk", SP_trigger_disk },
   { "trigger_hurt", SP_trigger_hurt },
   { "trigger_once", SP_trigger_once },
-  { "trigger_damage", SP_trigger_damage },
   { "trigger_lookat", SP_trigger_lookat },
   { "trigger_ik_playerclip_terrain", SP_trigger_ik_playerclip_terrain },
   { "light", SP_light },
@@ -66,12 +65,15 @@ const SpawnFuncEntry s_bspOnlySpawns[15] =
   { "script_vehicle", SP_script_vehicle }
 };
 
-const SpawnFuncEntry s_bspOrDynamicSpawns[7] =
+// trigger_damage was in s_bspOnlySpawns in 7.0.61; the DLC maps' scripts spawn it
+// (mp_area51: spawn( "trigger_damage", origin, 0, radius, height )), see SP_trigger_damage.
+const SpawnFuncEntry s_bspOrDynamicSpawns[8] =
 {
   { "info_notnull", SP_info_notnull },
   { "info_notnull_big", SP_info_notnull },
   { "trigger_radius", SP_trigger_radius },
   { "trigger_radius_use", SP_trigger_radius_use },
+  { "trigger_damage", SP_trigger_damage },
   { "script_model", SP_script_model },
   { "script_origin", SP_script_origin },
   { "script_vehicle_collmap", SP_script_vehicle_collmap }
@@ -502,9 +504,9 @@ void __cdecl G_CallSpawn(SpawnVar *spawnVar)
                     }
                     else if ( strcmp("glass", classname) )
                     {
-                        spawnFunc = G_FindSpawnFunc(classname, s_bspOrDynamicSpawns, 7);
+                        spawnFunc = G_FindSpawnFunc(classname, s_bspOrDynamicSpawns, ARRAY_COUNT(s_bspOrDynamicSpawns));
                         if ( !spawnFunc && level.spawnVar.spawnVarsValid )
-                            spawnFunc = G_FindSpawnFunc(classname, s_bspOnlySpawns, 15);
+                            spawnFunc = G_FindSpawnFunc(classname, s_bspOnlySpawns, ARRAY_COUNT(s_bspOnlySpawns));
                         if ( (char *)spawnFunc != (char *)G_FreeEntityWrapper )
                         {
                             ent = G_Spawn();
@@ -581,7 +583,7 @@ int __cdecl G_CallSpawnEntity(gentity_s *ent)
         }
         else
         {
-            spawnFunc = (void (__cdecl *)(gentity_s *))G_FindSpawnFunc(classname, s_bspOrDynamicSpawns, 7);
+            spawnFunc = (void (__cdecl *)(gentity_s *))G_FindSpawnFunc(classname, s_bspOrDynamicSpawns, ARRAY_COUNT(s_bspOrDynamicSpawns));
             if ( spawnFunc )
             {
                 //if ( spawnFunc == G_FreeEntityWrapper
