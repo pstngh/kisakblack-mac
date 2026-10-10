@@ -17,7 +17,7 @@ struct GameMap: Identifiable, Hashable {
     let name: String
 }
 
-// The maps in zone/Common, with their in-game names.
+// The base game's maps, with their in-game names.
 let gameMaps: [GameMap] = [
     GameMap(id: "mp_array", name: "Array"),
     GameMap(id: "mp_cracked", name: "Cracked"),
@@ -33,6 +33,23 @@ let gameMaps: [GameMap] = [
     GameMap(id: "mp_mountain", name: "Summit"),
     GameMap(id: "mp_villa", name: "Villa"),
     GameMap(id: "mp_russianbase", name: "WMD"),
+]
+
+// The map packs' maps (First Strike, Escalation, Annihilation), listed when the game
+// folder has their zone file.
+let mapPackMaps: [GameMap] = [
+    GameMap(id: "mp_berlinwall2", name: "Berlin Wall"),
+    GameMap(id: "mp_gridlock", name: "Convoy"),
+    GameMap(id: "mp_discovery", name: "Discovery"),
+    GameMap(id: "mp_drivein", name: "Drive-In"),
+    GameMap(id: "mp_area51", name: "Hangar 18"),
+    GameMap(id: "mp_golfcourse", name: "Hazard"),
+    GameMap(id: "mp_hotel", name: "Hotel"),
+    GameMap(id: "mp_kowloon", name: "Kowloon"),
+    GameMap(id: "mp_silo", name: "Silo"),
+    GameMap(id: "mp_stadium", name: "Stadium"),
+    GameMap(id: "mp_outskirts", name: "Stockpile"),
+    GameMap(id: "mp_zoo", name: "Zoo"),
 ]
 
 struct GameMode: Identifiable, Hashable {
@@ -90,6 +107,14 @@ struct LauncherView: View {
     @AppStorage("showArms") private var showArms = true     // cg_drawArms
     @State private var error: String?
 
+    private let installedMapPackMaps: [GameMap] = {
+        let zone = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("zone/Common")
+        return mapPackMaps.filter {
+            FileManager.default.fileExists(atPath: zone.appendingPathComponent("\($0.id).ff").path)
+        }
+    }()
+    private var availableMaps: [GameMap] { gameMaps + installedMapPackMaps }
+
     private var selectedMode: GameMode { gameModes.first { $0.id == mode } ?? gameModes[0] }
 
     var body: some View {
@@ -100,6 +125,10 @@ struct LauncherView: View {
                         Text("Random").tag("random")
                         Divider()
                         ForEach(gameMaps) { Text($0.name).tag($0.id) }
+                        if !installedMapPackMaps.isEmpty {
+                            Divider()
+                            ForEach(installedMapPackMaps) { Text($0.name).tag($0.id) }
+                        }
                     }
                     Picker("Mode", selection: $mode) {
                         ForEach(gameModes) { Text($0.name).tag($0.id) }
@@ -154,6 +183,10 @@ struct LauncherView: View {
             Text(error ?? "")
         }
         .onAppear {
+            // A map pack's map that is no longer installed.
+            if map != "random" && !availableMaps.contains(where: { $0.id == map }) {
+                map = "mp_nuked"
+            }
             // KB_LAUNCHER_TEST=<dir>: save the window as <dir>/launcher.png, then Play.
             if let dir = ProcessInfo.processInfo.environment["KB_LAUNCHER_TEST"] {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -197,7 +230,7 @@ struct LauncherView: View {
         set("g_gametype", gametype)
         if timeLimit >= 0 { set("scr_\(gametype)_timelimit", String(timeLimit)) }
         if noScoreLimit { set("scr_\(gametype)_scorelimit", "0") }
-        let mapName = map == "random" ? (gameMaps.randomElement()?.id ?? "mp_nuked") : map
+        let mapName = map == "random" ? (availableMaps.randomElement()?.id ?? "mp_nuked") : map
         args += ["+map", mapName]
         return args
     }
