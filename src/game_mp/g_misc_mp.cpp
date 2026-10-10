@@ -181,7 +181,7 @@ void __cdecl SP_light(gentity_s *self, SpawnVar *spawnVar)
     const ComPrimaryLight *light; // [esp+A4h] [ebp-30h]
     float facingDir[3]; // [esp+A8h] [ebp-2Ch] BYREF
     float facingAngles[3]; // [esp+B4h] [ebp-20h] BYREF
-    float normalizedColor[3]; // [esp+C0h] [ebp-14h] BYREF
+    float normalizedColor[4]; // [esp+C0h] [ebp-14h] BYREF (Byte4PackRgba reads 4; the 4th byte is the exponent, set after it)
     unsigned int flags; // [esp+CCh] [ebp-8h]
     const char *spawnFlags; // [esp+D0h] [ebp-4h] BYREF
     int savedregs; // [esp+D4h] [ebp+0h] BYREF
@@ -214,6 +214,7 @@ void __cdecl SP_light(gentity_s *self, SpawnVar *spawnVar)
             __debugbreak();
         }
         self->s.lerp.u.turret.gunAngles[1] = ColorNormalize(light->color, normalizedColor);
+        normalizedColor[3] = 0.0f;
         Byte4PackRgba(normalizedColor, (unsigned __int8 *)&self->s.lerp.u);
         self->s.lerp.u.primaryLight.colorAndExp[3] = light->exponent;
         self->s.lerp.u.turret.gunAngles[2] = light->radius;

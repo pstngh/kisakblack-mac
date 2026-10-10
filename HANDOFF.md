@@ -131,8 +131,9 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   bots, scripted player: 3 runs, 25 maps, 22 rotations over 13 maps (mountain,
   array, cracked, crisis, firingrange, duga, hanoi, cairo, havoc, cosmodrome,
   radiation, villa, russianbase); no report from the streamer, no "image ... is
-  missing", no assert. Textures still stream at full resolution: release client,
-  spectator view on mp_nuked, streaming on vs `r_stream 0`: 373 high-mip loads vs 0
+  missing", no assert. The one other report, at mp_hanoi's load (`SP_light`), is
+  fixed too. Textures still stream at full resolution: release client, spectator
+  view on mp_nuked, streaming on vs `r_stream 0`: 373 high-mip loads vs 0
   (`r_streamLog 1`), sharp vs blurry surfaces (mean |Laplacian| of the back buffer
   30.0 vs 23.9).
 - **Sound** (session 10): menus and matches have sound. The main menu's
@@ -453,6 +454,10 @@ Pre-existing (wrong on every build):
   crash itself was not rerun, so which of these paths led to the reported read
   (and to the stream thread loading "images/.iwi", an image with no name) is
   inferred, not observed.
+- `SP_light` (g_misc_mp.cpp, every build) packed a 3-float color with
+  `Byte4PackRgba`, which reads 4 (ASan stack-buffer-overflow at mp_hanoi's load,
+  whose map has such lights; the 4th byte is the exponent, written right after). The
+  client's copy in cg_scr_main.cpp already had a 4-float array.
 
 ## Decisions (session 10)
 
