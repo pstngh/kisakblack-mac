@@ -39,6 +39,18 @@ struct distance_data // sizeof=0x8
                                         // R_StreamUpdateForBModel+E8/w ...
 };
 
+// The streamer keeps per-image-part state indexed by the image's pool index
+// (DB_GetImageIndex), so the image arrays must cover the whole image pool
+// (POOLSIZE_IMAGE, db_registry.cpp). The decompiled build's pool and arrays held
+// 4224 images (132 bit words); the retail zones need 4608.
+#define MAX_IMAGE_STREAMED_PARTS 1
+#define STREAM_MAX_IMAGES 4608
+#define STREAM_MAX_IMAGE_PARTS (STREAM_MAX_IMAGES * MAX_IMAGE_STREAMED_PARTS)
+#define STREAM_IMAGE_BIT_WORDS (STREAM_MAX_IMAGE_PARTS / 32)
+
+// The original puts most arrays on 128-byte boundaries (the decompiled struct had
+// gap fields for that, and the code reached imageImportance, imageImportanceBits,
+// imageLoading, imageUseBits and sortedImages through neighbouring fields).
 struct StreamFrontendGlob
 {
     void *mainBuffer;
@@ -46,49 +58,38 @@ struct StreamFrontendGlob
     void *extraBuffer;
     int extraBufferSize;
     unsigned int frame;
-    _BYTE gap14[108];
     float materialImportance[4096];
     unsigned int materialImportanceBits[128];
     unsigned int materialTouchBits[128];
     unsigned int materialPreventBits[128];
     float modelDistance[1000];
-    _BYTE gap5620[96];
     unsigned int modelDistanceBits[32];
     float dynamicModelDistance[1000];
-    _BYTE gap66A0[96];
     unsigned int dynamicModelDistanceBits[32];
     unsigned int modelTouchBits[32];
-    unsigned int imageInSortedListBits[128];
-    float imageImportance[4096];
-    unsigned int imageImportanceBits[128];
-    float dynamicImageImportance[4096];
-    unsigned int dynamicImageImportanceBits[128];
+    unsigned int imageInSortedListBits[STREAM_IMAGE_BIT_WORDS];
+    float imageImportance[STREAM_MAX_IMAGE_PARTS];
+    unsigned int imageImportanceBits[STREAM_IMAGE_BIT_WORDS];
+    float dynamicImageImportance[STREAM_MAX_IMAGE_PARTS];           // unused on PC
+    unsigned int dynamicImageImportanceBits[STREAM_IMAGE_BIT_WORDS]; // unused on PC
     unsigned int dummy;
-    _BYTE gapEE04[1440];
-    unsigned int imageLoading[128];
-    unsigned int imageUseBits[128];
-    unsigned int imageForceBits[128];
-    _BYTE gapF9A4[16];
-    unsigned int imageInitialBits[128];
-    _BYTE gapFBB4[16];
-    unsigned int imageTouchBits[2][132];
+    unsigned int imageLoading[STREAM_IMAGE_BIT_WORDS];
+    unsigned int imageUseBits[STREAM_IMAGE_BIT_WORDS];
+    unsigned int imageForceBits[STREAM_IMAGE_BIT_WORDS];
+    unsigned int imageInitialBits[STREAM_IMAGE_BIT_WORDS];
+    unsigned int imageTouchBits[2][STREAM_IMAGE_BIT_WORDS];
     int activeImageTouchBits;
     float touchedImageImportance;
     float initialImageImportance;
     float forcedImageImportance;
     bool imageInitialBitsSet;
-    _BYTE gapFFF5[3];
     int initialLoadAllocFailures;
     bool preloadCancelled;
     bool diskOrderImagesNeedSorting;
-    __declspec(align(1)) int sortedImages[4096];
-    _declspec(align(1)) int sortedImageCount;
+    int sortedImages[STREAM_MAX_IMAGE_PARTS];
+    int sortedImageCount;
     bool calculateTotalBytesWanted;
-    _BYTE gap14003[74];
-    _BYTE gap1400311[435];
     int totalBytesWanted;
-    char syncThing;
-    __declspec(align(4)) _BYTE gap14208[4];
     volatile int queryClient;
     volatile int queryInProgress;
     bool diskOrder;

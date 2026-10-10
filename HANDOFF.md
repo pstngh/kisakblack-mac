@@ -122,6 +122,19 @@ Apple Silicon has no 32-bit mode, so this is also the engine's first 64-bit port
   (Decisions session 11).
   Two 4.5-minute fu-bot matches on mp_nuked (release and ASan client): no crash, no
   ASan report, no assert (402k NaN-pose asserts before the last fix).
+- **Texture streamer overflow** (session 11): the ASan client's
+  global-buffer-overflow in `R_StreamUpdate_EndQuerySort` after mp_mountain ->
+  mp_array is fixed. The streamer's per-image arrays held 4224 images, the image
+  pool holds 4608 (retail sizes), and on mp_array the streamed glass decals sit at
+  pool indices 4224-4231: their bits landed one word past each array, in the
+  neighbouring fields (Decisions session 11). ASan client, 1-minute DM, 7 managed fu
+  bots, scripted player: 3 runs, 25 maps, 22 rotations over 13 maps (mountain,
+  array, cracked, crisis, firingrange, duga, hanoi, cairo, havoc, cosmodrome,
+  radiation, villa, russianbase); no report from the streamer, no "image ... is
+  missing", no assert. Textures still stream at full resolution: release client,
+  spectator view on mp_nuked, streaming on vs `r_stream 0`: 373 high-mip loads vs 0
+  (`r_streamLog 1`), sharp vs blurry surfaces (mean |Laplacian| of the back buffer
+  30.0 vs 23.9).
 - **Sound** (session 10): menus and matches have sound. The main menu's
   streamed music plays, through the engine's panning, the maps' reverb, the
   mastering EQ/compressor/limiter and the options' volume. src/audio_openal is a
@@ -164,16 +177,9 @@ build (`tools/make_portable.sh`: rerun after each build).
    `r_monitor` takes effect at the next start (a reset keeps the window's
    display). A fresh profile starts at 1024x768 with 4x AA: `configure_mp.csv`'s
    row for unknown GPUs, as on Windows (1024x768 used to be missing from the list).
-2. **Found while testing session 11, not fixed** (the user was offered both as
-   separate tasks):
-   (a) the ASan client reported a global-buffer-overflow in the texture streamer's
-   sort, `R_StreamUpdate_EndQuerySort` (r_stream.cpp:2318, 17892 bytes past
-   `streamFrontendGlob`), right after a map rotation (mp_mountain -> mp_array,
-   1-minute DM) and "ERROR: image 'images/.iwi' is missing"; session 10's ASan runs
-   (3 maps) didn't hit it. The function reads the sorted list through
-   `*(int *)((char *)&sortedImages[index] + 2)` and `...Bits[x - 4064]`: decompiler
-   aliases over the gap-filled `StreamFrontendGlob` (docs/64bit.md rule 9).
-   (b) Once, under ASan ~1 minute into mp_mountain (before the vehicle NaN fix), the
+2. **Found while testing session 11, not fixed** (the user was offered it as a
+   separate task; the other one, the texture streamer's overflow, is fixed: Status).
+   Once, under ASan ~1 minute into mp_mountain (before the vehicle NaN fix), the
    client froze: the main thread spun in `FX_SortEffects`' inlined
    `FX_WaitBeginIteratingOverEffects_Exclusive` (`FxSystemShared::iteratorCount`,
    offset 0x830, stayed non-zero with no other thread iterating). Not seen in ~25
@@ -226,9 +232,7 @@ that weren't resolved). Item indices are listed in CLAUDE.md.
 ## Open items found but not fixed
 
 Seen in session 11 (details in Next steps 2 and 3):
-- A global-buffer-overflow in `R_StreamUpdate_EndQuerySort` after a map rotation
-  (ASan client), and one client freeze in `FX_SortEffects` waiting for the effects
-  iterator count.
+- One client freeze in `FX_SortEffects` waiting for the effects iterator count.
 - "weapon rc_car_weapon_mp not found in weapon table" and "Couldn't find weapon
   parent 'killstreak_rcbomb' for weapon 'rcbomb_mp' in weaponOptions.csv" at map
   load; script vehicles still spawn (most likely the bots' RC-XD; not identified).
@@ -422,6 +426,33 @@ Pre-existing (wrong on every build):
   - `SpectatorThink`/`ClientThink_real` cleared `pmove_t` with `memset(pm, 0,
     0x258)`: up to `m_gjkcc_input` on i386, 8 bytes short of it on 64-bit;
     `offsetof(pmove_t, proximity_data)` now (also covers i386's padding).
+- **Texture streamer state** (`StreamFrontendGlob`, r_stream.h; every build):
+  rebuilt from the i386 offsets the code used. The original puts the arrays on
+  128-byte lines and sizes the image arrays for 4224 images (132-word bit arrays,
+  `aux_buffer[2113]`, `imagePartIndex < 4224`); the decompiled struct had
+  4096-image arrays and gap fields, and reached the real fields through neighbours
+  (rule 9): `*(float *)&imageImportanceBits[i - 4064]` was `imageImportance[i]`
+  (0x6A80), `dynamicImageImportanceBits[(i >> 5) - 4064]` was
+  `imageImportanceBits` (0xAC80), `imageLoading[w - 8]` and `imageUseBits[w - 4]`
+  the arrays at 0xF384 and 0xF594 (after a 128-aligned `dummy`),
+  `*(int *)((char *)&sortedImages[i] + 2)` plain `sortedImages[i]` (0x10000; the
+  struct had it at 0xFFFE), `totalBytesWanted` `sortedImageCount` (0x14200) and `syncThing`
+  `calculateTotalBytesWanted`. Named fields now, without the alignment gaps, the
+  image arrays sized by `STREAM_MAX_IMAGES` = 4608 = `POOLSIZE_IMAGE` (upstream's
+  "accurate to retail" pool sizes, commit 7c5565a, had raised it from 4224);
+  static_asserts in db_registry.cpp tie the image, material and xmodel pools to
+  the streamer's arrays. With the old sizes, an image at pool index 4224-4607
+  indexed 1-12 words past each array into the next field: the touch bits'
+  `[1][132]` is `activeImageTouchBits` (touching image 4230 while buffer 1 is
+  active makes the double-buffer index 65, and the touches and clear that follow
+  go ~16 KB past the struct), the loading bits' word 132 is the use bits' word 0
+  and the use bits' word 132 the force bits' word 0 (another image looks loaded or
+  forced), the importances overwrote the importance bits of images 0-255. A run
+  with a temporary log showed indices 4224-4231 (glass decals) reaching the
+  streamer right after mp_mountain -> mp_array, as in the report; the old build's
+  crash itself was not rerun, so which of these paths led to the reported read
+  (and to the stream thread loading "images/.iwi", an image with no name) is
+  inferred, not observed.
 
 ## Decisions (session 10)
 

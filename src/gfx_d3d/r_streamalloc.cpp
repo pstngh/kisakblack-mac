@@ -116,16 +116,16 @@ char __cdecl R_StreamAlloc_FreeImageByImportance(int size, float importance, Gfx
     int sortIndex; // [esp+Ch] [ebp-14h]
 
     sacrificeImage = 0;
-    for ( sortIndex = streamFrontendGlob.totalBytesWanted - 1; sortIndex >= 0; --sortIndex )
+    for ( sortIndex = streamFrontendGlob.sortedImageCount - 1; sortIndex >= 0; --sortIndex )
     {
-        imagePartIndex = *(int *)((char *)&streamFrontendGlob.sortedImages[sortIndex] + 2);
-        if ( (streamFrontendGlob.imageUseBits[(imagePartIndex >> 5) - 4] & (1 << (imagePartIndex & 0x1F))) != 0
+        imagePartIndex = streamFrontendGlob.sortedImages[sortIndex];
+        if ( (streamFrontendGlob.imageUseBits[imagePartIndex >> 5] & (1 << (imagePartIndex & 0x1F))) != 0
             && (importance == 3.4028235e38
              || (streamFrontendGlob.imageForceBits[imagePartIndex >> 5] & (1 << (imagePartIndex & 0x1F))) == 0) )
         {
-            if ( *(float *)&streamFrontendGlob.imageImportanceBits[imagePartIndex - 4064] >= importance )
+            if ( streamFrontendGlob.imageImportance[imagePartIndex] >= importance )
                 break;
-            if ( (streamFrontendGlob.imageLoading[(imagePartIndex >> 5) - 8] & (1 << (imagePartIndex & 0x1F))) == 0 )
+            if ( (streamFrontendGlob.imageLoading[imagePartIndex >> 5] & (1 << (imagePartIndex & 0x1F))) == 0 )
             {
                 image = DB_GetImageAtIndex(imagePartIndex);
                 if ( image->entry.streaming )
@@ -161,7 +161,7 @@ unsigned __int8 *__cdecl R_StreamAlloc_FreeImage(GfxImage *image, int imagePart,
     int imagePartIndex; // [esp+0h] [ebp-4h]
 
     imagePartIndex = DB_GetImageIndex(image);
-    streamFrontendGlob.imageUseBits[(imagePartIndex >> 5) - 4] &= ~(1 << (imagePartIndex & 0x1F));
+    streamFrontendGlob.imageUseBits[imagePartIndex >> 5] &= ~(1 << (imagePartIndex & 0x1F));
     *freedSize = 0;
     return 0;
 }
@@ -172,15 +172,15 @@ void __cdecl R_StreamAlloc_Flush()
     int bitIndex; // [esp+4h] [ebp-Ch]
     int index; // [esp+Ch] [ebp-4h]
 
-    for ( index = 0; index < 132; ++index )
+    for ( index = 0; index < STREAM_IMAGE_BIT_WORDS; ++index )
     {
-        useBits = streamFrontendGlob.imageUseBits[index - 4];
+        useBits = streamFrontendGlob.imageUseBits[index];
         if ( useBits )
         {
             for ( bitIndex = 0; bitIndex < 32; ++bitIndex )
             {
                 if ( (useBits & (1 << (bitIndex & 0x1F))) != 0 )
-                    streamFrontendGlob.imageUseBits[((bitIndex + 32 * index) >> 5) - 4] &= ~(1 << ((bitIndex + 32 * index) & 0x1F));
+                    streamFrontendGlob.imageUseBits[(bitIndex + 32 * index) >> 5] &= ~(1 << ((bitIndex + 32 * index) & 0x1F));
             }
         }
     }

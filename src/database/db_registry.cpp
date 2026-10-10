@@ -92,6 +92,10 @@
 //#define POOLSIZE_EMBLEMSET         2
 #define POOLSIZE_EMBLEMSET         4
 
+// The texture streamer keeps state per pool index of these (r_stream.h).
+static_assert(POOLSIZE_IMAGE == STREAM_MAX_IMAGES, "StreamFrontendGlob's image arrays must cover the image pool");
+static_assert(POOLSIZE_MATERIAL == sizeof(StreamFrontendGlob::materialImportance) / sizeof(float), "StreamFrontendGlob's material arrays must cover the material pool");
+static_assert(POOLSIZE_XMODEL == sizeof(StreamFrontendGlob::modelDistance) / sizeof(float), "StreamFrontendGlob's model arrays must cover the xmodel pool");
 
 static const int g_poolSize[43] =
 {
